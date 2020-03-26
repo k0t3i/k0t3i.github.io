@@ -1,0 +1,46 @@
+
+.logo {
+  font-family: 'Quicksand', sans-serif;
+  display: inline-block;
+  height: auto;
+  display: inline-block;
+  color: $blacksmooth; //$primary;
+  text-transform: uppercase;
+  position: relative;
+  font-weight: 100;
+  transition: font-size .5s, letter-spacing 1s, line-height 1s;
+
+  @include rem-fallback(font-size, (16px * 3) );
+  @include rem-fallback(letter-spacing, 0);
+  @include rem-fallback(line-height, (16px * 3));
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate3d(-50%, -50%, 0);
+    border-style: solid;
+    border-color: black;
+    transition: width .5s, height .5s;
+
+    @include rem-fallback(border-width, 2px);
+    @include rem-fallback(padding, (16px * 2.5));
+    @include rem-fallback(width, 100px);
+    @include rem-fallback(height, 100px);
+  }
+}
+@include for-size(desktop-up) {
+  .logo {
+    @include rem-fallback(font-size, (16px * 4.5) );
+    @include rem-fallback(letter-spacing, 16px );
+    @include rem-fallback(line-height, (16px * 6.5) );
+
+    &::before {
+      @include rem-fallback(border-width, 4px);
+      @include rem-fallback(padding, (16px * 5));
+      @include rem-fallback(width, 160px);
+      @include rem-fallback(height, 160px);
+    }
+  }
+}

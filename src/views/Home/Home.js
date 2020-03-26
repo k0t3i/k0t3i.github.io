@@ -1,9 +1,12 @@
+import Logo from "@/components/Logo";
 
 export default {
   name: 'home',
-  components: {},
+  components: {
+    Logo
+  },
   props: [],
-  data () {
+  data() {
     return {
 
     }
@@ -11,12 +14,10 @@ export default {
   computed: {
 
   },
-  mounted () {
+  mounted() {
 
   },
   methods: {
 
   }
 }
-
-

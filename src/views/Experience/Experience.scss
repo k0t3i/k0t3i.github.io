@@ -1,3 +1,66 @@
 .experience {
 
+  .list {
+    font-family: 'Open Sans', sans-serif;
+    font-weight: 300;
+    color : rgba(156,157,161,1);
+    text-align: left;
+    position: relative;
+    display: inline-block;
+
+    @include rem-fallback(font-size, (16px *2) );
+    @include rem-fallback(letter-spacing, 3px );
+
+    li {
+      @include rem-fallback(margin-left, 16px );
+
+      &::first-letter {
+        text-transform: uppercase;
+      }
+    }
+    &:before {
+      content: '';
+      @include rem-fallback(width, 1px );
+
+      height: 120%;
+      position: absolute;
+      background-color: red;
+      top : 50%;
+      left: 0;
+      transform: translate3d(0, -50%, 0);
+    }
+  }
+
+  .expyear {
+    display: inline-block;
+    font-family: 'Anton', sans-serif;
+    font-weight: 800;
+    position: relative;
+    line-height: 1;
+
+    @include rem-fallback(font-size, (16px * 6) );
+    @include rem-fallback(letter-spacing, 5px );
+
+    &::before,
+    &::after{
+      position: absolute;
+      @include rem-fallback(right, (16px * -3) );
+      bottom: 0;
+    }
+    &::before{
+       content: '+';
+      bottom: auto;
+      color: $fakered;
+            right: auto;
+
+      @include rem-fallback(font-size, (16px * 4) );
+      @include rem-fallback(left, -5rem );
+      @include rem-fallback(top, (16px / -2) );
+      
+    }
+    &::after {
+      content: 'y';
+      @include rem-fallback(font-size, (16px * 4) );
+    }
+  }
 }

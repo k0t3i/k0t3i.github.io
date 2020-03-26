@@ -1,0 +1,41 @@
+.main-title {
+  $local-font-size : 12px;
+  $local-base-after : 16px;
+
+  display: inline-block;
+  font-family: 'Anton', sans-serif;
+  font-weight: 800;
+  text-transform: uppercase;
+  position: relative;
+  line-height: 1;
+
+  @include rem-fallback(font-size, ($local-font-size * 3) );
+  @include rem-fallback(letter-spacing, 5px );
+
+  &:after {
+    content : '';
+    position: absolute;
+    background-color: $fakered;
+    @include rem-fallback(width, $local-base-after );
+    @include rem-fallback(height, ($local-base-after /2) );
+    @include rem-fallback(bottom, ($local-base-after /4) );
+    @include rem-fallback(right, ($local-base-after * 1.5 * -1) );
+  }
+}
+
+@include for-size(desktop-up) {
+  .main-title {
+    $local-font-size : 22px;
+    $local-base-after : 20px;
+
+    @include rem-fallback(font-size, ($local-font-size * 3) );
+    @include rem-fallback(letter-spacing, 5px );
+
+    &:after {
+      @include rem-fallback(width, $local-base-after );
+      @include rem-fallback(height, ($local-base-after /2) );
+      @include rem-fallback(bottom, ($local-base-after /3.05) );
+      @include rem-fallback(right, ($local-base-after * 1.5 * -1) );
+    }
+  }
+}

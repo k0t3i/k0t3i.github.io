@@ -1,17 +1,19 @@
-
+import CustomTitle from "@/components/MainTitle";
 export default {
   name: 'experience',
-  components: {},
+  components: {
+    CustomTitle
+  },
   props: [],
-  data () {
+  data() {
     return {
-
+      localTitle: 'experiences'
     }
   },
   computed: {
 
   },
-  mounted () {
+  mounted() {
 
   },
   methods: {
