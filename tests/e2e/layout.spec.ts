@@ -769,6 +769,44 @@ test.describe('wide board', () => {
     }
   });
 
+  test('the 404 page keeps the page of the flowing board at 79rem and up', async ({ page }) => {
+    await page.setViewportSize({ width: 1600, height: 900 });
+    const pageOf = () =>
+      page.evaluate(() => {
+        const s = getComputedStyle(document.body);
+        return `${s.display} ${s.padding} ${s.alignContent}`;
+      });
+    await page.goto('/');
+    // The home board lies centred on the page.
+    expect(await pageOf()).toBe('grid 16px safe center');
+    await page.goto('/nope');
+    await expect(page.locator('h1')).toBeVisible();
+    // The 404 board is the flowing one: the page around it is the base page (base.css).
+    expect(await pageOf()).toBe('block 24px 16px normal');
+    expect((await page.locator('.board').boundingBox())?.width).toBeCloseTo(44 * 16, 0);
+  });
+
+  test('a sheet with no room above its part opens below it', async ({ page }) => {
+    // A short window scrolled to the principles: above R1 there is no room for its sheet.
+    await page.setViewportSize({ width: 1600, height: 330 });
+    await page.goto('/');
+    const supported = await page.evaluate(() => CSS.supports('position-area: center') && CSS.supports('position-try-order: most-height'));
+    test.skip(!supported, 'no anchor positioning with try order');
+    expect(await page.locator('#sheet-r1').evaluate((el) => getComputedStyle(el).getPropertyValue('position-try-order'))).toBe('most-height');
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    await trigger(page, 'r1').click();
+    const sheet = page.locator('#sheet-r1');
+    await expect(sheet).toBeVisible();
+    await settled(sheet);
+    const [s, p] = await Promise.all([sheet.boundingBox(), page.locator('#part-r1').boundingBox()]);
+    if (!s || !p) throw new Error('no box for r1');
+    expect(p.y).toBeLessThan(80);
+    // Flipped below the part, with the room there: not squeezed into the strip above it.
+    expect(s.y).toBeGreaterThanOrEqual(p.y + p.height);
+    expect(s.height).toBeGreaterThan(120);
+    expect(s.y + s.height).toBeLessThanOrEqual(330);
+  });
+
   test('on a short window every link of a sheet is in view when it opens, clear of the Close bar', async ({ page }) => {
     await page.setViewportSize({ width: 1264, height: 800 });
     await page.goto('/');
