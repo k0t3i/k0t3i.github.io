@@ -74,6 +74,10 @@ test('surname only inside the e-mail', (t) => {
   if (!existsSync(at(site))) return t.skip(`${site} not created yet`);
   const { email } = JSON.parse(read(site));
   assert.ok(email, `${site} has no "email" field`);
-  const hits = textFiles().filter((f) => /lowinsky/i.test(textOf(f).split(email).join(''))).map((f) => f.name);
+  // This file holds the pattern itself.
+  const hits = textFiles()
+    .filter((f) => f.name !== 'tests/static/repo.test.mjs')
+    .filter((f) => /lowinsky/i.test(textOf(f).split(email).join('')))
+    .map((f) => f.name);
   assert.deepEqual(hits, []);
 });

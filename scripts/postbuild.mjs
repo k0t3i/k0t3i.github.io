@@ -1,6 +1,7 @@
 // Post-build step run after `vite-ssg build`:
 //   1. dist/404/index.html -> dist/404.html (GitHub Pages serves 404.html for unknown paths);
-//   2. every dist/**/*.html gets its Content-Security-Policy <meta>, right after <meta charset>;
+//   2. every dist/**/*.html gets its Content-Security-Policy <meta>, right after <meta charset>,
+//      and its data-critical script (the language redirect) right after the CSP;
 //   3. fails if a page has an inline style (the CSP forbids it);
 //   4. fails if dist/kit-urgence exists (that folder belongs to another repository).
 // It also removes dist/.vite (the SSR manifest is of no use once pages are prerendered).
@@ -19,7 +20,7 @@ const SCRIPT = /<script\b([^>]*)>([\s\S]*?)<\/script>/gi;
 export function inlineScriptBodies(html) {
   const bodies = [];
   for (const [, attrs, body] of html.matchAll(SCRIPT)) {
-    if (/\bsrc\s*=/i.test(attrs) || /\btype\s*=\s*["']?application\/ld\+json/i.test(attrs)) continue;
+    if (/(?<![\w-])src\s*=/i.test(attrs) || /\btype\s*=\s*["']?application\/ld\+json/i.test(attrs)) continue;
     bodies.push(body);
   }
   return bodies;
@@ -50,9 +51,21 @@ export function insertCsp(html) {
   return html.replace(CSP_META, '').replace(CHARSET, (charset) => charset + meta);
 }
 
-// Head order: <meta charset>, the CSP, then (later) the critical inline script marked
-// data-critical, then everything else. Each step maps the HTML string to a new one.
-const STEPS = [insertCsp];
+/**
+ * Moves the inline script marked data-critical (the language redirect) right after the CSP <meta>.
+ * Its body is untouched, so the hash computed by insertCsp stays valid.
+ */
+export function hoistCritical(html) {
+  const csp = html.match(CSP_META);
+  if (!csp) throw new Error('hoistCritical needs the CSP: run insertCsp first');
+  const critical = html.match(/<script\b[^>]*\bdata-critical\b[^>]*>[\s\S]*?<\/script>/i);
+  if (!critical) return html;
+  return html.replace(critical[0], '').replace(csp[0], (meta) => meta + critical[0]);
+}
+
+// Head order: <meta charset>, the CSP, the critical inline script (data-critical), then everything else.
+// Each step maps the HTML string to a new one.
+const STEPS = [insertCsp, hoistCritical];
 
 export function transformHtml(html) {
   return STEPS.reduce((acc, step) => step(acc), html);

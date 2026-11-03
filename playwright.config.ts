@@ -6,7 +6,8 @@ export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,
   reporter: [['list'], ['html', { open: 'never' }]],
-  use: { baseURL: 'http://localhost:4173' },
+  // French by default: the home page redirects other languages to /en/.
+  use: { baseURL: 'http://localhost:4173', locale: 'fr-FR' },
   webServer: {
     command: 'npm run build && npm run serve',
     url: 'http://localhost:4173',

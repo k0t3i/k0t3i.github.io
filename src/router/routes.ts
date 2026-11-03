@@ -1,8 +1,7 @@
 import type { RouteRecordRaw } from 'vue-router';
 import HomeView from '../views/HomeView.vue';
 import NotFoundView from '../views/NotFoundView.vue';
-
-export type Locale = 'fr' | 'en';
+import type { Locale } from '../content/types';
 
 declare module 'vue-router' {
   interface RouteMeta {

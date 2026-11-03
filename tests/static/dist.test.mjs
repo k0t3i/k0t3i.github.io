@@ -3,22 +3,12 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { inlineScriptBodies } from '../../scripts/postbuild.mjs';
 import { DIST_ROOT, distFiles } from '../helpers/pages.mjs';
 
 // These tests run on the output of `npm run build`.
 const at = (...p) => join(DIST_ROOT, ...p);
 const htmlFiles = () => distFiles().filter((f) => f.endsWith('.html'));
-
-/** Inline executable <script> bodies (application/ld+json is data, not code). */
-function inlineScripts(html) {
-  const out = [];
-  for (const m of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)) {
-    const attrs = m[1];
-    if (/\bsrc\s*=/i.test(attrs) || /type\s*=\s*["']?application\/ld\+json/i.test(attrs)) continue;
-    out.push(m[2]);
-  }
-  return out;
-}
 
 test('dist pages exist', () => {
   for (const f of ['index.html', 'en/index.html', '404.html']) assert.ok(existsSync(at(f)), `dist/${f} is missing`);
@@ -46,7 +36,7 @@ test('CSP is first after charset and hashes every inline script', () => {
     assert.match(csp, /^default-src 'none'; script-src 'self'/);
     assert.match(csp, /; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests$/);
     assert.equal(html.match(/http-equiv="Content-Security-Policy"/gi).length, 1, `${f}: more than one CSP`);
-    for (const body of inlineScripts(html)) {
+    for (const body of inlineScriptBodies(html)) {
       const hash = createHash('sha256').update(body, 'utf8').digest('base64');
       assert.ok(csp.includes(`'sha256-${hash}'`), `${f}: inline script without hash in the CSP`);
     }

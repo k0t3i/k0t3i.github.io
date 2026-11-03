@@ -1,12 +1,14 @@
 <script setup lang="ts">
-import { useHead } from '@unhead/vue';
+import { useLocale } from '../composables/useLocale';
+import { usePageHead } from '../composables/usePageHead';
 
 // Provisional: the real page replaces this view in a later task.
-useHead({ title: 'Anthony' });
+const { content } = useLocale();
+usePageHead(content);
 </script>
 
 <template>
   <main>
-    <h1>Anthony</h1>
+    <h1>{{ content.hero.lead }} {{ content.hero.strong }}</h1>
   </main>
 </template>
