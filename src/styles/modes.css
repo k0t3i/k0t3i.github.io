@@ -58,6 +58,11 @@
       stroke: none;
     }
 
+    /* The art of the wide board is a background: its live layer would run over nothing. */
+    .board__signal {
+      display: none;
+    }
+
     /* JP1: the position the shunt is on stays in the text colour, the other one is greyed. */
     .jp1__pos {
       color: GrayText;

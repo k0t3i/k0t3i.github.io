@@ -1,7 +1,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { FR } from '../helpers/copy';
+import { EN, FR } from '../helpers/copy';
 
-// The flowing board (portrait), below 79rem. The wide board has its own tests.
+// The flowing board (portrait), below 79rem, then the wide board (79rem and up).
 
 const IDS = [...FR.principles, ...FR.connectors].map((p) => p.id);
 const GOLD = 'rgb(201, 164, 92)';
@@ -484,5 +484,337 @@ test.describe('flowing board with user text settings', () => {
       return Math.abs(el.getBoundingClientRect().left + parseFloat(glow.left) + parseFloat(glow.width) / 2 - lens);
     });
     expect(drift).toBeLessThanOrEqual(0.5);
+  });
+});
+
+/*
+ * The wide board, 79rem and up: a 16:9 board whose blocks are placed in the 1600 x 900 units of its
+ * art (board-wide.svg), so the copper of the art lands on the pads drawn by the page.
+ */
+
+/** Mounting holes of the art: centres in art units, and the radius of their plated ring. */
+const HOLES = [
+  [56, 52],
+  [1544, 52],
+  [56, 848],
+  [1544, 848],
+] as const;
+const HOLE_RING = 15;
+
+/**
+ * Problems of the wide board: blocks that overlap, leave the board, overflow sideways or enter the
+ * keep-out of a mounting hole (its ring plus 0.75rem); labels cut or out of their part; a line of
+ * text that leaves the board, runs into another block or is printed over a trace of the art;
+ * horizontal scroll. Empty when the layout holds.
+ */
+function wideProblems(page: Page): Promise<string[]> {
+  return page.evaluate(
+    async ({ holes, ring }) => {
+      const problems: string[] = [];
+      const boardEl = document.querySelector('.board') as HTMLElement;
+      const board = boardEl.getBoundingClientRect();
+      const u = board.width / 1600;
+      const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+      const selectors = [
+        '.board__header',
+        '.hero__title',
+        '.hero__sub',
+        '.disp',
+        '.sw1',
+        '.silk-heading',
+        '.part__trigger',
+        '.uptime',
+        '.pcb-marks',
+      ];
+      const blocks = selectors.flatMap((s) =>
+        [...document.querySelectorAll<HTMLElement>(s)].map((el, i) => ({ name: `${s}[${i}]`, el, r: el.getBoundingClientRect() })),
+      );
+      for (const [i, a] of blocks.entries()) {
+        for (const b of blocks.slice(i + 1)) {
+          if (a.el.contains(b.el) || b.el.contains(a.el)) continue;
+          const x = Math.min(a.r.right, b.r.right) - Math.max(a.r.left, b.r.left);
+          const y = Math.min(a.r.bottom, b.r.bottom) - Math.max(a.r.top, b.r.top);
+          if (x > 0.5 && y > 0.5) problems.push(`${a.name} overlaps ${b.name}`);
+        }
+      }
+      const inside = (r: DOMRect, box: DOMRect): boolean =>
+        r.left >= box.left - 0.5 && r.right <= box.right + 0.5 && r.top >= box.top - 0.5 && r.bottom <= box.bottom + 0.5;
+      for (const b of blocks) {
+        if (!inside(b.r, board)) problems.push(`${b.name} is out of the board`);
+        if (b.el.scrollWidth > b.el.clientWidth + 1) problems.push(`${b.name} overflows horizontally`);
+        for (const [hx, hy] of holes) {
+          const cx = board.left + hx * u;
+          const cy = board.top + hy * u;
+          const gap = Math.hypot(Math.max(b.r.left - cx, 0, cx - b.r.right), Math.max(b.r.top - cy, 0, cy - b.r.bottom)) - ring * u;
+          if (gap < 0.75 * rem) problems.push(`${b.name} is in the keep-out of the hole at ${hx},${hy}`);
+        }
+      }
+      for (const [i, label] of [...document.querySelectorAll<HTMLElement>('.part__label')].entries()) {
+        const owner = label.closest('.part__trigger')?.getBoundingClientRect();
+        if (label.scrollWidth > label.clientWidth + 1 || label.scrollHeight > label.clientHeight + 1) problems.push(`label ${i} is cut`);
+        if (!owner || !inside(label.getBoundingClientRect(), owner)) problems.push(`label ${i} leaves its trigger`);
+      }
+
+      // The copper of the art: every trace, as segments in page pixels, widened by half its stroke and 1px.
+      const url = getComputedStyle(boardEl).backgroundImage.match(/url\("?([^")]*board-wide[^")]*)"?\)/)?.[1];
+      if (!url) return [...problems, 'the board has no art'];
+      const art = new DOMParser().parseFromString(await (await fetch(url)).text(), 'image/svg+xml');
+      const segments: { a: number[]; b: number[]; half: number }[] = [];
+      for (const path of art.querySelectorAll('g[stroke] path')) {
+        const half = (parseFloat(path.getAttribute('stroke-width') ?? '1') / 2) * u + 1;
+        let at = [0, 0];
+        let user = [0, 0];
+        for (const [, cmd = '', args = ''] of (path.getAttribute('d') ?? '').matchAll(/([MHVL])([^MHVL]*)/g)) {
+          const n = args.trim().split(/[\s,]+/).map(Number);
+          user = cmd === 'H' ? [n[0] ?? 0, user[1] ?? 0] : cmd === 'V' ? [user[0] ?? 0, n[0] ?? 0] : [n[0] ?? 0, n[1] ?? 0];
+          const px = [board.left + (user[0] ?? 0) * u, board.top + (user[1] ?? 0) * u];
+          if (cmd !== 'M') segments.push({ a: at, b: px, half });
+          at = px;
+        }
+      }
+      if (segments.length < 20) problems.push(`only ${segments.length} segments of copper in the art`);
+      // Lines of text printed on the board itself (DISP1 covers the art under its own labels).
+      const walker = document.createTreeWalker(boardEl, NodeFilter.SHOW_TEXT);
+      for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+        const el = n.parentElement;
+        if (!el || !n.nodeValue?.trim() || el.closest('.vh, .sheet, .disp__pins, .disp__screen') || !el.checkVisibility()) continue;
+        const range = document.createRange();
+        range.selectNodeContents(n);
+        for (const line of range.getClientRects()) {
+          // A line of text stays on the board, and clear of every block it does not belong to.
+          if (!inside(line, board)) problems.push(`"${n.nodeValue.trim().slice(0, 24)}" leaves the board`);
+          for (const b of blocks) {
+            if (b.el.contains(el)) continue;
+            const x = Math.min(line.right, b.r.right) - Math.max(line.left, b.r.left);
+            const y = Math.min(line.bottom, b.r.bottom) - Math.max(line.top, b.r.top);
+            if (x > 0.5 && y > 0.5) problems.push(`"${n.nodeValue.trim().slice(0, 24)}" runs into ${b.name}`);
+          }
+          const hit = segments.some(({ a, b, half }) => {
+            const [ax = 0, ay = 0] = a;
+            const [bx = 0, by = 0] = b;
+            const steps = Math.max(1, Math.ceil(Math.hypot(bx - ax, by - ay)));
+            for (let s = 0; s <= steps; s++) {
+              const x = ax + ((bx - ax) * s) / steps;
+              const y = ay + ((by - ay) * s) / steps;
+              if (x > line.left - half && x < line.right + half && y > line.top - half && y < line.bottom + half) return true;
+            }
+            return false;
+          });
+          if (hit) problems.push(`"${n.nodeValue.trim().slice(0, 24)}" is printed over a trace`);
+        }
+      }
+      if (document.documentElement.scrollWidth > window.innerWidth) problems.push('horizontal scroll');
+      return problems;
+    },
+    { holes: HOLES, ring: HOLE_RING },
+  );
+}
+
+test.describe('wide board', () => {
+  for (const viewport of [
+    { width: 1264, height: 800 },
+    { width: 1600, height: 900 },
+  ]) {
+    test(`no overlap or clipping on the wide board at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+      await page.setViewportSize(viewport);
+      for (const path of [FR.path, EN.path]) {
+        await page.goto(path);
+        await expect(page.locator('.board__signal')).toBeVisible();
+        expect(await wideProblems(page), path).toEqual([]);
+      }
+    });
+  }
+
+  for (const width of [1264, 1440, 1600, 1920]) {
+    test(`wide board keeps 16:9 and fits the viewport width at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto('/');
+      const box = await page.evaluate(() => {
+        const r = (document.querySelector('.board') as Element).getBoundingClientRect();
+        const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+        return {
+          width: r.width,
+          height: r.height,
+          expected: Math.min(window.innerWidth - 4 * rem, 96 * rem),
+          left: r.left,
+          right: document.documentElement.clientWidth - r.right,
+          scroll: document.documentElement.scrollWidth - window.innerWidth,
+        };
+      });
+      expect(box.width).toBeCloseTo(box.expected, 0);
+      expect(box.height).toBeCloseTo((box.width * 9) / 16, 0);
+      // Centred, inside the viewport, no horizontal scroll.
+      expect(Math.abs(box.left - box.right)).toBeLessThanOrEqual(1);
+      expect(box.left).toBeGreaterThan(0);
+      expect(box.scroll).toBeLessThanOrEqual(0);
+    });
+  }
+
+  test('the flowing buses, their glints, the stubs and the tablet trace are off', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.setViewportSize({ width: 1600, height: 900 });
+    await page.goto('/');
+    const drawn = await page.evaluate(() => {
+      const lists = [...document.querySelectorAll('.parts__list')];
+      return {
+        buses: lists.map((l) => getComputedStyle(l).backgroundImage),
+        glints: lists.flatMap((l) => ['::before', '::after'].map((p) => getComputedStyle(l, p).display)),
+        stubs: [...new Set([...document.querySelectorAll('.part__body')].map((b) => getComputedStyle(b).backgroundImage))],
+        trace: getComputedStyle(document.querySelector('.disp') as Element, '::after').display,
+        layer: getComputedStyle(document.querySelector('.board__signal') as Element).display,
+      };
+    });
+    expect(drawn).toEqual({ buses: ['none', 'none'], glints: ['none', 'none', 'none', 'none'], stubs: ['none'], trace: 'none', layer: 'block' });
+  });
+
+  for (const width of [1264, 1600]) {
+    test(`every live trace runs from a DISP1 pad to a pad of its part at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto('/');
+      const ends = await page.evaluate(() => {
+        type Box = { left: number; right: number; top: number; bottom: number };
+        const within = (p: DOMPoint, b: Box) => p.x >= b.left - 0.5 && p.x <= b.right + 0.5 && p.y >= b.top - 0.5 && p.y <= b.bottom + 0.5;
+        // The pads of DISP1: the ::before of each pin label, centred above it.
+        const dispPads: Box[] = [...document.querySelectorAll('.disp__pin')].map((pin) => {
+          const r = pin.getBoundingClientRect();
+          const s = getComputedStyle(pin, '::before');
+          const [w, h] = [parseFloat(s.width), parseFloat(s.height)];
+          return { left: r.left + (r.width - w) / 2, right: r.left + (r.width + w) / 2, top: r.top, bottom: r.top + h };
+        });
+        // The pads of a part: the rects of its symbol (64 x 32 units), over the drawing of the part.
+        const partPads = (id: string): Box[] => {
+          const body = document.querySelector(`#part-${id} .part__body`) as SVGSVGElement;
+          const symbol = document.querySelector((body.querySelector('use') as SVGUseElement).getAttribute('href') ?? '') as Element;
+          const b = body.getBoundingClientRect();
+          const k = b.width / 64;
+          return [...symbol.querySelectorAll('rect.pcb-pad')].map((p) => {
+            const [x = 0, y = 0, w = 0, h = 0] = ['x', 'y', 'width', 'height'].map((a) => parseFloat(p.getAttribute(a) ?? '0'));
+            return { left: b.left + x * k, right: b.left + (x + w) * k, top: b.top + y * k, bottom: b.top + (y + h) * k };
+          });
+        };
+        return [...document.querySelectorAll<SVGPathElement>('path.trace-live')].map((path) => {
+          const points: number[][] = [];
+          for (const [, cmd, args = ''] of (path.getAttribute('d') ?? '').matchAll(/([MHVL])([^MHVL]*)/g)) {
+            const n = args.trim().split(/\s+/).map(Number);
+            const [lx = 0, ly = 0] = points.at(-1) ?? [];
+            points.push(cmd === 'H' ? [n[0] ?? 0, ly] : cmd === 'V' ? [lx, n[0] ?? 0] : [n[0] ?? 0, n[1] ?? 0]);
+          }
+          const m = path.getScreenCTM() as DOMMatrix;
+          const [start, end] = [points[0], points.at(-1)].map((p) => new DOMPoint(p?.[0], p?.[1]).matrixTransform(m)) as [DOMPoint, DOMPoint];
+          const id = path.dataset.part ?? '';
+          return `${id} ${dispPads.some((b) => within(start, b))} ${partPads(id).some((b) => within(end, b))}`;
+        });
+      });
+      expect(ends).toEqual(['r1', 'c1', 'led1', 'd1', 'u2', 'j1', 'j2', 'j3'].map((id) => `${id} true true`));
+    });
+  }
+
+  test('the pads of DISP1 in the art sit under the pads drawn by the module', async ({ page }) => {
+    for (const width of [1264, 1920]) {
+      await page.setViewportSize({ width, height: 1080 });
+      await page.goto('/');
+      const offsets = await page.evaluate(async () => {
+        const boardEl = document.querySelector('.board') as HTMLElement;
+        const board = boardEl.getBoundingClientRect();
+        const u = board.width / 1600;
+        const url = getComputedStyle(boardEl).backgroundImage.match(/url\("?([^")]*board-wide[^")]*)"?\)/)?.[1] ?? '';
+        const art = new DOMParser().parseFromString(await (await fetch(url)).text(), 'image/svg+xml');
+        // The drills of the header footprint, left to right.
+        const drills = [...art.querySelectorAll('#disp1-pads circle[r="3"]')].map((c) => [
+          board.left + parseFloat(c.getAttribute('cx') ?? '0') * u,
+          board.top + parseFloat(c.getAttribute('cy') ?? '0') * u,
+        ]);
+        const pads = [...document.querySelectorAll('.disp__pin')].map((pin) => {
+          const r = pin.getBoundingClientRect();
+          const h = parseFloat(getComputedStyle(pin, '::before').height);
+          return [r.left + r.width / 2, r.top + h / 2];
+        });
+        const worst = Math.max(...pads.map(([x = 0, y = 0], i) => Math.hypot(x - (drills[i]?.[0] ?? 0), y - (drills[i]?.[1] ?? 0))));
+        return { count: [drills.length, pads.length], worst };
+      });
+      expect(offsets.count).toEqual([6, 6]);
+      expect(offsets.worst, `at ${width}px`).toBeLessThanOrEqual(0.75);
+    }
+  });
+
+  test('a sheet opens next to its part, inside the viewport', async ({ page }) => {
+    await page.setViewportSize({ width: 1600, height: 900 });
+    await page.goto('/');
+    const anchored = await page.evaluate(() => CSS.supports('position-area: center'));
+    const rem = 16;
+    for (const id of ['r1', 'u2', 'j1', 'j3']) {
+      await trigger(page, id).click();
+      const sheet = page.locator(`#sheet-${id}`);
+      await expect(sheet).toBeVisible();
+      await settled(sheet);
+      const [s, p] = await Promise.all([sheet.boundingBox(), page.locator(`#part-${id}`).boundingBox()]);
+      if (!s || !p) throw new Error(`no box for ${id}`);
+      expect(s.width, id).toBeCloseTo(22 * rem, 0);
+      expect(s.x, id).toBeGreaterThanOrEqual(0);
+      expect(s.y, id).toBeGreaterThanOrEqual(0);
+      expect(s.x + s.width, id).toBeLessThanOrEqual(1600);
+      expect(s.y + s.height, id).toBeLessThanOrEqual(900);
+      if (anchored) {
+        // Above its part (below when there is no room), 0.75rem away, over the column of the part.
+        const gap = Math.min(Math.abs(p.y - (s.y + s.height)), Math.abs(s.y - (p.y + p.height)));
+        expect(gap, id).toBeCloseTo(0.75 * rem, 0);
+        expect(Math.min(s.x + s.width, p.x + p.width) - Math.max(s.x, p.x), id).toBeGreaterThan(0);
+      } else {
+        // Without anchor positioning: in the bottom right corner.
+        expect(1600 - (s.x + s.width), id).toBeCloseTo(2 * rem, 0);
+        expect(900 - (s.y + s.height), id).toBeCloseTo(2 * rem, 0);
+      }
+      await page.keyboard.press('Escape');
+      await expect(sheet).toBeHidden();
+    }
+  });
+
+  test('on a short window every link of a sheet is in view when it opens, clear of the Close bar', async ({ page }) => {
+    await page.setViewportSize({ width: 1264, height: 800 });
+    await page.goto('/');
+    for (const id of IDS) {
+      await trigger(page, id).click();
+      const sheet = page.locator(`#sheet-${id}`);
+      await expect(sheet).toBeVisible();
+      await settled(sheet);
+      // The link is what is drawn at its own centre and at both ends of its box: nothing covers it.
+      const hidden = await sheet.locator('a[href]').evaluateAll((links) =>
+        links.filter((a) => {
+          const r = a.getBoundingClientRect();
+          return [r.left + 2, r.left + r.width / 2, r.right - 2].some((x) => {
+            const hit = document.elementFromPoint(x, r.top + r.height / 2);
+            return !hit || !a.contains(hit);
+          });
+        }).map((a) => a.textContent),
+      );
+      expect(hidden, id).toEqual([]);
+      await page.keyboard.press('Escape');
+      await expect(sheet).toBeHidden();
+    }
+  });
+});
+
+test.describe('wide board with user text settings', () => {
+  // These tests inject a stylesheet: the CSP of the page is bypassed for them only.
+  test.use({ bypassCSP: true });
+
+  test('no overlap or clipping on the wide board at 1600x900 with the root font at 125%', async ({ page }) => {
+    await page.setViewportSize({ width: 1600, height: 900 });
+    for (const path of [FR.path, EN.path]) {
+      await page.goto(path);
+      await page.addStyleTag({ content: 'html { font-size: 125% !important; }' });
+      await expect(page.locator('.board__signal')).toBeVisible();
+      expect(await wideProblems(page), path).toEqual([]);
+    }
+  });
+
+  test('no overlap or clipping on the wide board at 1264x800 with text spacing', async ({ page }) => {
+    await page.setViewportSize({ width: 1264, height: 800 });
+    for (const path of [FR.path, EN.path]) {
+      await page.goto(path);
+      await page.addStyleTag({ content: TEXT_SPACING });
+      await expect(page.locator('.board__signal')).toBeVisible();
+      expect(await wideProblems(page), path).toEqual([]);
+    }
   });
 });

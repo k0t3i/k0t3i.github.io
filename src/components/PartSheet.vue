@@ -60,6 +60,12 @@ const srcset = (ext: string): string => `/img/kit-urgence-380.${ext} 380w, /img/
     >
       {{ props.part.body }}
     </p>
+    <!-- The link before the picture: it stays in view when a short window makes the sheet scroll. -->
+    <a
+      v-if="props.part.link"
+      class="sheet__link"
+      :href="props.part.link.href"
+    >{{ props.part.link.text }}<span aria-hidden="true"> ↗</span></a>
     <picture
       v-if="props.part.media && mediaReady"
       class="sheet__media"
@@ -81,11 +87,6 @@ const srcset = (ext: string): string => `/img/kit-urgence-380.${ext} 380w, /img/
         :alt="props.part.media.alt"
       >
     </picture>
-    <a
-      v-if="props.part.link"
-      class="sheet__link"
-      :href="props.part.link.href"
-    >{{ props.part.link.text }}<span aria-hidden="true"> ↗</span></a>
     <!-- role=list: VoiceOver drops the list role of a list without bullets. -->
     <ul
       v-if="props.part.contacts"

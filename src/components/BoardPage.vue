@@ -26,7 +26,8 @@ onBeforeUnmount(() => document.removeEventListener('touchstart', touchActive));
     class="skip-link"
     href="#contenu"
   >{{ props.content.skipLink }}</a>
-  <div class="board">
+  <!-- board--home: the board of the home page, the one that turns into the wide board (wide.css). -->
+  <div class="board board--home">
     <PartSprite />
     <BoardSignal />
     <BoardHeader

@@ -15,6 +15,8 @@
     padding: var(--sheet-pad) var(--sheet-pad) 0;
     overflow-y: auto;
     overscroll-behavior: contain;
+    /* A link scrolled into view by the focus stops above the Close bar, never under it (WCAG 2.4.11). */
+    scroll-padding-block-end: 3.25rem;
     border: 0;
     border-radius: 0.875rem 0.875rem 0 0;
     background: var(--sheet-bg);

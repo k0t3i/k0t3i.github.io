@@ -1,0 +1,475 @@
+/*
+ * The wide board, 79rem and up. The home board becomes a 16:9 object drawn in the 1600 x 900 units
+ * of its art (assets/img/board-wide.svg): one unit is --u. Each block sits at --x, --y in those
+ * units, and the drawn parts (their bodies, DISP1, SW1) are sized in them too, so the copper of the
+ * art lands on their pads at every width. Text stays in rem: the blocks are placed so that it can
+ * grow (root font at 125 %, WCAG text spacing) without meeting a trace or another block.
+ * DOM order, reading order and tab order stay those of the flowing board.
+ */
+@layer wide {
+  /* The paths of the live layer (BoardSignal.vue): gold, and unlit until something lights them. */
+  .trace-live,
+  .signal {
+    fill: none;
+    stroke: var(--gold);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: 0;
+  }
+
+  /* A dash of 6 % of its route, at the start of it: motion.css runs it to the end. */
+  .signal {
+    stroke-dasharray: 6 94;
+    stroke-dashoffset: 100;
+  }
+
+  @media (min-width: 79rem) {
+    /* The board lies on the page, centred when the window is taller than it. */
+    body {
+      display: grid;
+      align-content: safe center;
+      padding: 1rem;
+    }
+
+    .board--home {
+      /* --u resolves in the blocks of the board, against its width (cqi): never on the board itself. */
+      --u: calc(100cqi / 1600);
+      --sym: var(--u);
+      --stub: 0px;
+      --w: min(100vw - 4rem, 96rem);
+      /* Origin of DISP1, which places SW1 in board units too. */
+      --disp-x: 1188;
+      --disp-y: 168;
+
+      container-type: inline-size;
+      width: var(--w);
+      max-width: none;
+      aspect-ratio: 16 / 9;
+      padding: 0;
+      border-radius: calc(var(--w) * 28 / 1600);
+      background-image: url("../assets/img/board-wide.svg"), var(--grain);
+      background-position: 0 0, 0 0;
+      background-size: 100% 100%, 160px 160px;
+      background-repeat: no-repeat, repeat;
+    }
+
+    /* Every block is placed at --x, --y; the parts and the headings are placed on the board itself. */
+    .board--home > .board__header,
+    .board--home .hero,
+    .board--home .disp,
+    .board--home .part,
+    .board--home .silk-heading,
+    .board--home > .board__footer {
+      position: absolute;
+      left: calc(var(--x) * var(--u));
+      top: calc(var(--y) * var(--u));
+      margin: 0;
+    }
+
+    .board--home .parts,
+    .board--home .parts__list {
+      position: static;
+      margin: 0;
+    }
+
+    /*
+     * Header: name and revision, the language pads and JP1, centred on the line of the top holes
+     * (2.75rem high). Spaced paragraphs (WCAG 1.4.12) make it taller: it grows downwards, the pads
+     * stay at its top, clear of the traces under it.
+     */
+    .board--home > .board__header {
+      --x: 112;
+      --y: 52;
+
+      top: calc(var(--y) * var(--u) - 1.375rem);
+      width: calc(1376 * var(--u));
+    }
+
+    .board--home .lang,
+    .board--home .board__jp1 {
+      align-self: start;
+    }
+
+    /* The title and the subtitle, at the top left, with the room to grow under them. */
+    .board--home .hero {
+      --x: 112;
+      --y: 146;
+
+      width: calc(940 * var(--u));
+    }
+
+    .board--home .hero__title {
+      font-size: 4.25rem;
+    }
+
+    /* From 90rem the board has room for a larger title (the sweep of the art starts right of it). */
+    @media (min-width: 90rem) {
+      .board--home .hero__title {
+        font-size: 4.75rem;
+      }
+    }
+
+    /* Two lines of even length: no word left alone on the second one. */
+    .board--home .hero__sub {
+      max-width: 36rem;
+      margin-top: 1.25rem;
+      text-wrap: balance;
+    }
+
+    /*
+     * DISP1: the module (300 x 342 units) at the top right, its header at the top (six pads, 44 units
+     * apart, on the pads of the art), the glass under it, then a row with its caption and SW1.
+     */
+    .board--home .disp {
+      --x: var(--disp-x);
+      --y: var(--disp-y);
+
+      display: block;
+      width: calc(300 * var(--u));
+      height: calc(386 * var(--u));
+      max-width: none;
+    }
+
+    .board--home .disp::before {
+      position: absolute;
+      inset: 0 0 auto;
+      height: calc(342 * var(--u));
+      border-radius: calc(6 * var(--u));
+    }
+
+    .board--home .disp::after {
+      display: none;
+    }
+
+    .board--home .disp__pins {
+      position: absolute;
+      top: 0;
+      left: calc(18 * var(--u));
+      width: calc(264 * var(--u));
+      height: calc(56 * var(--u));
+      margin: 0;
+      padding: calc(14 * var(--u)) 0 0;
+    }
+
+    .board--home .disp__pin {
+      row-gap: calc(6 * var(--u));
+    }
+
+    .board--home .disp__pin::before {
+      width: calc(12 * var(--u));
+      height: calc(12 * var(--u));
+      background: radial-gradient(circle, var(--drill) 0 calc(3 * var(--u)), var(--pad) calc(3 * var(--u) + 0.5px));
+    }
+
+    .board--home .disp__screen {
+      position: absolute;
+      top: calc(56 * var(--u));
+      left: calc(14 * var(--u));
+      display: grid;
+      place-items: center;
+      width: calc(272 * var(--u));
+      height: calc(272 * var(--u));
+      margin: 0;
+      padding: 0;
+    }
+
+    .board--home .disp__pixels {
+      inset: 0;
+      margin: auto;
+    }
+
+    .board--home .disp__caption {
+      position: absolute;
+      top: calc(350 * var(--u));
+      left: 0;
+      display: flex;
+      align-items: center;
+      height: calc(36 * var(--u));
+      margin: 0;
+    }
+
+    /* SW1, with its body at --x, --y: its two top pads take the traces of the art up under DISP1. */
+    .board--home .sw1 {
+      --x: 1404;
+      --y: 518;
+
+      position: absolute;
+      left: calc((var(--x) - var(--disp-x)) * var(--u));
+      top: calc((var(--y) - var(--disp-y)) * var(--u));
+      height: calc(36 * var(--u));
+      min-width: 0;
+      min-height: 0;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* The section headings, on one line over the two groups. */
+    .board--home .silk-heading {
+      --y: 580;
+    }
+
+    .board--home .disp + .parts .silk-heading {
+      --x: 112;
+    }
+
+    .board--home .parts + .parts .silk-heading {
+      --x: 1188;
+    }
+
+    /* The buses of the flowing board, their glints and the stubs of the parts: the art draws the copper. */
+    .board--home .parts__list {
+      display: block;
+      padding: 0;
+      background: none;
+    }
+
+    .board--home .parts__list::before,
+    .board--home .parts__list::after {
+      display: none;
+    }
+
+    .board--home .part__body {
+      background: none;
+    }
+
+    /* The fan-out drawn in the symbol of U2: on this board the art routes into pin 1 itself. */
+    .board--home .part {
+      --wire: transparent;
+    }
+
+    /*
+     * The principles, in one row under the corridor of the art: each part with its reference beside
+     * it, its label under it. The trace of the art drops into its first pad from the left.
+     */
+    .board--home .disp + .parts .part {
+      --y: 618;
+
+      width: calc(184 * var(--u));
+    }
+
+    #part-r1 {
+      --x: 112;
+    }
+
+    #part-c1 {
+      --x: 320;
+    }
+
+    #part-led1 {
+      --x: 528;
+    }
+
+    #part-d1 {
+      --x: 736;
+    }
+
+    #part-u2 {
+      --x: 944;
+    }
+
+    .board--home .disp + .parts .part__trigger {
+      grid-template-rows: calc(32 * var(--u)) auto;
+      row-gap: calc(8 * var(--u));
+      column-gap: calc(12 * var(--u));
+      min-height: 0;
+    }
+
+    .board--home .disp + .parts .part__body,
+    .board--home .disp + .parts .part__trigger::before {
+      grid-row: 1;
+    }
+
+    .board--home .disp + .parts .part__ref {
+      align-self: center;
+      padding-top: 0;
+    }
+
+    .board--home .disp + .parts .part__label {
+      grid-column: 1 / -1;
+      grid-row: 2;
+      margin-top: 0;
+    }
+
+    /* The connectors, down the right side under DISP1, each fed from the left. */
+    .board--home .parts + .parts .part {
+      --x: 1188;
+
+      width: calc(300 * var(--u));
+    }
+
+    #part-j1 {
+      --y: 618;
+    }
+
+    #part-j2 {
+      --y: 682;
+    }
+
+    #part-j3 {
+      --y: 746;
+    }
+
+    .board--home .parts + .parts .part__trigger {
+      column-gap: calc(12 * var(--u));
+    }
+
+    /* Footer: the uptime and the marks along the bottom edge, centred on the line of the bottom holes. */
+    .board--home > .board__footer {
+      --x: 112;
+      --y: 848;
+
+      top: calc(var(--y) * var(--u) - 0.67rem);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 2rem;
+      width: calc(1376 * var(--u));
+    }
+
+    .board--home .uptime {
+      max-width: none;
+    }
+
+    .board--home .pcb-marks {
+      margin-inline-end: 0;
+    }
+
+    /* The live layer, over the art and under every block. */
+    .board--home .board__signal {
+      position: absolute;
+      inset: 0;
+      display: block;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    /*
+     * The sheets: a datasheet of 22rem, set a little tighter than the full-width one. Without anchor
+     * positioning, in the bottom right corner; with it, next to its part (above it, starting at its
+     * left edge), flipped when there is no room.
+     */
+    .sheet {
+      --sheet-pad: 1.25rem;
+
+      inset: auto 2rem 2rem auto;
+      width: 22rem;
+      max-width: calc(100vw - 4rem);
+      max-height: calc(100dvh - 4rem);
+      margin: 0;
+      border-radius: 0.5rem;
+      box-shadow:
+        inset 0 1px 0 var(--sheet-edge),
+        0 0 0 1px var(--line),
+        0 1.5rem 3rem -1rem var(--shadow);
+    }
+
+    .sheet__body {
+      margin-top: 0.75rem;
+    }
+
+    .sheet__link {
+      margin-top: 0.5rem;
+    }
+
+    .sheet__close {
+      margin-top: 1rem;
+    }
+
+    /*
+     * The Kit visual is a portrait poster: on a sheet anchored above its part, it shows as a 2:1
+     * preview cut from its top (the title and the first items), so the whole sheet and its link fit
+     * above J1 on a window 900px high.
+     */
+    .sheet__media {
+      margin-top: 1rem;
+    }
+
+    .sheet__media img {
+      width: 100%;
+      aspect-ratio: 2 / 1;
+      object-fit: cover;
+      object-position: 50% 0;
+    }
+
+    @supports (position-area: center) {
+      .sheet::backdrop {
+        background: var(--backdrop-anchored);
+      }
+
+      #part-r1 {
+        anchor-name: --r1;
+      }
+
+      #part-c1 {
+        anchor-name: --c1;
+      }
+
+      #part-led1 {
+        anchor-name: --led1;
+      }
+
+      #part-d1 {
+        anchor-name: --d1;
+      }
+
+      #part-u2 {
+        anchor-name: --u2;
+      }
+
+      #part-j1 {
+        anchor-name: --j1;
+      }
+
+      #part-j2 {
+        anchor-name: --j2;
+      }
+
+      #part-j3 {
+        anchor-name: --j3;
+      }
+
+      #sheet-r1 {
+        position-anchor: --r1;
+      }
+
+      #sheet-c1 {
+        position-anchor: --c1;
+      }
+
+      #sheet-led1 {
+        position-anchor: --led1;
+      }
+
+      #sheet-d1 {
+        position-anchor: --d1;
+      }
+
+      #sheet-u2 {
+        position-anchor: --u2;
+      }
+
+      #sheet-j1 {
+        position-anchor: --j1;
+      }
+
+      #sheet-j2 {
+        position-anchor: --j2;
+      }
+
+      #sheet-j3 {
+        position-anchor: --j3;
+      }
+
+      .sheet {
+        inset: auto;
+        max-height: calc(100% - 1.5rem);
+        margin: 0.75rem;
+        position-area: block-start span-inline-end;
+        position-try-fallbacks: flip-block, flip-inline;
+      }
+    }
+  }
+}

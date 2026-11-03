@@ -25,6 +25,8 @@
      */
     --bus: 0.5rem;
     --stub: 1rem;
+    /* One unit of the part symbols (PartSprite.vue): 1/16 rem here, one unit of the art on the wide board. */
+    --sym: 0.0625rem;
     --via-r: 0.25rem;
     --gap: 2.5rem;
     --block-gap: 3.5rem;
@@ -138,7 +140,8 @@
   /*
    * The slot of JP1: laid out in the prerender at its final size, so the jumper appears (once the
    * app has mounted) without moving anything. Sized for the longer English positions (GREEN, BLACK:
-   * 2 x 5 mono characters, the 2rem jumper, two gaps and the side padding).
+   * 2 x 5 mono characters, the 2rem jumper, two gaps and the side padding); a minimum, so spaced
+   * letters (WCAG 1.4.12) widen it instead of overflowing it.
    */
   .board__jp1 {
     display: grid;
@@ -146,7 +149,7 @@
     justify-self: end;
     justify-items: end;
     align-items: center;
-    width: 8.25rem;
+    min-width: 8.25rem;
     min-height: 2.75rem;
   }
 
@@ -386,8 +389,8 @@
   }
 
   .sw1__body {
-    width: 2rem;
-    height: 2rem;
+    width: calc(32 * var(--sym));
+    height: calc(32 * var(--sym));
   }
 
   .sw1 .part__ref {

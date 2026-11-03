@@ -104,6 +104,21 @@ describe('PartSheet', () => {
     expect(wrapper.get('a.sheet__link').attributes('href')).toBe(`${SITE.baseUrl}kit-urgence/`);
   });
 
+  it('J1 sheet gives the link to the project before its picture', async () => {
+    // The call to action stays in view when a short window makes the sheet scroll: the picture comes last.
+    const wrapper = mount(PartSheet, { props: { part: part(fr, 'j1'), close: fr.close } });
+    const sheet = wrapper.get('div.sheet');
+    await sheet.trigger('toggle', { newState: 'open', oldState: 'closed' });
+    expect([...sheet.element.children].map((c) => c.className)).toEqual([
+      'sheet__ref',
+      'sheet__title',
+      'sheet__body',
+      'sheet__link',
+      'sheet__media',
+      'sheet__close',
+    ]);
+  });
+
   it('J3 uses SITE.email and SITE.github', () => {
     const wrapper = mount(PartSheet, { props: { part: part(fr, 'j3'), close: fr.close } });
     const hrefs = wrapper.findAll('ul.sheet__links a').map((a) => a.attributes('href'));

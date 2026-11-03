@@ -7,6 +7,8 @@ import { THEME_SNIPPET } from '../lib/theme';
 // ?url gives the hashed URL of the build, the same one fonts.css points to: the preload is reused.
 import hankenUrl from '../assets/fonts/hanken-grotesk.woff2?url';
 import monoUrl from '../assets/fonts/jetbrains-mono.woff2?url';
+// The art of the wide board: the same hashed file as the background of wide.css.
+import artUrl from '../assets/img/board-wide.svg?url';
 
 const KNOWS_ABOUT = ['Front-end development', 'Web accessibility', 'Web performance', 'Software architecture', 'Debugging'];
 
@@ -69,6 +71,8 @@ export function usePageHead(source: MaybeRefOrGetter<SiteContent>): void {
       link: [
         // Both faces are on the first screen (title and silkscreen). Fonts are always fetched in CORS mode.
         ...[hankenUrl, monoUrl].map((href) => ({ rel: 'preload', as: 'font', type: 'font/woff2', href, crossorigin: '' }) as const),
+        // The board is the first screen from 79rem: its art is fetched with the stylesheet, not after it.
+        { rel: 'preload', as: 'image', type: 'image/svg+xml', href: artUrl, media: '(min-width: 79rem)' },
         { rel: 'canonical', href: url },
         { rel: 'alternate', hreflang: 'fr', href: SITE.baseUrl },
         { rel: 'alternate', hreflang: 'en', href: `${SITE.baseUrl}en/` },

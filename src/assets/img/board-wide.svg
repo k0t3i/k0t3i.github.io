@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900">
+<!-- The wide board of k0t3i.github.io, 1600 x 900 units. Static and the same on both masks: copper under the mask is a white veil, gold, drills and silkscreen are solid. -->
+<defs>
+<g id="v"><circle r="6" fill="#fff" fill-opacity=".07"/><circle r="2" fill="#050506"/></g>
+<g id="s"><circle r="4" fill="#fff" fill-opacity=".07"/><circle r="1" fill="#050506"/></g>
+</defs>
+<!-- Outline -->
+<rect x="16" y="16" width="1568" height="868" rx="14" fill="none" stroke="#fff" stroke-opacity=".05" stroke-width="2"/>
+<!-- Traces: DISP1 to each part (the live layer repeats them), then SW1, the fan-out vias and TP1 -->
+<g fill="none" stroke="#fff" stroke-opacity=".055" stroke-linecap="round" stroke-linejoin="round">
+<path stroke-width="2" d="M1448 188V106L1438 96H1141L1090 147V332L900 522H108L96 534V618L112 634H119"/>
+<path stroke-width="2" d="M1404 188V118L1394 108H1146L1102 152V337L905 534H316L304 546V618L320 634H326"/>
+<path stroke-width="2" d="M1360 188V130L1350 120H1151L1114 157V342L910 546H524L512 558V618L528 634H535"/>
+<path stroke-width="2" d="M1316 188V142L1306 132H1156L1126 162V347L915 558H732L720 570V618L736 634H742"/>
+<path stroke-width="3" d="M1272 188V154L1262 144H1161L1138 167V352L928 562V630L944 646H962"/>
+<path stroke-width="3" d="M1272 188V466L1254 484H1186L1174 496V622L1186 634H1194"/>
+<path stroke-width="3" d="M1228 188V450L1210 468H1174L1162 480V686L1174 698H1194"/>
+<path stroke-width="3" d="M1228 188V166L1218 156H1166L1150 172V750L1162 762H1194"/>
+<path stroke-width="2" d="M1408 527V498"/>
+<path stroke-width="2" d="M1432 527V498"/>
+<path stroke-width="2" d="M159 634V614"/>
+<path stroke-width="2" d="M356 634V614"/>
+<path stroke-width="2" d="M567 634V614"/>
+<path stroke-width="2" d="M778 634V614"/>
+<path stroke-width="2" d="M962 621V610"/>
+<path stroke-width="2" d="M986 621V610"/>
+<path stroke-width="3" d="M1246 762V786"/>
+<path stroke-width="2" d="M1090 252H1046"/>
+</g>
+<!-- Vias -->
+<g>
+<use href="#v" x="1408" y="498"/>
+<use href="#v" x="1432" y="498"/>
+<use href="#v" x="159" y="614"/>
+<use href="#v" x="356" y="614"/>
+<use href="#v" x="567" y="614"/>
+<use href="#v" x="778" y="614"/>
+<use href="#v" x="962" y="610"/>
+<use href="#v" x="986" y="610"/>
+<use href="#v" x="1246" y="786"/>
+</g>
+<!-- Mounting holes, stitching vias, keep-outs -->
+<g>
+<circle cx="56" cy="52" r="15" fill="#c9a45c"/><circle cx="56" cy="52" r="8" fill="#050506"/>
+<use href="#s" x="84" y="52"/>
+<use href="#s" x="76" y="72"/>
+<use href="#s" x="56" y="80"/>
+<use href="#s" x="36" y="72"/>
+<use href="#s" x="28" y="52"/>
+<use href="#s" x="36" y="32"/>
+<use href="#s" x="56" y="24"/>
+<use href="#s" x="76" y="32"/>
+<circle cx="1544" cy="52" r="15" fill="#c9a45c"/><circle cx="1544" cy="52" r="8" fill="#050506"/>
+<use href="#s" x="1572" y="52"/>
+<use href="#s" x="1564" y="72"/>
+<use href="#s" x="1544" y="80"/>
+<use href="#s" x="1524" y="72"/>
+<use href="#s" x="1516" y="52"/>
+<use href="#s" x="1524" y="32"/>
+<use href="#s" x="1544" y="24"/>
+<use href="#s" x="1564" y="32"/>
+<circle cx="56" cy="848" r="15" fill="#c9a45c"/><circle cx="56" cy="848" r="8" fill="#050506"/>
+<use href="#s" x="84" y="848"/>
+<use href="#s" x="76" y="868"/>
+<use href="#s" x="56" y="876"/>
+<use href="#s" x="36" y="868"/>
+<use href="#s" x="28" y="848"/>
+<use href="#s" x="36" y="828"/>
+<use href="#s" x="56" y="820"/>
+<use href="#s" x="76" y="828"/>
+<circle cx="1544" cy="848" r="15" fill="#c9a45c"/><circle cx="1544" cy="848" r="8" fill="#050506"/>
+<use href="#s" x="1572" y="848"/>
+<use href="#s" x="1564" y="868"/>
+<use href="#s" x="1544" y="876"/>
+<use href="#s" x="1524" y="868"/>
+<use href="#s" x="1516" y="848"/>
+<use href="#s" x="1524" y="828"/>
+<use href="#s" x="1544" y="820"/>
+<use href="#s" x="1564" y="828"/>
+</g>
+<!-- Fiducials -->
+<circle cx="1544" cy="150" r="13" fill="#fff" fill-opacity=".03"/><circle cx="1544" cy="150" r="5" fill="#c9a45c"/>
+<circle cx="56" cy="750" r="13" fill="#fff" fill-opacity=".03"/><circle cx="56" cy="750" r="5" fill="#c9a45c"/>
+<circle cx="1544" cy="750" r="13" fill="#fff" fill-opacity=".03"/><circle cx="1544" cy="750" r="5" fill="#c9a45c"/>
+<!-- Test point -->
+<circle cx="1046" cy="252" r="6" fill="#c9a45c"/>
+<text x="1032" y="257" fill="#a29e95" font-family="JetBrains Mono,ui-monospace,Consolas,Menlo,monospace" font-size="16" text-anchor="end">TP1</text>
+<!-- DISP1: placement corners and header footprint -->
+<path fill="none" stroke="#e8e4da" stroke-opacity=".35" d="M1182 176V162H1196M1480 162H1494V176M1494 500V514H1480M1196 514H1182V500"/>
+<g id="disp1-pads">
+<rect x="1222" y="182" width="12" height="12" rx="1" fill="#c9a45c"/>
+<circle cx="1228" cy="188" r="3" fill="#050506"/>
+<circle cx="1272" cy="188" r="6" fill="#c9a45c"/>
+<circle cx="1272" cy="188" r="3" fill="#050506"/>
+<circle cx="1316" cy="188" r="6" fill="#c9a45c"/>
+<circle cx="1316" cy="188" r="3" fill="#050506"/>
+<circle cx="1360" cy="188" r="6" fill="#c9a45c"/>
+<circle cx="1360" cy="188" r="3" fill="#050506"/>
+<circle cx="1404" cy="188" r="6" fill="#c9a45c"/>
+<circle cx="1404" cy="188" r="3" fill="#050506"/>
+<circle cx="1448" cy="188" r="6" fill="#c9a45c"/>
+<circle cx="1448" cy="188" r="3" fill="#050506"/>
+</g>
+</svg>

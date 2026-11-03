@@ -119,58 +119,58 @@
   }
 
   .part {
-    /* Extent of the footprint drawn in the sprite (right edge, height): its courtyard follows it. */
-    --fp: 4rem;
-    --fp-h: 2rem;
+    /* Extent of the footprint drawn in the sprite (right edge, height), in symbol units: its courtyard follows it. */
+    --fp: 64;
+    --fp-h: 32;
     --wire: var(--trace);
   }
 
   #part-r1 {
-    --fp: 3.3125rem;
-    --fp-h: 1.5rem;
+    --fp: 53;
+    --fp-h: 24;
   }
 
   #part-c1 {
-    --fp: 2.5625rem;
-    --fp-h: 1.375rem;
+    --fp: 41;
+    --fp-h: 22;
   }
 
   #part-led1 {
-    --fp: 3rem;
-    --fp-h: 1.5rem;
+    --fp: 48;
+    --fp-h: 24;
   }
 
   #part-d1 {
-    --fp: 3.1875rem;
-    --fp-h: 1.375rem;
+    --fp: 51;
+    --fp-h: 22;
   }
 
   #part-u2 {
-    --fp: 2.9375rem;
-    --fp-h: 2.25rem;
+    --fp: 47;
+    --fp-h: 36;
   }
 
   #part-j1 {
-    --fp: 3.875rem;
-    --fp-h: 0.875rem;
+    --fp: 62;
+    --fp-h: 14;
   }
 
   #part-j2 {
-    --fp: 2.625rem;
-    --fp-h: 0.875rem;
+    --fp: 42;
+    --fp-h: 14;
   }
 
   #part-j3 {
-    --fp: 3.9375rem;
-    --fp-h: 1.25rem;
+    --fp: 63;
+    --fp-h: 20;
   }
 
   .part__trigger {
     position: relative;
     isolation: isolate;
     display: grid;
-    /* As wide as the drawing of every part (stub + 4rem): all the parts share one text column. */
-    grid-template-columns: calc(var(--stub) + 4rem) minmax(0, 1fr);
+    /* As wide as the drawing of every part (stub + 64 units): all the parts share one text column. */
+    grid-template-columns: calc(var(--stub) + 64 * var(--sym)) minmax(0, 1fr);
     align-items: start;
     column-gap: 0.75rem;
     width: 100%;
@@ -182,8 +182,8 @@
   .part__body {
     grid-column: 1;
     grid-row: 1 / span 2;
-    width: calc(var(--stub) + 4rem);
-    height: 2rem;
+    width: calc(var(--stub) + 64 * var(--sym));
+    height: calc(32 * var(--sym));
     padding-left: var(--stub);
     overflow: visible;
     background: linear-gradient(var(--wire), var(--wire)) 0 50% / calc(var(--stub) + 2px) 2px no-repeat;
@@ -195,9 +195,9 @@
     grid-column: 1;
     grid-row: 1 / span 2;
     align-self: start;
-    width: calc(var(--fp) + 0.25rem);
-    height: calc(var(--fp-h) + 0.25rem);
-    margin: calc(1rem - var(--fp-h) / 2 - 0.125rem) 0 0 calc(var(--stub) - 0.125rem);
+    width: calc((var(--fp) + 4) * var(--sym));
+    height: calc((var(--fp-h) + 4) * var(--sym));
+    margin: calc((14 - var(--fp-h) / 2) * var(--sym)) 0 0 calc(var(--stub) - 2 * var(--sym));
     border: 1px solid var(--line);
     border-radius: 0.125rem;
     opacity: 0;
@@ -228,11 +228,11 @@
     content: "";
     position: absolute;
     z-index: -1;
-    /* Centred on the lens (x = 23 of the 64-unit symbol, 1 unit = 1/16 rem). */
-    top: calc(1rem - 1.375rem);
-    left: calc(var(--stub) + 1.4375rem - 1.75rem);
-    width: 3.5rem;
-    height: 2.75rem;
+    /* Centred on the lens (x = 23, y = 16 of the 64-unit symbol). */
+    top: calc(-6 * var(--sym));
+    left: calc(var(--stub) - 5 * var(--sym));
+    width: calc(56 * var(--sym));
+    height: calc(44 * var(--sym));
     background: radial-gradient(
       closest-side,
       color-mix(in srgb, var(--led) 40%, transparent),

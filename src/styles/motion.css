@@ -124,9 +124,66 @@
       }
     }
 
-    /* JP1 swaps the board in a short cross-fade (a view transition, started by useTheme). */
+    /*
+     * The wide board: a short gold dash runs down four of its traces, one after the other. Each one
+     * leaves DISP1, reaches its part in 2.7s and is seen less than 30% of its 9s cycle; then nothing,
+     * so nothing draws the eye for long.
+     */
+    .signal {
+      animation: signal 9s linear infinite;
+    }
+
+    .board__ambient .signal:nth-child(2) {
+      animation-delay: 2.2s;
+    }
+
+    .board__ambient .signal:nth-child(3) {
+      animation-delay: 4.5s;
+    }
+
+    .board__ambient .signal:nth-child(4) {
+      animation-delay: 6.7s;
+    }
+
+    @keyframes signal {
+      0% {
+        opacity: 0;
+        stroke-dashoffset: 100;
+      }
+
+      2%,
+      26% {
+        opacity: 0.85;
+      }
+
+      28.5%,
+      100% {
+        opacity: 0;
+      }
+
+      30%,
+      100% {
+        stroke-dashoffset: 0;
+      }
+    }
+
+    /*
+     * Page changes are view transitions: between the two languages (LangSwitch, in the page) and from
+     * one page to another. The board is a group of its own. JP1 swaps the board the same way (useTheme).
+     */
+    @view-transition {
+      navigation: auto;
+    }
+
+    .board {
+      view-transition-name: board;
+    }
+
+    ::view-transition-group(board),
     ::view-transition-old(root),
-    ::view-transition-new(root) {
+    ::view-transition-new(root),
+    ::view-transition-old(board),
+    ::view-transition-new(board) {
       animation-duration: 280ms;
       animation-timing-function: ease-out;
     }

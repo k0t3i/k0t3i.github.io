@@ -115,5 +115,7 @@
   /* The veil behind an open sheet, declared on ::backdrop itself: Safari 17.0 to 17.3 does not inherit custom properties into it. */
   ::backdrop {
     --backdrop: rgb(5 5 6 / 0.6);
+    /* Behind a sheet anchored to its part (wide board): lighter, the board stays readable around it. */
+    --backdrop-anchored: rgb(5 5 6 / 0.4);
   }
 }
