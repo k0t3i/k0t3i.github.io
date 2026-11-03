@@ -2,6 +2,7 @@ import { mount } from '@vue/test-utils';
 import { createSSRApp, h } from 'vue';
 import { renderToString } from 'vue/server-renderer';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import BoardPage from '../../src/components/BoardPage.vue';
 import DisplayModule from '../../src/components/DisplayModule.vue';
 import PartList from '../../src/components/PartList.vue';
 import PartSheet from '../../src/components/PartSheet.vue';
@@ -192,12 +193,56 @@ describe('ThemeJumper', () => {
     expect(wrapper.get('.vh').text()).toBe('black board');
   });
 
+  it('two quick clicks switch twice, even while the first view transition is pending', async () => {
+    // The view transition runs its update later: the second click must not read the old state.
+    const updates: (() => Promise<void> | void)[] = [];
+    Object.defineProperty(document, 'startViewTransition', {
+      configurable: true,
+      value: (update: () => Promise<void> | void) => {
+        updates.push(update);
+        return { finished: Promise.resolve(), ready: Promise.resolve(), updateCallbackDone: Promise.resolve(), skipTransition: () => {} };
+      },
+    });
+    try {
+      const wrapper = mount(ThemeJumper, { props: { theme: fr.theme } });
+      await wrapper.vm.$nextTick();
+      const button = wrapper.get('button.jp1');
+      await button.trigger('click');
+      await button.trigger('click');
+      expect(localStorage.getItem('k0t3i.theme')).toBe('green');
+      for (const update of updates) await update();
+      await wrapper.vm.$nextTick();
+      expect(updates).toHaveLength(2);
+      expect(document.documentElement.dataset.theme).toBe('green');
+      expect(button.attributes('aria-pressed')).toBe('false');
+    } finally {
+      Reflect.deleteProperty(document, 'startViewTransition');
+    }
+  });
+
   it('reads the saved choice once mounted, and leaves the page attribute to the head script', async () => {
     localStorage.setItem('k0t3i.theme', 'dark');
     const wrapper = mount(ThemeJumper, { props: { theme: fr.theme } });
     await wrapper.vm.$nextTick();
     expect(wrapper.get('button.jp1').attributes('aria-pressed')).toBe('true');
     expect(document.documentElement.dataset.theme).toBeUndefined();
+  });
+});
+
+describe('BoardPage', () => {
+  it('listens to touchstart, passively, so iOS Safari applies :active on a tap', () => {
+    const add = vi.spyOn(document, 'addEventListener');
+    const remove = vi.spyOn(document, 'removeEventListener');
+    try {
+      const wrapper = mount(BoardPage, { props: { content: fr }, global: { stubs: { RouterLink: true } } });
+      const call = add.mock.calls.find(([type]) => type === 'touchstart');
+      expect(call?.[2]).toEqual({ passive: true });
+      wrapper.unmount();
+      expect(remove.mock.calls.some(([type, listener]) => type === 'touchstart' && listener === call?.[1])).toBe(true);
+    } finally {
+      add.mockRestore();
+      remove.mockRestore();
+    }
   });
 });
 

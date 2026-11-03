@@ -66,6 +66,56 @@ test.describe('light scheme', () => {
   });
 });
 
+test.describe('JP1 shows its state', () => {
+  test.use({ reducedMotion: 'reduce' });
+
+  test('the cap follows the state: its pixels change with aria-pressed', async ({ page }) => {
+    await page.goto('/');
+    const body = page.locator('button.jp1 .jp1__body');
+    await expect(body).toBeVisible();
+    const box = await body.boundingBox();
+    if (!box) throw new Error('no box for the jumper');
+    const green = await page.screenshot({ clip: box });
+    await jp1(page).click();
+    await expect(jp1(page)).toHaveAttribute('aria-pressed', 'true');
+    const black = await page.screenshot({ clip: box });
+    expect(green.equals(black)).toBe(false);
+  });
+
+  /** Colours of the two positions, and whether the lit one is the one the cap is on. */
+  const labels = (page: Page) =>
+    page.evaluate(() => {
+      const button = document.querySelector('button.jp1') as Element;
+      const colour = (s: string) => getComputedStyle(button.querySelector(s) as Element).color;
+      const silk = getComputedStyle(button.querySelector('.part__ref') as Element).color;
+      return { green: colour('.jp1__pos--green'), dark: colour('.jp1__pos--dark'), silk, pressed: button.getAttribute('aria-pressed') };
+    });
+
+  test('only the active position is printed bright, also on hover', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'hover needs a mouse');
+    await page.goto('/');
+    await jp1(page).hover();
+    const l = await labels(page);
+    expect(l.pressed).toBe('false');
+    expect(l.green).toBe(l.silk);
+    expect(l.dark).not.toBe(l.silk);
+  });
+
+  test('with more contrast, the inactive position stays dimmer than the active one', async ({ page }) => {
+    await page.emulateMedia({ contrast: 'more' });
+    await page.goto('/');
+    await expect(jp1(page)).toBeVisible();
+    const off = await labels(page);
+    expect(off.green).toBe(off.silk);
+    expect(off.dark).not.toBe(off.silk);
+    await jp1(page).click();
+    await expect(jp1(page)).toHaveAttribute('aria-pressed', 'true');
+    const on = await labels(page);
+    expect(on.dark).toBe(on.silk);
+    expect(on.green).not.toBe(on.silk);
+  });
+});
+
 test.describe('dark scheme', () => {
   test.use({ colorScheme: 'dark' });
 

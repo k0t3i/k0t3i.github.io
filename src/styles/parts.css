@@ -49,6 +49,18 @@
     stroke-linejoin: round;
   }
 
+  /* The cap of JP1: black plastic, a lit rim, a lighter top face. */
+  .pcb-cap {
+    fill: var(--cap);
+    stroke: var(--cap-edge);
+    stroke-width: 1px;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .pcb-cap-top {
+    fill: var(--cap-top);
+  }
+
   /* The shunt of JP1, on pins 1-2 or on pins 2-3: its button sets which one shows. */
   .pcb-shunt--a {
     opacity: var(--shunt-a, 1);
@@ -66,17 +78,9 @@
     overflow: hidden;
   }
 
+  /* The bus geometry (--bus, --stub, --via-r, --gap, --block-gap) is set on the board (board.css). */
   .parts {
-    /*
-     * x of the bus, the length of the stubs, the radius of the vias at both ends of a bus, and the
-     * gap between two columns of parts. Set on the section, so its heading can reach the bus too.
-     */
-    --bus: 0.5rem;
-    --stub: 1rem;
-    --via-r: 0.25rem;
-    --gap: 2.5rem;
-
-    margin-top: 3.5rem;
+    margin-top: var(--block-gap);
   }
 
   .silk-heading {
@@ -316,13 +320,14 @@
         var(--bus-2) 0,
         var(--bus-2) 100%,
         var(--bus-2) var(--via-r);
+      /* --bus-2 off (0) leaves a list with its first bus only. */
       background-size:
         var(--via-size) var(--via-size),
         var(--via-size) var(--via-size),
         2px calc(100% - var(--via-r) * 2),
-        var(--via-size) var(--via-size),
-        var(--via-size) var(--via-size),
-        2px calc(100% - var(--via-r) * 2);
+        calc(var(--via-size) * var(--bus-2-on, 1)) var(--via-size),
+        calc(var(--via-size) * var(--bus-2-on, 1)) var(--via-size),
+        calc(2px * var(--bus-2-on, 1)) calc(100% - var(--via-r) * 2);
     }
 
     .parts__list:has(> :nth-child(3)) {
@@ -335,6 +340,21 @@
 
     .parts__list:has(> :nth-child(7)) {
       --rows: 4;
+    }
+  }
+
+  /* Between 46 and 79rem the principles sit beside DISP1 (board.css): one column, one bus, one glint. */
+  @media (46rem <= width < 79rem) {
+    .disp + .parts .parts__list {
+      --bus-2-on: 0;
+
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: none;
+      grid-auto-flow: row;
+    }
+
+    .disp + .parts .parts__list::before {
+      display: none;
     }
   }
 }

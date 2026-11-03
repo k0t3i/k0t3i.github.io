@@ -53,9 +53,12 @@
     /* The glass of DISP1: a faint reflection and scan lines, never a tint. */
     --glare: rgb(255 255 255 / 0.04);
     --scan: rgb(0 0 0 / 0.08);
-    /* Shadows cast on the board (DISP1, the sheets), the veil behind an open sheet. */
+    /* The cap of JP1: black plastic with a lit rim and a lighter top face, so it reads on both masks. */
+    --cap: #141519;
+    --cap-top: #24262c;
+    --cap-edge: #5d6069;
+    /* Shadows cast on the board (DISP1, the sheets). */
     --shadow: #000;
-    --backdrop: rgb(5 5 6 / 0.6);
     /* Matte grain of the solder mask: a 160px noise tile, 5% strong, the same on both masks. */
     --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23g)' opacity='.05'/%3E%3C/svg%3E");
 
@@ -69,6 +72,8 @@
     --tented: color-mix(in srgb, var(--trace) 95%, var(--silk));
     --selection: color-mix(in srgb, var(--gold) 35%, var(--mask));
     --sheet-edge: color-mix(in srgb, var(--silk) 12%, var(--sheet-bg));
+    /* The position JP1 is not on: dim silkscreen, kept dim with more contrast (modes.css). */
+    --jp1-off: var(--silk-dim);
 
     /* Type: rem only. */
     --text-floor: 0.75rem;
@@ -105,5 +110,10 @@
 
   :root[data-theme="green"] {
     color-scheme: light;
+  }
+
+  /* The veil behind an open sheet, declared on ::backdrop itself: Safari 17.0 to 17.3 does not inherit custom properties into it. */
+  ::backdrop {
+    --backdrop: rgb(5 5 6 / 0.6);
   }
 }

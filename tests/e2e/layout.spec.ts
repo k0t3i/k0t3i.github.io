@@ -45,7 +45,8 @@ function layoutProblems(page: Page): Promise<string[]> {
       r.left >= box.left - 0.5 && r.right <= box.right + 0.5 && r.top >= box.top - 0.5 && r.bottom <= box.bottom + 0.5;
     for (const b of blocks) {
       if (!inside(b.r, board)) problems.push(`${b.name} is out of the board`);
-      if (b.el.scrollWidth > b.el.clientWidth + 1) problems.push(`${b.name} overflows horizontally`);
+      // DISP1 draws its trace to the principles in its ::after, outside its box on purpose.
+      if (!b.el.matches('.disp') && b.el.scrollWidth > b.el.clientWidth + 1) problems.push(`${b.name} overflows horizontally`);
     }
     for (const [i, label] of [...document.querySelectorAll<HTMLElement>('.part__label')].entries()) {
       const owner = label.closest('.part__trigger')?.getBoundingClientRect();
@@ -312,7 +313,7 @@ test.describe('flowing board', () => {
     });
   }
 
-  test('from 46rem each bus carries its parts in DOM order, top to bottom', async ({ page }) => {
+  test('from 46rem the principles run down one bus beside DISP1, the connectors down two, in DOM order', async ({ page }) => {
     await page.setViewportSize({ width: 768, height: 1024 });
     await page.goto('/');
     const lists = await page.evaluate(() =>
@@ -331,54 +332,86 @@ test.describe('flowing board', () => {
       {
         dom: ['part-r1', 'part-c1', 'part-led1', 'part-d1', 'part-u2'],
         read: ['part-r1', 'part-c1', 'part-led1', 'part-d1', 'part-u2'],
-        perColumn: [3, 2],
+        perColumn: [5],
       },
       { dom: ['part-j1', 'part-j2', 'part-j3'], read: ['part-j1', 'part-j2', 'part-j3'], perColumn: [2, 1] },
     ]);
   });
 
-  test('from 46rem a glint runs down both buses', async ({ page }) => {
+  test('from 46rem a glint runs down every bus', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await page.setViewportSize({ width: 768, height: 1024 });
     await page.goto('/');
     const glints = await page.evaluate(() =>
       [...document.querySelectorAll('.parts__list')].map((list) =>
-        ['::after', '::before'].map((p) => getComputedStyle(list, p).animationName).join(' '),
+        // What is drawn: a pseudo-element switched off with display: none runs no glint.
+        ['::after', '::before']
+          .map((p) => getComputedStyle(list, p))
+          .map((g) => (g.display === 'none' ? 'none' : g.animationName))
+          .join(' '),
       ),
     );
-    expect(glints).toEqual(['bus-glint bus-glint', 'bus-glint bus-glint']);
+    // The principles have one bus beside DISP1, the connectors two.
+    expect(glints).toEqual(['bus-glint none', 'bus-glint bus-glint']);
   });
 
-  test('at 768px a trace runs from DISP1 into the top via of the principles bus', async ({ page }) => {
+  for (const scheme of ['light', 'dark'] as const) {
+    for (const width of [768, 1024]) {
+      test(`at ${width}px a trace runs from the DISP1 header into the top via of the principles bus (${scheme})`, async ({ page }) => {
+        await page.emulateMedia({ colorScheme: scheme });
+        await page.setViewportSize({ width, height: 1024 });
+        await page.goto('/');
+        const geometry = await page.evaluate(() => {
+          const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+          const disp = document.querySelector('.disp') as Element;
+          const d = disp.getBoundingClientRect();
+          const s = getComputedStyle(disp, '::after');
+          const trace = { left: d.left + parseFloat(s.left), top: d.top + parseFloat(s.top), width: parseFloat(s.width), height: parseFloat(s.height) };
+          // It starts on the line through the pads (1px under the top of its box), and ends at the bottom
+          // of its right edge, the 2px vertical line.
+          const start = { x: trace.left, y: trace.top + 1 };
+          const end = { x: trace.left + trace.width - 1, y: trace.top + trace.height };
+          const pins = (disp.querySelector('.disp__pins') as Element).getBoundingClientRect();
+          const list = (document.querySelector('.disp + .parts .parts__list') as Element).getBoundingClientRect();
+          // The top via of the bus: centred 1px left of the bus edge (0.5rem in), radius 0.25rem + 1px.
+          const r = 0.25 * rem + 1;
+          const via = { x: list.left + 0.5 * rem - 1, y: list.top + r };
+          const inside = (p: { x: number; y: number }, b: { left: number; right: number; top: number; bottom: number }) =>
+            p.x >= b.left - 0.5 && p.x <= b.right + 0.5 && p.y >= b.top - 0.5 && p.y <= b.bottom + 0.5;
+          return {
+            content: s.content,
+            startInPins: inside(start, pins),
+            endInVia: inside(end, { left: via.x - r, right: via.x + r, top: via.y - r, bottom: via.y + r }),
+            // DISP1 and the principles share the top of their row: no void between the subtitle and them.
+            sameTop: Math.abs(d.top - (document.querySelector('.disp + .parts') as Element).getBoundingClientRect().top),
+          };
+        });
+        expect(geometry.content).toBe('""');
+        expect(geometry.startInPins).toBe(true);
+        expect(geometry.endInVia).toBe(true);
+        expect(geometry.sameTop).toBeLessThanOrEqual(0.5);
+        expect(await layoutProblems(page)).toEqual([]);
+      });
+    }
+  }
+
+  test('at 768px the principles fill the side of DISP1: no large void', async ({ page }) => {
     await page.setViewportSize({ width: 768, height: 1024 });
     await page.goto('/');
-    const geometry = await page.evaluate(() => {
-      const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
-      const heading = document.querySelector('.disp + .parts .silk-heading') as Element;
-      const h = heading.getBoundingClientRect();
-      const s = getComputedStyle(heading, '::before');
-      const trace = { left: h.left + parseFloat(s.left), top: h.top + parseFloat(s.top), width: parseFloat(s.width), height: parseFloat(s.height) };
-      const disp = (document.querySelector('.disp') as Element).getBoundingClientRect();
-      const list = (document.querySelector('.disp + .parts .parts__list') as Element).getBoundingClientRect();
-      // The second bus and its top via are centred at 50% + (bus + gap) / 2 - 1px of the list.
-      const bus = { x: list.left + list.width / 2 + 1.5 * rem - 1, y: list.top + 0.25 * rem + 1 };
+    const sizes = await page.evaluate(() => {
+      const box = (s: string) => (document.querySelector(s) as Element).getBoundingClientRect();
+      const [sub, disp, principles] = [box('.hero__sub'), box('.disp'), box('.disp + .parts')];
       return {
-        content: s.content,
-        lineOnBus: Math.abs(trace.left + 1 - bus.x),
-        endsInVia: Math.abs(trace.top + trace.height - bus.y),
-        // It comes from under the module: its end is hidden by DISP1, at most 1rem in.
-        underModule: trace.left + trace.width - disp.left,
-        // It leaves the module below its top and above its caption row.
-        fromModule: trace.top > disp.top && trace.top < disp.bottom - 3.5 * rem,
+        // Empty height left under the shorter of the two, beside the taller one.
+        beside: Math.abs(disp.bottom - principles.bottom),
+        principlesBesideDisp: principles.left > disp.right && Math.abs(principles.top - disp.top) < 1,
+        subAbove: sub.bottom <= disp.top,
       };
     });
-    expect(geometry.content).toBe('""');
-    expect(geometry.lineOnBus).toBeLessThanOrEqual(1);
-    expect(geometry.endsInVia).toBeLessThanOrEqual(1);
-    expect(geometry.underModule).toBeGreaterThan(0);
-    expect(geometry.underModule).toBeLessThanOrEqual(16.5);
-    expect(geometry.fromModule).toBe(true);
-    expect(await layoutProblems(page)).toEqual([]);
+    expect(sizes.principlesBesideDisp).toBe(true);
+    expect(sizes.subAbove).toBe(true);
+    // DISP1 and the principles differ by less than the height of two parts.
+    expect(sizes.beside).toBeLessThanOrEqual(160);
   });
 
   test('a pressed part or switch shows it at once', async ({ page, isMobile }) => {

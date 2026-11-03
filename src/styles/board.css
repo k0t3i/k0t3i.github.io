@@ -19,6 +19,15 @@
     /* Side padding of the board, and the keep-out kept clear around each mounting hole. */
     --pad-x: 1.75rem;
     --keep-out: 1rem;
+    /*
+     * Geometry of the buses, shared by the parts and the trace from DISP1: x of a bus, length of the
+     * stubs, radius of the vias, gap between two columns, and the space above a block of parts.
+     */
+    --bus: 0.5rem;
+    --stub: 1rem;
+    --via-r: 0.25rem;
+    --gap: 2.5rem;
+    --block-gap: 3.5rem;
 
     position: relative;
     max-width: 44rem;
@@ -181,7 +190,7 @@
   }
 
   .jp1__pos {
-    color: var(--silk-dim);
+    color: var(--jp1-off);
     font: 400 var(--text-floor) / 1 var(--font-mono);
     letter-spacing: 0.04em;
   }
@@ -194,7 +203,7 @@
     grid-area: dark;
   }
 
-  /* The position the shunt is on is printed bright. */
+  /* The position the cap is on is printed bright, so the state never rests on the cap alone. */
   .jp1[aria-pressed="false"] .jp1__pos--green,
   .jp1[aria-pressed="true"] .jp1__pos--dark {
     color: var(--silk);
@@ -207,12 +216,9 @@
   }
 
   @media (hover: hover) {
+    /* Only the pads light up: the position the cap is not on stays dim. */
     .jp1:hover {
       --pad: var(--pad-lit);
-    }
-
-    .jp1:hover .jp1__pos {
-      color: var(--silk);
     }
   }
 
@@ -470,75 +476,80 @@
   }
 
   /*
-   * Tablet: the title runs over the full width, DISP1 sits right of the subtitle. Scoped to the
-   * flowing board, the wide board places these blocks itself.
+   * Tablet: the title and the subtitle over the full width, then DISP1 at the left with the
+   * principles beside it on their own bus, then the connectors over the full width. DOM order is
+   * reading order. DISP1 and the principles share the top of their row, so a trace from the DISP1
+   * header can land in the top via of that bus. Scoped to the flowing board: the wide board places
+   * these blocks itself.
    */
   @media (46rem <= width < 79rem) {
     main {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      column-gap: 2.5rem;
+      grid-template-columns: auto minmax(0, 1fr);
+      column-gap: var(--gap);
+      /* A stacking context: the trace below passes under DISP1 and under the via it lands in. */
+      isolation: isolate;
     }
 
     .hero {
       display: contents;
     }
 
-    .hero__title {
+    .hero__title,
+    .hero__sub {
       grid-column: 1 / -1;
+    }
+
+    .hero__title {
       margin-top: 4rem;
     }
 
-    .hero__sub {
+    /* The same top margin as the principles beside it (.parts, parts.css). */
+    .disp {
+      position: relative;
       grid-column: 1;
       align-self: start;
+      margin-top: var(--block-gap);
     }
 
-    .disp {
+    .disp + .parts {
       grid-column: 2;
-      margin-top: 1.25rem;
     }
 
-    .parts {
+    .disp + .parts + .parts {
       grid-column: 1 / -1;
     }
 
-    /* main is a stacking context: the trace below can pass under DISP1 and under the via it ends in. */
-    main {
-      isolation: isolate;
-    }
-
     /*
-     * A trace from DISP1 to the principles: it leaves from under the module, 2.5rem above its bottom,
-     * bends at 45° and runs down into the top via of the second bus. It is drawn on the heading that
-     * follows DISP1, whose top is the bottom of the DISP1 row: above it, 3.5rem of margin, then the
-     * 3.5rem caption row of DISP1. Its bottom is the centre of the via (1.25rem under the heading).
-     * Horizontally it starts on the bus (50% + (bus + gap) / 2, as the bus) and ends under DISP1.
+     * The trace from DISP1 to the principles. It starts at the CS pad (the last of the six equal
+     * pin cells, the header being inset 0.75rem in the module; the pad centre 0.75rem + 0.3125rem
+     * down), runs right from under the module across the column gap, bends at 45° and drops into
+     * the top via of the principles bus: the bus line ends 0.5rem (--bus) into the column, the via
+     * centre is under the heading (0.75rem x 1.2) and its margin (1.25rem), --via-r + 1px down.
+     * It goes 0.25rem past the via centre, under the bus line drawn over it: a taller heading
+     * (user text spacing) still lands in the via.
      */
-    .disp + .parts .silk-heading {
-      position: relative;
-    }
-
-    .disp + .parts .silk-heading::before {
+    .disp::after {
       --bend: 0.75rem;
+      --pad-y: calc(0.75rem + 0.3125rem - 1px);
 
       content: "";
       position: absolute;
       z-index: -1;
-      top: calc(-1 * (3.5rem + 3.5rem + 2.5rem));
-      bottom: calc(-1 * (1.25rem + var(--via-r) + 1px));
-      left: calc(50% + (var(--bus) + var(--gap)) / 2 - 2px);
-      right: calc(192px + 3rem - 1rem);
+      top: var(--pad-y);
+      left: calc(100% - 0.75rem - (100% - 1.5rem) / 12);
+      right: calc(-1 * (var(--gap) + var(--bus)));
+      height: calc(var(--text-floor) * 1.2 + 1.25rem + var(--via-r) + 1px + 0.25rem - var(--pad-y));
       background:
-        linear-gradient(var(--trace), var(--trace)) right top / calc(100% - var(--bend)) 2px no-repeat,
+        linear-gradient(var(--trace), var(--trace)) left top / calc(100% - var(--bend)) 2px no-repeat,
         linear-gradient(
-            to bottom right,
+            to top right,
             transparent calc(50% - 1.5px),
             var(--trace) calc(50% - 0.5px) calc(50% + 0.5px),
             transparent calc(50% + 1.5px)
           )
-          0 0 / calc(var(--bend) + 1px) calc(var(--bend) + 1px) no-repeat,
-        linear-gradient(var(--trace), var(--trace)) left bottom / 2px calc(100% - var(--bend)) no-repeat;
+          right top / calc(var(--bend) + 2px) calc(var(--bend) + 2px) no-repeat,
+        linear-gradient(var(--trace), var(--trace)) right bottom / 2px calc(100% - var(--bend) - 1px) no-repeat;
       pointer-events: none;
     }
   }

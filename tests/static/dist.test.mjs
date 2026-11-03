@@ -77,6 +77,13 @@ test('the board follows the device scheme before any choice', () => {
   }
 });
 
+test('the backdrop colour is declared on ::backdrop itself', () => {
+  // Safari 17.0 to 17.3 does not inherit custom properties into ::backdrop.
+  const css = distFiles().filter((f) => f.endsWith('.css')).map((f) => readFileSync(at(f), 'utf8')).join('');
+  assert.match(css, /(^|[,}])::backdrop\{[^}]*--backdrop:/);
+  assert.match(css, /\.sheet::backdrop\{[^}]*background:var\(--backdrop\)/);
+});
+
 test('no kit-urgence folder in dist', () => {
   assert.ok(!existsSync(at('kit-urgence')));
   assert.ok(!distFiles().some((f) => f.startsWith('kit-urgence/')));

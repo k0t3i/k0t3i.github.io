@@ -34,13 +34,19 @@ export function useTheme(): { theme: Readonly<Ref<Theme>>; toggle(): void } {
   });
   onBeforeUnmount(() => scheme?.removeEventListener('change', followScheme));
 
+  // The board the last click asked for, until it is applied: a view transition applies it later,
+  // so a second quick click must start from it, not from the board still shown.
+  let pending: Theme | null = null;
+
   function apply(next: Theme): void {
     document.documentElement.dataset.theme = next;
     theme.value = next;
+    if (pending === next) pending = null;
   }
 
   function toggle(): void {
-    const next: Theme = theme.value === 'dark' ? 'green' : 'dark';
+    const next: Theme = (pending ?? theme.value) === 'dark' ? 'green' : 'dark';
+    pending = next;
     try {
       localStorage.setItem(THEME_KEY, next);
     } catch {

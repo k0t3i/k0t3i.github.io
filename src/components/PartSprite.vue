@@ -461,7 +461,8 @@
 
     <!--
       JP1: 1x3 pin header, 2.54 mm pitch, square pad for pin 1, and its shunt: a black cap over two
-      pins, the spring contact seen through its top. CSS shows the cap on pins 1-2 or on pins 2-3.
+      pins (a lit rim and a lighter top face, so it reads on the black mask too), the spring contact
+      seen through its top. CSS shows the cap on pins 1-2 or on pins 2-3.
     -->
     <symbol
       id="part-jumper"
@@ -493,12 +494,20 @@
       />
       <g class="pcb-shunt pcb-shunt--a">
         <rect
-          class="pcb-body"
+          class="pcb-cap"
           x="1.5"
           y="2.5"
           width="19"
           height="9"
           rx="1"
+        />
+        <rect
+          class="pcb-cap-top"
+          x="3"
+          y="4"
+          width="16"
+          height="6"
+          rx="0.5"
         />
         <rect
           class="pcb-tin"
@@ -511,12 +520,20 @@
       </g>
       <g class="pcb-shunt pcb-shunt--b">
         <rect
-          class="pcb-body"
+          class="pcb-cap"
           x="11.5"
           y="2.5"
           width="19"
           height="9"
           rx="1"
+        />
+        <rect
+          class="pcb-cap-top"
+          x="13"
+          y="4"
+          width="16"
+          height="6"
+          rx="0.5"
         />
         <rect
           class="pcb-tin"

@@ -5,6 +5,8 @@
       --silk-dim: var(--silk);
       --line: var(--silk);
       --silk-line: var(--silk-dim);
+      /* JP1 keeps its off position dimmer than the on one (still above 6:1): its state stays readable. */
+      --jp1-off: color-mix(in srgb, var(--silk) 72%, var(--mask));
     }
   }
 
@@ -21,6 +23,9 @@
       --body: Canvas;
       --body-edge: CanvasText;
       --body-edge-lit: Highlight;
+      --cap: Canvas;
+      --cap-top: Canvas;
+      --cap-edge: CanvasText;
       --ceramic: Canvas;
       --lens: Canvas;
       --mark: CanvasText;
@@ -39,7 +44,7 @@
     .parts__list,
     .part__body,
     .disp__screen::after,
-    .silk-heading::before,
+    .disp::after,
     #part-led1 .part__trigger::after {
       background: none;
     }
