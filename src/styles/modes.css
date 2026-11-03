@@ -1,0 +1,75 @@
+/* User modes, last in the cascade: higher contrast, and the system colours of forced colours. */
+@layer modes {
+  @media (prefers-contrast: more) {
+    :root {
+      --silk-dim: var(--silk);
+      --line: var(--silk);
+      --silk-line: var(--silk-dim);
+    }
+  }
+
+  /*
+   * Forced colours: the backgrounds go, the drawings switch to the system colours (outlines in
+   * CanvasText on Canvas) and everything that is lit uses Highlight.
+   */
+  @media (forced-colors: active) {
+    :root {
+      --pad: CanvasText;
+      --drill: Canvas;
+      --tin: CanvasText;
+      --body: Canvas;
+      --body-edge: CanvasText;
+      --ceramic: Canvas;
+      --lens: Canvas;
+      --mark: CanvasText;
+      --silk-line: CanvasText;
+      --line: CanvasText;
+    }
+
+    .part__body,
+    .sw1__body {
+      forced-color-adjust: none;
+    }
+
+    .board,
+    .parts__list,
+    .part__body,
+    .disp__screen::after,
+    #part-led1 .part__trigger::after {
+      background: none;
+    }
+
+    .disp::before,
+    .disp__screen,
+    .sheet {
+      border: 1px solid CanvasText;
+    }
+
+    /* The header pads of DISP1 are gradients: drawn as outlines instead. */
+    .disp__pin::before {
+      border: 2px solid CanvasText;
+    }
+
+    :focus-visible {
+      outline-color: Highlight;
+    }
+
+    .part__trigger:focus-visible,
+    .sw1:focus-visible {
+      --pad: Highlight;
+      --body-edge: Highlight;
+    }
+
+    @media (hover: hover) {
+      .part__trigger:hover {
+        --pad: Highlight;
+        --body-edge: Highlight;
+      }
+    }
+
+    .part__trigger:hover::before,
+    .part__trigger:focus-visible::before {
+      border-color: Highlight;
+    }
+  }
+}

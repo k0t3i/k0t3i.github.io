@@ -29,6 +29,14 @@ const MIME = {
 };
 const COMPRESSIBLE = /^(text\/|application\/(json|xml)|image\/svg)/;
 
+/**
+ * Pages serves the site over https, where `upgrade-insecure-requests` changes nothing for same-origin
+ * URLs. This server is plain http: WebKit would upgrade every asset to https://localhost and load
+ * none of them (Chromium and Firefox exempt localhost). The directive is dropped from the served
+ * HTML only; dist/ keeps it, and the rest of the CSP is enforced as is.
+ */
+const asOverHttps = (html) => html.replace(/; upgrade-insecure-requests(?=")/, '');
+
 async function resolveFile(pathname) {
   let rel;
   try {
@@ -76,6 +84,7 @@ const server = createServer(async (req, res) => {
     return;
   }
   const type = MIME[extname(file).toLowerCase()] || 'application/octet-stream';
+  if (type.startsWith('text/html')) body = Buffer.from(asOverHttps(body.toString('utf8')));
   const headers = { 'content-type': type, 'cache-control': 'no-cache' };
   if (COMPRESSIBLE.test(type) && /\bgzip\b/.test(req.headers['accept-encoding'] || '')) {
     body = gzipSync(body);

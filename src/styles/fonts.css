@@ -1,0 +1,40 @@
+/*
+ * Self-hosted variable subsets (scripts/fonts.py). The two preloads of usePageHead point to the same
+ * hashed files. The fallback faces are Arial and Consolas with matched metrics, so the swap moves
+ * nothing; they also supply the fine spaces U+202F and U+2009, absent from the subsets.
+ */
+@layer fonts {
+  @font-face {
+    font-family: "Hanken Grotesk";
+    src: url("../assets/fonts/hanken-grotesk.woff2") format("woff2");
+    font-weight: 200 500;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  @font-face {
+    font-family: "JetBrains Mono";
+    src: url("../assets/fonts/jetbrains-mono.woff2") format("woff2");
+    font-weight: 400 500;
+    font-style: normal;
+    font-display: swap;
+  }
+
+  @font-face {
+    font-family: "Hanken Fallback";
+    src: local("Arial");
+    size-adjust: 101.51%;
+    ascent-override: 98.52%;
+    descent-override: 29.85%;
+    line-gap-override: 0.00%;
+  }
+
+  @font-face {
+    font-family: "Mono Fallback";
+    src: local("Consolas"), local("Courier New");
+    size-adjust: 109.13%;
+    ascent-override: 93.47%;
+    descent-override: 27.49%;
+    line-gap-override: 0.00%;
+  }
+}

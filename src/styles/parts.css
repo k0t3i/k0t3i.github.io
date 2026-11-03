@@ -1,0 +1,286 @@
+/*
+ * The parts: the five principles and the three connectors. Each list has a bus at its left, a 2px
+ * trace under the mask that runs from via to via; each part draws its own trace to the bus.
+ */
+@layer parts {
+  /* Materials of the sprite. The <use> clones inherit the custom properties of their part. */
+  .pcb-pad {
+    fill: var(--pad);
+  }
+
+  .pcb-drill {
+    fill: var(--drill);
+  }
+
+  .pcb-tin {
+    fill: var(--tin);
+  }
+
+  .pcb-body {
+    fill: var(--body);
+    stroke: var(--body-edge);
+    stroke-width: 1px;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .pcb-ceramic {
+    fill: var(--ceramic);
+  }
+
+  .pcb-lens {
+    fill: var(--lens);
+  }
+
+  .pcb-mark {
+    fill: var(--mark);
+  }
+
+  .pcb-silk {
+    fill: none;
+    stroke: var(--silk-line);
+    stroke-width: 1px;
+    vector-effect: non-scaling-stroke;
+  }
+
+  .pcb-wire {
+    fill: none;
+    stroke: var(--wire);
+    stroke-width: 2px;
+    stroke-linejoin: round;
+  }
+
+  /* The sprite only holds symbols: it takes no room. */
+  .sprite {
+    position: absolute;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+  }
+
+  .parts {
+    margin-top: 3.5rem;
+  }
+
+  .silk-heading {
+    margin-bottom: 1.25rem;
+    color: var(--silk-dim);
+    font: 500 var(--text-floor) / 1.2 var(--font-mono);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+
+  .parts__list {
+    /*
+     * x of the bus, the length of the stubs, and the vias at both ends of the bus. These vias are
+     * tented, as on most boards: covered by the mask, a faint ring, never gold.
+     */
+    --bus: 0.5rem;
+    --stub: 1rem;
+    --via-r: 0.25rem;
+    --via: radial-gradient(
+      circle,
+      var(--page) 0 0.09375rem,
+      var(--tented) calc(0.09375rem + 0.5px) var(--via-r),
+      transparent calc(var(--via-r) + 0.5px)
+    );
+    --via-size: calc(var(--via-r) * 2 + 2px);
+    --via-x: calc(var(--bus) - 1px - var(--via-r) - 1px);
+
+    position: relative;
+    display: grid;
+    row-gap: 0.75rem;
+    padding: calc(var(--via-r) * 2 + 0.5rem) 0 calc(var(--via-r) * 2 + 0.25rem) var(--bus);
+    background-image: var(--via), var(--via), linear-gradient(var(--trace), var(--trace));
+    background-position:
+      var(--via-x) 0,
+      var(--via-x) 100%,
+      calc(var(--bus) - 2px) var(--via-r);
+    background-size:
+      var(--via-size) var(--via-size),
+      var(--via-size) var(--via-size),
+      2px calc(100% - var(--via-r) * 2);
+    background-repeat: no-repeat;
+  }
+
+  .part {
+    /* Extent of the footprint drawn in the sprite (right edge, height): its courtyard follows it. */
+    --fp: 4rem;
+    --fp-h: 2rem;
+    --wire: var(--trace);
+  }
+
+  #part-r1 {
+    --fp: 3.3125rem;
+    --fp-h: 1.5rem;
+  }
+
+  #part-c1 {
+    --fp: 2.5625rem;
+    --fp-h: 1.375rem;
+  }
+
+  #part-led1 {
+    --fp: 3rem;
+    --fp-h: 1.5rem;
+  }
+
+  #part-d1 {
+    --fp: 3.1875rem;
+    --fp-h: 1.375rem;
+  }
+
+  #part-u2 {
+    --fp: 2.9375rem;
+    --fp-h: 2.25rem;
+  }
+
+  #part-j1 {
+    --fp: 3.875rem;
+    --fp-h: 0.875rem;
+  }
+
+  #part-j2 {
+    --fp: 2.625rem;
+    --fp-h: 0.875rem;
+  }
+
+  #part-j3 {
+    --fp: 3.9375rem;
+    --fp-h: 1.25rem;
+  }
+
+  .part__trigger {
+    position: relative;
+    isolation: isolate;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: start;
+    column-gap: 0.75rem;
+    width: 100%;
+    min-height: 2.75rem;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* The part, and its trace to the bus drawn under it in the padding. */
+  .part__body {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    width: calc(var(--stub) + 4rem);
+    height: 2rem;
+    padding-left: var(--stub);
+    overflow: visible;
+    background: linear-gradient(var(--wire), var(--wire)) 0 50% / calc(var(--stub) + 2px) 2px no-repeat;
+  }
+
+  /* The courtyard of the part: a fine outline, shown on hover and focus. */
+  .part__trigger::before {
+    content: "";
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    align-self: start;
+    width: calc(var(--fp) + 0.25rem);
+    height: calc(var(--fp-h) + 0.25rem);
+    margin: calc(1rem - var(--fp-h) / 2 - 0.125rem) 0 0 calc(var(--stub) - 0.125rem);
+    border: 1px solid var(--line);
+    border-radius: 0.125rem;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .part__ref {
+    grid-column: 2;
+    grid-row: 1;
+    padding-top: 0.125rem;
+    color: var(--silk);
+    font: 500 var(--text-silk) / 1.25 var(--font-mono);
+    letter-spacing: 0.06em;
+  }
+
+  .part__label {
+    grid-column: 2;
+    grid-row: 2;
+    margin-top: 0.25rem;
+    color: var(--silk-dim);
+    font-size: var(--text-label);
+    line-height: 1.45;
+    text-wrap: balance;
+  }
+
+  /* LED1 is lit: a warm glow under its lens. It breathes when motion is allowed. */
+  #part-led1 .part__trigger::after {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    top: calc(1rem - 1.375rem);
+    left: calc(var(--stub) + 23px - 1.75rem);
+    width: 3.5rem;
+    height: 2.75rem;
+    background: radial-gradient(
+      closest-side,
+      color-mix(in srgb, var(--led) 40%, transparent),
+      color-mix(in srgb, var(--led) 12%, transparent) 55%,
+      transparent
+    );
+    pointer-events: none;
+  }
+
+  /* Lit by the pointer or the keyboard: brighter pads, silkscreen and courtyard. */
+  .part__trigger:focus-visible {
+    --pad: #dcb872;
+  }
+
+  .part__trigger:focus-visible .part__label {
+    color: var(--silk);
+  }
+
+  .part__trigger:focus-visible::before {
+    opacity: 1;
+  }
+
+  @media (hover: hover) {
+    .part__trigger:hover {
+      --pad: #dcb872;
+    }
+
+    .part__trigger:hover .part__label {
+      color: var(--silk);
+    }
+
+    .part__trigger:hover::before {
+      opacity: 1;
+    }
+  }
+
+  @media (min-width: 48rem) {
+    .parts__list {
+      --gap: 2.5rem;
+      /* A percentage position accounts for the width of each layer: one offset centres line and vias. */
+      --bus-2: calc(50% + (var(--bus) + var(--gap)) / 2 - 1px);
+
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      column-gap: var(--gap);
+      /* A second bus for the right column, at its left edge. */
+      background-image:
+        var(--via),
+        var(--via),
+        linear-gradient(var(--trace), var(--trace)),
+        var(--via),
+        var(--via),
+        linear-gradient(var(--trace), var(--trace));
+      background-position:
+        var(--via-x) 0,
+        var(--via-x) 100%,
+        calc(var(--bus) - 2px) var(--via-r),
+        var(--bus-2) 0,
+        var(--bus-2) 100%,
+        var(--bus-2) var(--via-r);
+      background-size:
+        var(--via-size) var(--via-size),
+        var(--via-size) var(--via-size),
+        2px calc(100% - var(--via-r) * 2),
+        var(--via-size) var(--via-size),
+        var(--via-size) var(--via-size),
+        2px calc(100% - var(--via-r) * 2);
+    }
+  }
+}

@@ -3,6 +3,9 @@ import { toValue, type MaybeRefOrGetter } from 'vue';
 import { SITE } from '../content/site';
 import type { SiteContent } from '../content/types';
 import { REDIRECT_SNIPPET } from '../lib/langRedirect';
+// ?url gives the hashed URL of the build, the same one fonts.css points to: the preload is reused.
+import hankenUrl from '../assets/fonts/hanken-grotesk.woff2?url';
+import monoUrl from '../assets/fonts/jetbrains-mono.woff2?url';
 
 const KNOWS_ABOUT = ['Front-end development', 'Web accessibility', 'Web performance', 'Software architecture', 'Debugging'];
 
@@ -42,6 +45,8 @@ export function usePageHead(source: MaybeRefOrGetter<SiteContent>): void {
         { name: 'color-scheme', content: 'dark' },
       ],
       link: [
+        // Both faces are on the first screen (title and silkscreen). Fonts are always fetched in CORS mode.
+        ...[hankenUrl, monoUrl].map((href) => ({ rel: 'preload', as: 'font', type: 'font/woff2', href, crossorigin: '' }) as const),
         { rel: 'canonical', href: url },
         { rel: 'alternate', hreflang: 'fr', href: SITE.baseUrl },
         { rel: 'alternate', hreflang: 'en', href: `${SITE.baseUrl}en/` },

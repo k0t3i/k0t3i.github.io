@@ -72,6 +72,18 @@ for (const copy of [FR, EN] as Copy[]) {
   });
 }
 
+test('the font preloads are the files the stylesheet loads', async ({ page, request }) => {
+  await page.goto('/');
+  const preloads = await page.locator('link[rel="preload"][as="font"]').evaluateAll((links) =>
+    links.map((l) => ({ href: l.getAttribute('href'), type: l.getAttribute('type'), crossorigin: l.getAttribute('crossorigin') })),
+  );
+  const css = await (await request.get((await page.locator('link[rel="stylesheet"]').getAttribute('href')) ?? '')).text();
+  const faces = [...css.matchAll(/url\(["']?([^)"']+\.woff2)["']?\)/g)].map((m) => m[1]);
+  expect(faces).toHaveLength(2);
+  // Same hashed URLs, in CORS mode like every font fetch: otherwise the preload is downloaded twice.
+  expect(preloads).toEqual(faces.map((href) => ({ href, type: 'font/woff2', crossorigin: '' })));
+});
+
 test('the 404 page is not indexed', async ({ request }) => {
   const html = await (await request.get('/nope')).text();
   expect(html).toMatch(/<meta name="robots" content="noindex">/);

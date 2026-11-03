@@ -1,0 +1,102 @@
+/*
+ * All the motion of the page, and only here: every animation and every transition is inside
+ * `prefers-reduced-motion: no-preference`. With reduced motion the board is still.
+ * Nothing here sets `display`, so a later layer can switch an effect off with `display: none`.
+ */
+@layer motion {
+  @media (prefers-reduced-motion: no-preference) {
+    /* LED1 breathes slowly. */
+    #part-led1 .part__trigger::after {
+      animation: led-breathe 3.2s ease-in-out infinite;
+    }
+
+    @keyframes led-breathe {
+      50% {
+        opacity: 0.45;
+      }
+    }
+
+    /*
+     * A glint runs down each bus, from via to via, and is seen about 6% of a 9s cycle. The element
+     * is as tall as the bus and its bright head is at its bottom: it starts one bus-height up
+     * (head at the top via) and ends in place (head at the bottom via).
+     */
+    .parts__list::after {
+      content: "";
+      position: absolute;
+      top: var(--via-r);
+      bottom: var(--via-r);
+      left: calc(var(--bus) - 2px);
+      width: 2px;
+      background: linear-gradient(
+        to bottom,
+        transparent calc(100% - 3rem),
+        color-mix(in srgb, var(--gold) 85%, transparent) calc(100% - 0.5rem),
+        transparent
+      );
+      opacity: 0;
+      pointer-events: none;
+      animation: bus-glint 9s linear infinite;
+    }
+
+    /* The glint reaches the second bus when it leaves the first one. */
+    .parts + .parts .parts__list::after {
+      animation-delay: 0.6s;
+    }
+
+    @keyframes bus-glint {
+      0% {
+        opacity: 0;
+        transform: translateY(calc(-100% + 3rem));
+      }
+
+      1% {
+        opacity: 1;
+      }
+
+      6% {
+        opacity: 1;
+      }
+
+      7%,
+      100% {
+        opacity: 0;
+        transform: translateY(0);
+      }
+    }
+
+    /* Hover and focus light the silkscreen in a short fade. */
+    .part__label,
+    .lang__link {
+      transition: color 160ms ease-out;
+    }
+
+    .part__trigger::before,
+    .lang__link::before {
+      transition:
+        opacity 160ms ease-out,
+        border-color 160ms ease-out;
+    }
+
+    /* A sheet rises from the bottom edge in 180ms, and sinks back on close. */
+    .sheet {
+      transition:
+        opacity 180ms ease-out,
+        translate 180ms ease-out,
+        overlay 180ms ease-out allow-discrete,
+        display 180ms ease-out allow-discrete;
+    }
+
+    .sheet:not(:popover-open) {
+      opacity: 0;
+      translate: 0 1rem;
+    }
+
+    @starting-style {
+      .sheet:popover-open {
+        opacity: 0;
+        translate: 0 1rem;
+      }
+    }
+  }
+}

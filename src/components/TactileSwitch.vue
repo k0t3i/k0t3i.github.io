@@ -1,8 +1,11 @@
 <script setup lang="ts">
-// The board reference of the switch, like R1 or J3. The button does nothing yet: the screens come later.
-const REF = 'SW1';
-
-const props = defineProps<{ hidden: string }>();
+// The tactile switch next to DISP1. It does nothing yet: the screens come later.
+const props = defineProps<{
+  /** Board reference printed next to the switch, e.g. SW1. */
+  designator: string;
+  /** What the switch does, for assistive technologies. */
+  hidden: string;
+}>();
 </script>
 
 <template>
@@ -11,10 +14,11 @@ const props = defineProps<{ hidden: string }>();
     type="button"
   >
     <svg
+      class="sw1__body"
       aria-hidden="true"
       focusable="false"
     ><use href="#part-switch" /></svg>
-    <span class="part__ref">{{ REF }}</span>
+    <span class="part__ref">{{ props.designator }}</span>
     <span class="vh">{{ props.hidden }}</span>
   </button>
 </template>

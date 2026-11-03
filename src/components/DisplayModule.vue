@@ -1,8 +1,12 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import type { SiteContent } from '../content/types';
 import TactileSwitch from './TactileSwitch.vue';
 
 const props = defineProps<{ display: SiteContent['display'] }>();
+
+// One label per pad of the module header, printed under its pad.
+const pins = computed(() => props.display.pins.split(' '));
 </script>
 
 <template>
@@ -31,9 +35,17 @@ const props = defineProps<{ display: SiteContent['display'] }>();
       class="disp__pins"
       aria-hidden="true"
     >
-      {{ props.display.pins }}
+      <template
+        v-for="(pin, i) in pins"
+        :key="pin"
+      >
+        {{ i ? ' ' : '' }}<span class="disp__pin">{{ pin }}</span>
+      </template>
     </p>
-    <TactileSwitch :hidden="props.display.switchHidden" />
+    <TactileSwitch
+      :designator="props.display.switchRef"
+      :hidden="props.display.switchHidden"
+    />
     <figcaption
       id="disp1-caption"
       class="disp__caption"

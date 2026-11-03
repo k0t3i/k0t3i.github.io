@@ -33,6 +33,7 @@ export interface Copy {
   avatarAlt: string;
   pins: string;
   captions: { avatar: string; uptime: string; morse: string };
+  switchRef: string;
   switchHidden: string;
   marks: { visible: string; hidden: string }[];
   sections: { principles: { id: string; title: string }; connectors: { id: string; title: string } };
@@ -44,8 +45,9 @@ export interface Copy {
 }
 
 export const LANG_LINKS = [
-  { text: 'FR', label: 'Français', lang: 'fr', href: '/' },
-  { text: 'EN', label: 'English', lang: 'en', href: '/en/' },
+  // The accessible name starts with the visible code (WCAG 2.5.3, label in name).
+  { text: 'FR', label: 'FR, Français', lang: 'fr', href: '/' },
+  { text: 'EN', label: 'EN, English', lang: 'en', href: '/en/' },
 ];
 
 export const READOUTS = {
@@ -77,6 +79,7 @@ export const FR: Copy = {
   avatarAlt: 'Avatar pixel art d’Anthony',
   pins: 'GND VCC SCK MOSI DC CS',
   captions: { avatar: 'DISP1 · avatar', uptime: 'DISP1 · uptime', morse: 'DISP1 · morse' },
+  switchRef: 'SW1',
   switchHidden: 'changer l’écran',
   marks: [
     { visible: 'a11y AA', hidden: 'Accessibilité WCAG 2.2, niveau AA' },
@@ -178,6 +181,7 @@ export const EN: Copy = {
   avatarAlt: 'Anthony’s pixel art avatar',
   pins: 'GND VCC SCK MOSI DC CS',
   captions: { avatar: 'DISP1 · avatar', uptime: 'DISP1 · uptime', morse: 'DISP1 · morse' },
+  switchRef: 'SW1',
   switchHidden: 'change screen',
   marks: [
     { visible: 'a11y AA', hidden: 'Accessibility WCAG 2.2, level AA' },

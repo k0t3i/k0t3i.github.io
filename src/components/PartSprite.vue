@@ -1,5 +1,9 @@
 <template>
-  <!-- Simple, correct geometry, refined with the styles. Every shape uses currentColor. -->
+  <!--
+    The parts seen from above, drawn at 1 unit = 1 CSS px (64 x 32, the switch 32 x 32). Each shape
+    has a material class (pads, tin, body...) styled in parts.css: CSS relights or recolours a part.
+    Every part starts at x = 1 with its first pad, where the trace from the bus arrives (y = 16).
+  -->
   <svg
     class="sprite"
     width="0"
@@ -7,261 +11,449 @@
     aria-hidden="true"
     focusable="false"
   >
+    <!-- R1: chip resistor 1206. Tin end caps on gold pads, black body, silkscreen lines. -->
     <symbol
       id="part-resistor"
-      viewBox="0 0 64 24"
+      viewBox="0 0 64 32"
     >
-      <rect
-        x="0"
-        y="10"
-        width="14"
-        height="4"
-        fill="currentColor"
+      <path
+        class="pcb-silk"
+        d="M15 5.5h24M15 26.5h24"
       />
       <rect
-        x="50"
-        y="10"
-        width="14"
-        height="4"
-        fill="currentColor"
+        class="pcb-pad"
+        x="1"
+        y="8"
+        width="13"
+        height="16"
+        rx="1"
       />
       <rect
-        x="14"
-        y="2"
-        width="36"
-        height="20"
-        rx="3"
-        fill="currentColor"
+        class="pcb-pad"
+        x="40"
+        y="8"
+        width="13"
+        height="16"
+        rx="1"
+      />
+      <rect
+        class="pcb-tin"
+        x="6"
+        y="9"
+        width="7"
+        height="14"
+        rx="0.5"
+      />
+      <rect
+        class="pcb-tin"
+        x="41"
+        y="9"
+        width="7"
+        height="14"
+        rx="0.5"
+      />
+      <rect
+        class="pcb-body"
+        x="12.5"
+        y="9.5"
+        width="29"
+        height="13"
       />
     </symbol>
+
+    <!-- C1: ceramic capacitor 0805. Tan body, tin ends. -->
     <symbol
       id="part-capacitor"
-      viewBox="0 0 32 40"
+      viewBox="0 0 64 32"
     >
+      <path
+        class="pcb-silk"
+        d="M13 6.5h16M13 25.5h16"
+      />
       <rect
-        x="7"
-        y="0"
-        width="4"
+        class="pcb-pad"
+        x="1"
+        y="9"
+        width="11"
+        height="14"
+        rx="1"
+      />
+      <rect
+        class="pcb-pad"
+        x="30"
+        y="9"
+        width="11"
+        height="14"
+        rx="1"
+      />
+      <rect
+        class="pcb-tin"
+        x="5"
+        y="10"
+        width="6"
         height="12"
-        fill="currentColor"
+        rx="0.5"
       />
       <rect
-        x="21"
-        y="0"
-        width="4"
+        class="pcb-tin"
+        x="31"
+        y="10"
+        width="6"
         height="12"
-        fill="currentColor"
+        rx="0.5"
       />
       <rect
-        x="2"
-        y="12"
-        width="28"
-        height="6"
-        fill="currentColor"
-      />
-      <rect
-        x="2"
-        y="22"
-        width="28"
-        height="6"
-        fill="currentColor"
-      />
-      <rect
-        x="14"
-        y="28"
-        width="4"
+        class="pcb-ceramic"
+        x="11"
+        y="10"
+        width="20"
         height="12"
-        fill="currentColor"
       />
     </symbol>
+
+    <!-- LED1: SMD LED 1206, lit. Warm lens in its package; the cut corner marks the cathode. -->
     <symbol
       id="part-led"
-      viewBox="0 0 32 40"
+      viewBox="0 0 64 32"
     >
       <path
-        d="M4 20a12 12 0 0 1 24 0v10H4z"
-        fill="currentColor"
+        class="pcb-silk"
+        d="M14 5.5h18M14 26.5h18M47.5 9v14"
       />
       <rect
-        x="9"
-        y="30"
-        width="4"
-        height="10"
-        fill="currentColor"
+        class="pcb-pad"
+        x="1"
+        y="9"
+        width="12"
+        height="14"
+        rx="1"
       />
       <rect
-        x="19"
-        y="30"
-        width="4"
+        class="pcb-pad"
+        x="33"
+        y="9"
+        width="12"
+        height="14"
+        rx="1"
+      />
+      <path
+        class="pcb-mark"
+        d="M8 9h27l3 3v11H8z"
+      />
+      <rect
+        class="pcb-lens"
+        x="12"
+        y="11"
+        width="22"
         height="10"
-        fill="currentColor"
+        rx="1.5"
       />
     </symbol>
+
+    <!-- D1: switching diode SOD-123. Black body, cathode band on the right: one way only. -->
     <symbol
       id="part-diode"
-      viewBox="0 0 48 24"
+      viewBox="0 0 64 32"
     >
+      <path
+        class="pcb-silk"
+        d="M14 6.5h20M14 25.5h20M50.5 9v14"
+      />
       <rect
-        x="0"
+        class="pcb-pad"
+        x="1"
         y="10"
-        width="10"
-        height="4"
-        fill="currentColor"
+        width="11"
+        height="12"
+        rx="1"
       />
       <rect
-        x="38"
+        class="pcb-pad"
+        x="36"
         y="10"
-        width="10"
-        height="4"
-        fill="currentColor"
+        width="11"
+        height="12"
+        rx="1"
       />
       <rect
-        x="10"
-        y="3"
-        width="28"
-        height="18"
-        rx="2"
-        fill="currentColor"
+        class="pcb-body"
+        x="7.5"
+        y="9.5"
+        width="33"
+        height="13"
+        rx="1.5"
       />
       <rect
-        x="31"
-        y="3"
+        class="pcb-mark"
+        x="32"
+        y="10"
         width="4"
-        height="18"
-        fill="#000"
+        height="12"
       />
     </symbol>
+
+    <!-- U2: SOIC-8. Gull-wing leads on gold pads, pin-1 dimple; its trace fans out to pin 1. -->
     <symbol
       id="part-chip"
-      viewBox="0 0 64 48"
+      viewBox="0 0 64 32"
     >
       <path
-        d="M0 6h6V2h4v4h8V2h4v4h8V2h4v4h8V2h4v4h6v4H0z"
-        fill="currentColor"
+        class="pcb-wire"
+        d="M0 16h2l12 12h3"
       />
       <rect
-        x="6"
-        y="10"
-        width="52"
-        height="28"
-        rx="2"
-        fill="currentColor"
+        class="pcb-pad"
+        x="15.5"
+        y="0"
+        width="5"
+        height="6"
+        rx="0.5"
+      />
+      <rect
+        class="pcb-pad"
+        x="23.5"
+        y="0"
+        width="5"
+        height="6"
+        rx="0.5"
+      />
+      <rect
+        class="pcb-pad"
+        x="31.5"
+        y="0"
+        width="5"
+        height="6"
+        rx="0.5"
+      />
+      <rect
+        class="pcb-pad"
+        x="39.5"
+        y="0"
+        width="5"
+        height="6"
+        rx="0.5"
+      />
+      <rect
+        class="pcb-pad"
+        x="15.5"
+        y="26"
+        width="5"
+        height="6"
+        rx="0.5"
+      />
+      <rect
+        class="pcb-pad"
+        x="23.5"
+        y="26"
+        width="5"
+        height="6"
+        rx="0.5"
+      />
+      <rect
+        class="pcb-pad"
+        x="31.5"
+        y="26"
+        width="5"
+        height="6"
+        rx="0.5"
+      />
+      <rect
+        class="pcb-pad"
+        x="39.5"
+        y="26"
+        width="5"
+        height="6"
+        rx="0.5"
       />
       <path
-        d="M0 38h64v4h-6v4h-4v-4h-8v4h-4v-4h-8v4h-4v-4h-8v4h-4v-4h-8v4h-4v-4H0z"
-        fill="currentColor"
+        class="pcb-tin"
+        d="M16.5 3h3v5h-3zM24.5 3h3v5h-3zM32.5 3h3v5h-3zM40.5 3h3v5h-3zM16.5 24h3v5h-3zM24.5 24h3v5h-3zM32.5 24h3v5h-3zM40.5 24h3v5h-3z"
+      />
+      <rect
+        class="pcb-body"
+        x="13.5"
+        y="7.5"
+        width="33"
+        height="17"
+        rx="1"
+      />
+      <circle
+        class="pcb-mark"
+        cx="18"
+        cy="20"
+        r="1.75"
       />
     </symbol>
+
+    <!-- J1: 1x6 pin header, 2.54 mm pitch. Square pad for pin 1, silkscreen outline. -->
     <symbol
       id="part-header-6"
-      viewBox="0 0 96 24"
+      viewBox="0 0 64 32"
     >
       <rect
+        class="pcb-silk"
+        x="0.5"
+        y="10.5"
+        width="61"
+        height="11"
+        rx="0.5"
+      />
+      <rect
+        class="pcb-pad"
         x="2"
-        y="2"
-        width="14"
-        height="20"
-        fill="currentColor"
+        y="12"
+        width="8"
+        height="8"
+        rx="0.5"
       />
-      <rect
-        x="18"
-        y="2"
-        width="14"
-        height="20"
-        fill="currentColor"
+      <path
+        class="pcb-pad"
+        d="M12 16a4 4 0 1 0 8 0a4 4 0 1 0-8 0M22 16a4 4 0 1 0 8 0a4 4 0 1 0-8 0M32 16a4 4 0 1 0 8 0a4 4 0 1 0-8 0M42 16a4 4 0 1 0 8 0a4 4 0 1 0-8 0M52 16a4 4 0 1 0 8 0a4 4 0 1 0-8 0"
       />
-      <rect
-        x="34"
-        y="2"
-        width="14"
-        height="20"
-        fill="currentColor"
-      />
-      <rect
-        x="50"
-        y="2"
-        width="14"
-        height="20"
-        fill="currentColor"
-      />
-      <rect
-        x="66"
-        y="2"
-        width="14"
-        height="20"
-        fill="currentColor"
-      />
-      <rect
-        x="82"
-        y="2"
-        width="12"
-        height="20"
-        fill="currentColor"
+      <path
+        class="pcb-drill"
+        d="M4.25 16a1.75 1.75 0 1 0 3.5 0a1.75 1.75 0 1 0-3.5 0M14.25 16a1.75 1.75 0 1 0 3.5 0a1.75 1.75 0 1 0-3.5 0M24.25 16a1.75 1.75 0 1 0 3.5 0a1.75 1.75 0 1 0-3.5 0M34.25 16a1.75 1.75 0 1 0 3.5 0a1.75 1.75 0 1 0-3.5 0M44.25 16a1.75 1.75 0 1 0 3.5 0a1.75 1.75 0 1 0-3.5 0M54.25 16a1.75 1.75 0 1 0 3.5 0a1.75 1.75 0 1 0-3.5 0"
       />
     </symbol>
+
+    <!-- J2: 1x4 pin header. -->
     <symbol
       id="part-header-4"
-      viewBox="0 0 64 24"
+      viewBox="0 0 64 32"
     >
       <rect
+        class="pcb-silk"
+        x="0.5"
+        y="10.5"
+        width="41"
+        height="11"
+        rx="0.5"
+      />
+      <rect
+        class="pcb-pad"
         x="2"
-        y="2"
-        width="14"
-        height="20"
-        fill="currentColor"
+        y="12"
+        width="8"
+        height="8"
+        rx="0.5"
       />
-      <rect
-        x="18"
-        y="2"
-        width="14"
-        height="20"
-        fill="currentColor"
+      <path
+        class="pcb-pad"
+        d="M12 16a4 4 0 1 0 8 0a4 4 0 1 0-8 0M22 16a4 4 0 1 0 8 0a4 4 0 1 0-8 0M32 16a4 4 0 1 0 8 0a4 4 0 1 0-8 0"
       />
-      <rect
-        x="34"
-        y="2"
-        width="14"
-        height="20"
-        fill="currentColor"
-      />
-      <rect
-        x="50"
-        y="2"
-        width="12"
-        height="20"
-        fill="currentColor"
+      <path
+        class="pcb-drill"
+        d="M4.25 16a1.75 1.75 0 1 0 3.5 0a1.75 1.75 0 1 0-3.5 0M14.25 16a1.75 1.75 0 1 0 3.5 0a1.75 1.75 0 1 0-3.5 0M24.25 16a1.75 1.75 0 1 0 3.5 0a1.75 1.75 0 1 0-3.5 0M34.25 16a1.75 1.75 0 1 0 3.5 0a1.75 1.75 0 1 0-3.5 0"
       />
     </symbol>
+
+    <!-- J3: USB-C receptacle. Tin shell on its two shield legs, gold contacts on the tongue. -->
     <symbol
       id="part-usb-c"
-      viewBox="0 0 48 24"
+      viewBox="0 0 64 32"
     >
       <rect
-        x="2"
-        y="2"
-        width="44"
-        height="20"
-        rx="10"
-        fill="currentColor"
+        class="pcb-pad"
+        x="1"
+        y="11"
+        width="10"
+        height="10"
+        rx="3"
+      />
+      <rect
+        class="pcb-pad"
+        x="53"
+        y="11"
+        width="10"
+        height="10"
+        rx="3"
+      />
+      <rect
+        class="pcb-tin"
+        x="7"
+        y="7"
+        width="50"
+        height="18"
+        rx="9"
+      />
+      <rect
+        class="pcb-drill"
+        x="11"
+        y="11"
+        width="42"
+        height="10"
+        rx="5"
+      />
+      <rect
+        class="pcb-pad"
+        x="18"
+        y="15"
+        width="28"
+        height="2"
+        rx="0.5"
       />
     </symbol>
+
+    <!-- SW1: 6x6 mm tactile switch. Four gold pads, tin plate with its dimples, round plunger. -->
     <symbol
       id="part-switch"
       viewBox="0 0 32 32"
     >
       <rect
-        x="2"
-        y="2"
-        width="28"
-        height="28"
-        rx="3"
-        fill="currentColor"
+        class="pcb-pad"
+        x="0"
+        y="4"
+        width="7"
+        height="6"
+        rx="1"
+      />
+      <rect
+        class="pcb-pad"
+        x="0"
+        y="22"
+        width="7"
+        height="6"
+        rx="1"
+      />
+      <rect
+        class="pcb-pad"
+        x="25"
+        y="4"
+        width="7"
+        height="6"
+        rx="1"
+      />
+      <rect
+        class="pcb-pad"
+        x="25"
+        y="22"
+        width="7"
+        height="6"
+        rx="1"
+      />
+      <rect
+        class="pcb-tin"
+        x="3"
+        y="3"
+        width="26"
+        height="26"
+        rx="1.5"
+      />
+      <path
+        class="pcb-drill"
+        d="M6 7a1.25 1.25 0 1 0 2.5 0a1.25 1.25 0 1 0-2.5 0M23.5 7a1.25 1.25 0 1 0 2.5 0a1.25 1.25 0 1 0-2.5 0M6 25a1.25 1.25 0 1 0 2.5 0a1.25 1.25 0 1 0-2.5 0M23.5 25a1.25 1.25 0 1 0 2.5 0a1.25 1.25 0 1 0-2.5 0"
       />
       <circle
+        class="pcb-body"
         cx="16"
         cy="16"
-        r="7"
-        fill="#000"
+        r="7.5"
+      />
+      <circle
+        class="pcb-body"
+        cx="16"
+        cy="16"
+        r="5"
       />
     </symbol>
   </svg>

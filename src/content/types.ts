@@ -32,6 +32,8 @@ export interface SiteContent {
     alt: string;
     pins: string;
     captions: { avatar: string; uptime: string; morse: string };
+    /** Board reference of the tactile switch, e.g. SW1. */
+    switchRef: string;
     switchHidden: string;
   };
   marks: { visible: string; hidden: string }[];

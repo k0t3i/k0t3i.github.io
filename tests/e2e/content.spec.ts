@@ -95,7 +95,7 @@ for (const copy of [FR, EN] as Copy[]) {
       const sw1 = page.getByRole('button', { name: new RegExp(copy.switchHidden) });
       await expect(sw1).toHaveCount(1);
       await expect(sw1).toHaveClass(/sw1/);
-      await expect(sw1.locator('.part__ref')).toHaveText('SW1');
+      await expect(sw1.locator('.part__ref')).toHaveText(copy.switchRef);
       await expect(sw1.locator('.vh')).toHaveText(copy.switchHidden);
     });
 

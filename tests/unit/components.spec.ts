@@ -1,8 +1,10 @@
 import { mount } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import DisplayModule from '../../src/components/DisplayModule.vue';
 import PartSheet from '../../src/components/PartSheet.vue';
 import PartTrigger from '../../src/components/PartTrigger.vue';
 import PcbMarks from '../../src/components/PcbMarks.vue';
+import TactileSwitch from '../../src/components/TactileSwitch.vue';
 import UptimeCounter from '../../src/components/UptimeCounter.vue';
 import { en } from '../../src/content/en';
 import { fr } from '../../src/content/fr';
@@ -24,6 +26,22 @@ describe('PartTrigger', () => {
     expect(wrapper.get('.part__ref').text()).toBe('R1');
     expect(wrapper.get('.part__label').text()).toBe(part(fr, 'r1').label);
     expect(wrapper.get('svg.part__body').attributes('aria-hidden')).toBe('true');
+  });
+
+  it('draws each part with the symbol of the contract', () => {
+    const symbols = [...fr.principles, ...fr.connectors].map((p) =>
+      mount(PartTrigger, { props: { part: p } }).get('svg.part__body use').attributes('href'),
+    );
+    expect(symbols).toEqual([
+      '#part-resistor',
+      '#part-capacitor',
+      '#part-led',
+      '#part-diode',
+      '#part-chip',
+      '#part-header-6',
+      '#part-header-4',
+      '#part-usb-c',
+    ]);
   });
 
   it('marks the label language when it differs from the page', () => {
@@ -76,6 +94,28 @@ describe('PartSheet', () => {
   it('puts the language of the title on the heading', () => {
     const wrapper = mount(PartSheet, { props: { part: part(en, 'j1'), close: en.close } });
     expect(wrapper.get('h3.sheet__title').attributes('lang')).toBe('fr');
+  });
+});
+
+describe('DisplayModule', () => {
+  it('prints one pin label per pad, and keeps the pin text as written', () => {
+    const wrapper = mount(DisplayModule, { props: { display: fr.display } });
+    const pins = wrapper.get('p.disp__pins');
+    expect(pins.attributes('aria-hidden')).toBe('true');
+    expect(pins.findAll('.disp__pin').map((p) => p.text())).toEqual(fr.display.pins.split(' '));
+    expect(pins.element.textContent).toBe(fr.display.pins);
+  });
+});
+
+describe('TactileSwitch', () => {
+  it('takes its board reference and its hidden name from the content', () => {
+    const wrapper = mount(TactileSwitch, { props: { designator: 'SW9', hidden: fr.display.switchHidden } });
+    const button = wrapper.get('button.sw1');
+    expect(button.attributes('type')).toBe('button');
+    expect(button.attributes('designator')).toBeUndefined();
+    expect(wrapper.get('.part__ref').text()).toBe('SW9');
+    expect(wrapper.get('.vh').text()).toBe(fr.display.switchHidden);
+    expect([fr.display.switchRef, en.display.switchRef]).toEqual(['SW1', 'SW1']);
   });
 });
 

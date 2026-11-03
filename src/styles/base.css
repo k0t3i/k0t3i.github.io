@@ -1,0 +1,123 @@
+@layer reset {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  body,
+  h1,
+  h2,
+  h3,
+  p,
+  ul,
+  figure {
+    margin: 0;
+  }
+
+  ul {
+    padding: 0;
+    list-style: none;
+  }
+
+  img,
+  svg,
+  picture {
+    display: block;
+  }
+
+  button {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    letter-spacing: inherit;
+    text-align: inherit;
+  }
+}
+
+@layer base {
+  html {
+    background: var(--page);
+    color: var(--silk);
+    color-scheme: dark;
+    font-family: var(--font-sans);
+    line-height: 1.5;
+  }
+
+  body {
+    min-height: 100dvh;
+    padding: 0.5rem;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  @media (min-width: 40rem) {
+    body {
+      padding: 1.5rem 1rem;
+    }
+  }
+
+  a {
+    color: inherit;
+  }
+
+  button {
+    cursor: pointer;
+  }
+
+  ::selection {
+    background: #4d3f24;
+    color: var(--silk);
+  }
+
+  /* One focus ring for the whole board, in the gold of the pads. */
+  :focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 0.375rem;
+  }
+
+  /* Visually hidden, still read by assistive technologies. */
+  .vh {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    margin: -1px !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    clip-path: inset(50%) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+  }
+
+  .skip-link {
+    position: absolute;
+    z-index: 3;
+    top: 1rem;
+    left: 1rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--silk-dim);
+    border-radius: 0.25rem;
+    background: var(--mask);
+    color: var(--silk);
+    font: 500 var(--text-silk) / 1.2 var(--font-mono);
+    letter-spacing: 0.06em;
+    text-decoration: none;
+  }
+
+  .skip-link:not(:focus) {
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}

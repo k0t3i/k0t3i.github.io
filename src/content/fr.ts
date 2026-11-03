@@ -15,8 +15,8 @@ export const fr: SiteContent = {
   langNav: {
     label: 'Langue',
     links: [
-      { text: 'FR', label: 'Français', lang: 'fr', href: '/' },
-      { text: 'EN', label: 'English', lang: 'en', href: '/en/' },
+      { text: 'FR', label: 'FR, Français', lang: 'fr', href: '/' },
+      { text: 'EN', label: 'EN, English', lang: 'en', href: '/en/' },
     ],
   },
   header: { name: 'ANTHONY', rev: 'FRONT-END · REV 2026.11' },
@@ -29,6 +29,7 @@ export const fr: SiteContent = {
     alt: 'Avatar pixel art d’Anthony',
     pins: 'GND VCC SCK MOSI DC CS',
     captions: { avatar: 'DISP1 · avatar', uptime: 'DISP1 · uptime', morse: 'DISP1 · morse' },
+    switchRef: 'SW1',
     switchHidden: 'changer l’écran',
   },
   marks: [
