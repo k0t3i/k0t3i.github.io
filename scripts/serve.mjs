@@ -1,5 +1,6 @@
-// Dependency-free static server that imitates GitHub Pages:
-// directory index, gzip when accepted, 404 status with the body of 404.html.
+// Dependency-free static server for dist/ that imitates GitHub Pages:
+// directory index, 301 to the trailing slash for directories, gzip when accepted,
+// 404 status with the body of 404.html.
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
@@ -7,7 +8,7 @@ import { dirname, extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'dist');
 const PORT = Number(process.env.PORT) || 4173;
 
 const MIME = {
@@ -37,23 +38,30 @@ async function resolveFile(pathname) {
   }
   const full = join(ROOT, rel);
   if (full !== ROOT && !full.startsWith(ROOT + sep)) return null;
-  // Dev tooling and git data are not published by GitHub Pages.
-  const top = rel.split(sep).filter(Boolean)[0];
-  if (top === 'dev' || top === '.git' || top === '.superpowers') return null;
   try {
     const s = await stat(full);
-    if (s.isFile()) return full;
+    if (s.isFile()) return { file: full };
     if (s.isDirectory()) {
       const index = join(full, 'index.html');
-      if (existsSync(index)) return index;
+      if (existsSync(index)) return { file: index, isDirectory: true };
     }
-  } catch {}
+  } catch {
+    // missing path: falls through to the 404 page
+  }
   return null;
 }
 
 const server = createServer(async (req, res) => {
   const { pathname } = new URL(req.url, 'http://localhost');
-  let file = await resolveFile(pathname);
+  const found = await resolveFile(pathname);
+  if (found?.isDirectory && !pathname.endsWith('/')) {
+    // Pages redirects /en to /en/ so that relative URLs keep working.
+    const { search } = new URL(req.url, 'http://localhost');
+    res.writeHead(301, { location: `${pathname}/${search}`, 'content-length': 0 });
+    res.end();
+    return;
+  }
+  let file = found?.file;
   let status = 200;
   if (!file) {
     status = 404;
@@ -79,4 +87,8 @@ const server = createServer(async (req, res) => {
   res.end(req.method === 'HEAD' ? undefined : body);
 });
 
+if (!existsSync(ROOT)) {
+  console.error('dist/ does not exist: run `npm run build` first.');
+  process.exit(1);
+}
 server.listen(PORT, () => console.log(`Serving ${ROOT} on http://localhost:${PORT}`));

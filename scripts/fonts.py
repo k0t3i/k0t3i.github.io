@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Build the self-hosted subset fonts and check that pages are covered by them.
 
-  python dev/scripts/fonts.py build          sources in dev/fonts-src -> assets/fonts/*.woff2
-  python dev/scripts/fonts.py verify         built woff2: axis ranges and key glyphs
-  python dev/scripts/fonts.py check a.html   exit 1 if a character has no glyph
+  python scripts/fonts.py build          sources in fonts-src -> src/assets/fonts/*.woff2
+  python scripts/fonts.py verify         built woff2: axis ranges and key glyphs
+  python scripts/fonts.py check a.html   exit 1 if a character has no glyph
 """
 import io
 import sys
@@ -14,9 +14,9 @@ from fontTools import subset
 from fontTools.ttLib import TTFont
 from fontTools.varLib import instancer
 
-ROOT = Path(__file__).resolve().parents[2]
-SRC = ROOT / "dev" / "fonts-src"
-OUT = ROOT / "assets" / "fonts"
+ROOT = Path(__file__).resolve().parents[1]
+SRC = ROOT / "fonts-src"
+OUT = ROOT / "src" / "assets" / "fonts"
 
 UNICODES = (
     "U+0020-007E,U+00A0-00FF,U+0152-0153,U+0178,U+2009,U+2010-2014,U+2018-201E,"

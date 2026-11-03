@@ -5,7 +5,7 @@ import { existsSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { PUBLISHED_ROOT } from '../helpers/pages.mjs';
 
-const dir = (f) => join(PUBLISHED_ROOT, 'assets', 'fonts', f);
+const dir = (f) => join(PUBLISHED_ROOT, 'src', 'assets', 'fonts', f);
 const WOFF2 = ['hanken-grotesk.woff2', 'jetbrains-mono.woff2'];
 const OFL = ['OFL-HankenGrotesk.txt', 'OFL-JetBrainsMono.txt'];
 
@@ -26,7 +26,7 @@ test('woff2 signature', () => {
 
 test('fonts verify passes', () => {
   const r = spawnSync('python', ['scripts/fonts.py', 'verify'], {
-    cwd: join(PUBLISHED_ROOT, 'dev'),
+    cwd: PUBLISHED_ROOT,
     encoding: 'utf8',
   });
   assert.equal(r.status, 0, r.stdout + r.stderr);

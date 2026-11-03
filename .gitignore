@@ -1,7 +1,9 @@
 CLAUDE.md
-dev/node_modules/
-dev/test-results/
-dev/playwright-report/
-dev/fonts-src/
-dev/lighthouse/
-dev/private-names.local.txt
+.superpowers/
+node_modules/
+dist/
+test-results/
+playwright-report/
+lighthouse/
+fonts-src/
+private-names.local.txt

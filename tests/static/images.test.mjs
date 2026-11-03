@@ -6,7 +6,7 @@ import { PUBLISHED_ROOT } from '../helpers/pages.mjs';
 import { imageSize } from '../helpers/image-size.mjs';
 
 const at = (...p) => join(PUBLISHED_ROOT, ...p);
-const img = (f) => at('assets', 'img', f);
+const img = (f) => at('public', 'img', f);
 
 test('avatar is a square PNG between 16 and 64 px with alpha', () => {
   const buf = readFileSync(img('avatar.png'));
@@ -38,12 +38,12 @@ test('kit avif 380 <= 30 KB, jpg 760 <= 110 KB', () => {
 });
 
 test('favicons', () => {
-  const ico = imageSize(readFileSync(at('favicon.ico')));
+  const ico = imageSize(readFileSync(at('public', 'favicon.ico')));
   assert.equal(ico.type, 'ico');
   assert.ok(ico.count >= 2, `ico has ${ico.count} images`);
-  const touch = imageSize(readFileSync(at('apple-touch-icon.png')));
+  const touch = imageSize(readFileSync(at('public', 'apple-touch-icon.png')));
   assert.deepEqual([touch.type, touch.width, touch.height], ['png', 180, 180]);
-  const svg = readFileSync(at('favicon.svg'), 'utf8');
+  const svg = readFileSync(at('public', 'favicon.svg'), 'utf8');
   assert.match(svg, /viewBox/);
   assert.doesNotMatch(svg, /<script/i);
 });

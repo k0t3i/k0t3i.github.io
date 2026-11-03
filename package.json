@@ -1,0 +1,46 @@
+{
+  "name": "k0t3i-site",
+  "private": true,
+  "type": "module",
+  "description": "Home page of Anthony, drawn as an electronic circuit board. Vue 3 + Vite, prerendered.",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite-ssg build && node scripts/postbuild.mjs",
+    "serve": "node scripts/serve.mjs",
+    "typecheck": "vue-tsc --noEmit",
+    "lint": "eslint .",
+    "test:unit": "vitest run",
+    "test:static": "node --test \"tests/static/*.test.mjs\"",
+    "test:e2e": "playwright test",
+    "validate": "node scripts/validate.mjs",
+    "test": "npm run typecheck && npm run lint && npm run test:unit && npm run build && npm run test:static && npm run test:e2e && npm run validate"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
+    "@eslint/js": "10.0.1",
+    "@playwright/test": "1.64.0",
+    "@vitejs/plugin-vue": "6.0.10",
+    "@vue/test-utils": "2.5.1",
+    "eslint": "10.14.0",
+    "eslint-plugin-vue": "10.12.0",
+    "eslint-plugin-vuejs-accessibility": "2.6.3",
+    "globals": "17.14.0",
+    "happy-dom": "21.0.4",
+    "html-validate": "11.18.0",
+    "lighthouse": "13.6.0",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.1",
+    "vite": "8.3.5",
+    "vitest": "5.1.0",
+    "vnu-jar": "26.11.3",
+    "vue-tsc": "3.3.14"
+  },
+  "dependencies": {
+    "vite-ssg": "28.3.0",
+    "vue": "3.5.44",
+    "vue-router": "5.4.0"
+  }
+}

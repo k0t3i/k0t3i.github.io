@@ -8,9 +8,10 @@ export default defineConfig({
   reporter: [['list'], ['html', { open: 'never' }]],
   use: { baseURL: 'http://localhost:4173' },
   webServer: {
-    command: 'node serve.mjs',
+    command: 'npm run build && npm run serve',
     url: 'http://localhost:4173',
-    reuseExistingServer: true,
+    reuseExistingServer: false,
+    timeout: 120_000,
   },
   projects: [
     { name: 'chrome', use: { ...devices['Desktop Chrome'], channel: 'chrome', ...desktop } },

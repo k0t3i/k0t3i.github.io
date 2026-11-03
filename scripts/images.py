@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Build the raster images of the page. Run from anywhere; paths are repo-relative.
 
-  python dev/scripts/images.py avatar     placeholder pixel-art avatar -> assets/img/avatar.png
-  python dev/scripts/images.py kit        Kit d'urgence crop -> assets/img/kit-urgence-{380,760}.{avif,webp,jpg}
-  python dev/scripts/images.py favicons   favicon.ico + apple-touch-icon.png (same geometry as favicon.svg)
-  python dev/scripts/images.py all
+  python scripts/images.py avatar     placeholder pixel-art avatar -> public/img/avatar.png
+  python scripts/images.py kit        Kit d'urgence crop -> public/img/kit-urgence-{380,760}.{avif,webp,jpg}
+  python scripts/images.py favicons   public/favicon.ico + public/apple-touch-icon.png (same geometry as favicon.svg)
+  python scripts/images.py all
 """
 import subprocess
 import sys
@@ -12,8 +12,8 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
-ROOT = Path(__file__).resolve().parents[2]
-IMG = ROOT / "assets" / "img"
+ROOT = Path(__file__).resolve().parents[1]
+IMG = ROOT / "public" / "img"
 KIT_SOURCE = Path(r"D:\kit_urgence\brag-output\brag.jpg")
 
 # Palette (board mask, ENIG gold, silkscreen) and muted avatar tones.
@@ -80,13 +80,13 @@ def render_chip(size):
 
 
 def favicons():
-    render_chip(32).save(ROOT / "favicon.ico", format="ICO", sizes=[(16, 16), (32, 32)],
+    render_chip(32).save(ROOT / "public" / "favicon.ico", format="ICO", sizes=[(16, 16), (32, 32)],
                          append_images=[render_chip(16)])
     # iOS ignores transparency: sit the chip on the board colour.
     touch = Image.new("RGBA", (180, 180), BODY + (255,))
     chip = render_chip(180)
     touch.alpha_composite(chip)
-    touch.convert("RGB").save(ROOT / "apple-touch-icon.png", optimize=True)
+    touch.convert("RGB").save(ROOT / "public" / "apple-touch-icon.png", optimize=True)
 
 
 def ffmpeg(*args):
