@@ -16,6 +16,7 @@ export default tseslint.config(
   },
   {
     files: ['**/*.{ts,vue}'],
+    languageOptions: { globals: { __BUILD_DATE__: 'readonly' } },
     rules: { '@typescript-eslint/no-explicit-any': 'error' },
   },
   { files: ['scripts/**/*.mjs', 'tests/**/*.mjs', '*.config.{js,ts}'], languageOptions: { globals: globals.node } },

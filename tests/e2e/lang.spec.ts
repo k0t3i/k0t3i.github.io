@@ -77,8 +77,7 @@ test.describe('remembered choice', () => {
     await expect(page).toHaveURL(/\/en\/$/);
   });
 
-  // The FR link of the language switch arrives with Task 6 (LangSwitch).
-  test.fixme('a click on FR from /en/ remembers the choice', async ({ page }) => {
+  test('a click on FR from /en/ remembers the choice', async ({ page }) => {
     await setLanguages(page, ['en-US']);
     await page.goto('/en/');
     await page.getByRole('link', { name: 'Français' }).click();

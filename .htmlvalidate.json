@@ -2,6 +2,7 @@
   "extends": ["html-validate:recommended"],
   "rules": {
     "attribute-empty-style": "off",
+    "attribute-boolean-style": ["error", { "style": "empty" }],
     "no-trailing-whitespace": "off"
   }
 }

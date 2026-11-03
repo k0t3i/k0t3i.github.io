@@ -42,9 +42,10 @@ function run(label, cmd, args, env = {}) {
 // hashed or not, with one and the same message:
 //   Inline script violates Content Security Policy (meta tag): blocked by "script-src" directive
 //   (missing "'unsafe-inline'" or nonce/hash).
+// The same goes for same-origin images (/img/...), blocked by img-src for the same reason.
 // vnu therefore cannot see an unhashed inline script: tests/static/dist.test.mjs is the guard for that
 // (every inline executable script must have its hash in the CSP), together with the e2e CSP check.
-const CSP_ORIGIN_NOISE = String.raw`(Resource violates Content Security Policy \(meta tag\): external .* blocked by .*|Inline script violates Content Security Policy \(meta tag\): blocked by .* \(missing .*nonce/hash\)\.)`;
+const CSP_ORIGIN_NOISE = String.raw`(Resource violates Content Security Policy \(meta tag\): (external .* blocked by .*|image .\/img\/\S+. blocked by .img-src. directive\.)|Inline script violates Content Security Policy \(meta tag\): blocked by .* \(missing .*nonce/hash\)\.)`;
 
 const results = [
   run('html-validate', 'npx', ['html-validate', '--config', '.htmlvalidate.json', ...pages], {
