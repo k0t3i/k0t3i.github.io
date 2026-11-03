@@ -762,9 +762,21 @@
     }
   }
 
-  /* Where the face has room, a value breaks only after one of its separators, never inside an item. */
+  /* The narrowest faces (a small phone, or the root font at 125 %): tighter still. */
+  @container face (width < 17rem) {
+    .bom th,
+    .bom td {
+      padding-right: 0.375rem;
+    }
+
+    .bom thead th {
+      letter-spacing: 0.02em;
+    }
+  }
+
+  /* Where the face has room, the last word of an item keeps its dot: no line starts with a dot. */
   @container face (width >= 19rem) {
-    .bom__item {
+    .bom__glue {
       white-space: nowrap;
     }
   }

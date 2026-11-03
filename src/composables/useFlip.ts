@@ -17,8 +17,8 @@ const TURN_FALLBACK = 700;
 
 /**
  * SW2: turns the board over to show its back face. The state lives on the board, written here:
- * - data-flip-ready once mounted: the two faces are stacked (before that, and without JavaScript,
- *   the back face follows the front one, flat);
+ * - data-flip-ready once mounted: SW2 works (the two faces are stacked from the first paint by the
+ *   data-js flag of the head script; without JavaScript the back face follows the front one, flat);
  * - data-flipped while the back face is up; the face that is down is inert;
  * - data-turning during the turn: "prep" puts the board in 3D on the side that is up (nothing moves
  *   on screen), then "run" lets the transform transition to the other side (depth.css, motion.css).

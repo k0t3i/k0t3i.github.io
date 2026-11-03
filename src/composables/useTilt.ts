@@ -3,6 +3,8 @@ import { useReducedMotion } from './useReducedMotion';
 
 /** The wide board, with a mouse (or a pen): the only case where the board leans. */
 const QUERY = '(min-width: 79rem) and (hover: hover) and (pointer: fine)';
+/** The elements of the board that read the angles (depth.css): its body and its edge. */
+const MOVERS = '.board__body, .board__edge';
 /** The largest angle on each axis, in degrees. */
 const MAX = 4;
 /** Share of the way to the target covered in one frame at 60 Hz (the same feel at any refresh rate). */
@@ -15,23 +17,18 @@ const DEAD_ZONE = 0.1;
 
 const clamp = (v: number): number => Math.min(1, Math.max(-1, v));
 
-/** An open sheet sits over the board: the board stays flat under it. */
-function sheetOpen(el: HTMLElement): boolean {
-  try {
-    return el.querySelector('.sheet:popover-open') !== null;
-  } catch {
-    return false;
-  }
-}
-
 /**
  * The board leans a few degrees towards the mouse, the part under it going away, as if pressed.
- * Client only: the angles are written as --tilt-x and --tilt-y on the target with the CSSOM, which
- * the CSP allows (no style attribute is ever rendered), and removed again once the board is flat.
- * While they are set, the target carries data-tilting (depth.css puts the board in 3D then). A
- * requestAnimationFrame loop eases towards the target angle and stops once it is reached; it holds
+ * Client only. The angles are written as --tilt-x and --tilt-y with the CSSOM, which the CSP allows
+ * (no style attribute is ever rendered), on the body and the edge of the board only: the two
+ * properties are registered as not inherited (depth.css), so a frame restyles those two elements
+ * and nothing inside them. They are removed again once the board is flat. While they are set, the
+ * target carries data-tilting (depth.css puts the board in 3D then).
+ * A requestAnimationFrame loop eases towards the target angle and stops once it is reached; it holds
  * still while the board turns over (data-turning, useFlip), so the turn stays one clean transition.
- * When a sheet opens the board is flat at once: the sheet is anchored to its part as laid out.
+ * When a sheet opens the board is flat at once, and stays flat while it is open: the sheet is
+ * anchored to its part as laid out. A pointer move costs no layout: the box of the board is measured
+ * when the pointer enters it, and again after a resize or a scroll.
  */
 export function useTilt(target: Ref<HTMLElement | null>): void {
   const reduced = useReducedMotion();
@@ -41,21 +38,28 @@ export function useTilt(target: Ref<HTMLElement | null>): void {
   const now = { x: 0, y: 0 };
   const goal = { x: 0, y: 0 };
   let bound: HTMLElement | null = null;
+  let movers: HTMLElement[] = [];
+  let box: DOMRect | null = null;
+  let sheet: EventTarget | null = null;
 
   const active = (): boolean => Boolean(media?.matches) && !reduced.value;
 
   function write(el: HTMLElement): void {
     el.dataset.tilting = '';
-    el.style.setProperty('--tilt-x', `${now.x.toFixed(3)}deg`);
-    el.style.setProperty('--tilt-y', `${now.y.toFixed(3)}deg`);
+    for (const m of movers) {
+      m.style.setProperty('--tilt-x', `${now.x.toFixed(3)}deg`);
+      m.style.setProperty('--tilt-y', `${now.y.toFixed(3)}deg`);
+    }
   }
 
-  /** Flat again: nothing of the tilt is left on the element. */
+  /** Flat again: nothing of the tilt is left on the board. */
   function settle(el: HTMLElement): void {
     delete el.dataset.tilting;
-    el.style.removeProperty('--tilt-x');
-    el.style.removeProperty('--tilt-y');
-    if (!el.getAttribute('style')) el.removeAttribute('style');
+    for (const m of movers) {
+      m.style.removeProperty('--tilt-x');
+      m.style.removeProperty('--tilt-y');
+      if (!m.getAttribute('style')) m.removeAttribute('style');
+    }
   }
 
   function step(time: number): void {
@@ -96,17 +100,21 @@ export function useTilt(target: Ref<HTMLElement | null>): void {
     if (!frame && (goal.x !== now.x || goal.y !== now.y)) frame = requestAnimationFrame(step);
   }
 
+  const measure = (): void => {
+    box = target.value?.getBoundingClientRect() ?? null;
+  };
+
+  // The box changes with the window and the scroll only: the next move measures it again.
+  const forget = (): void => {
+    box = null;
+  };
+
   function onMove(event: PointerEvent): void {
-    const el = target.value;
-    if (!el || !active()) return;
-    if (sheetOpen(el)) {
-      aim(0, 0);
-      return;
-    }
-    const r = el.getBoundingClientRect();
-    if (r.width === 0 || r.height === 0) return;
-    const nx = clamp((event.clientX - (r.left + r.width / 2)) / (r.width / 2));
-    const ny = clamp((event.clientY - (r.top + r.height / 2)) / (r.height / 2));
+    if (!target.value || !active() || sheet) return;
+    if (!box) measure();
+    if (!box || box.width === 0 || box.height === 0) return;
+    const nx = clamp((event.clientX - (box.left + box.width / 2)) / (box.width / 2));
+    const ny = clamp((event.clientY - (box.top + box.height / 2)) / (box.height / 2));
     // rotateY > 0 sends the right edge away, rotateX > 0 the top edge: the side under the pointer dips.
     aim(-ny * MAX, nx * MAX);
   }
@@ -124,7 +132,12 @@ export function useTilt(target: Ref<HTMLElement | null>): void {
 
   // The toggle of a popover does not bubble: it is caught on its way down to the sheet.
   const onToggle = (event: Event): void => {
-    if ((event as ToggleEvent).newState === 'open') reset();
+    if ((event as ToggleEvent).newState === 'open') {
+      sheet = event.target;
+      reset();
+    } else if (event.target === sheet) {
+      sheet = null;
+    }
   };
 
   const onMedia = (): void => {
@@ -135,19 +148,30 @@ export function useTilt(target: Ref<HTMLElement | null>): void {
     media = matchMedia(QUERY);
     media.addEventListener('change', onMedia);
     bound = target.value;
-    bound?.addEventListener('pointermove', onMove, { passive: true });
-    bound?.addEventListener('pointerleave', onLeave, { passive: true });
-    bound?.addEventListener('toggle', onToggle, { capture: true });
+    if (!bound) return;
+    movers = [...bound.querySelectorAll<HTMLElement>(MOVERS)].filter((m) => m.parentElement === bound);
+    bound.addEventListener('pointerenter', measure, { passive: true });
+    bound.addEventListener('pointermove', onMove, { passive: true });
+    bound.addEventListener('pointerleave', onLeave, { passive: true });
+    bound.addEventListener('toggle', onToggle, { capture: true });
+    window.addEventListener('resize', forget, { passive: true });
+    window.addEventListener('scroll', forget, { passive: true });
   });
 
   watch(reduced, onMedia);
 
   onBeforeUnmount(() => {
     media?.removeEventListener('change', onMedia);
-    bound?.removeEventListener('pointermove', onMove);
-    bound?.removeEventListener('pointerleave', onLeave);
-    bound?.removeEventListener('toggle', onToggle, { capture: true });
-    bound = null;
+    if (bound) {
+      bound.removeEventListener('pointerenter', measure);
+      bound.removeEventListener('pointermove', onMove);
+      bound.removeEventListener('pointerleave', onLeave);
+      bound.removeEventListener('toggle', onToggle, { capture: true });
+      window.removeEventListener('resize', forget);
+      window.removeEventListener('scroll', forget);
+    }
     reset();
+    bound = null;
+    movers = [];
   });
 }

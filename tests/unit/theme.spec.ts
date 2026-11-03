@@ -13,13 +13,16 @@ describe('resolveTheme', () => {
 describe('THEME_SNIPPET', () => {
   /** Runs the snippet against a fake page; returns the data-theme it set, or undefined. */
   function run(saved: string | null, prefersDark: boolean): string | undefined {
+    return runFull(saved, prefersDark).theme;
+  }
+  function runFull(saved: string | null, prefersDark: boolean): Record<string, string> {
     const dataset: Record<string, string> = {};
     runInNewContext(THEME_SNIPPET, {
       localStorage: { getItem: (key: string) => (key === THEME_KEY ? saved : null) },
       matchMedia: (query: string) => ({ matches: query === '(prefers-color-scheme: dark)' && prefersDark }),
       document: { documentElement: { dataset } },
     });
-    return dataset.theme;
+    return dataset;
   }
 
   it('uses the storage key k0t3i.theme', () => expect(THEME_KEY).toBe('k0t3i.theme'));
@@ -33,6 +36,10 @@ describe('THEME_SNIPPET', () => {
     expect(run('green', true)).toBe('green');
   });
   it('ignores an unknown saved value', () => expect(run('bogus', true)).toBeUndefined());
+  it('marks the page as having JavaScript, whatever the theme', () => {
+    expect(runFull(null, false).js).toBe('');
+    expect(runFull('dark', false).js).toBe('');
+  });
   it('swallows a storage that throws', () => {
     const dataset: Record<string, string> = {};
     const context = {
@@ -46,6 +53,8 @@ describe('THEME_SNIPPET', () => {
     };
     expect(() => runInNewContext(THEME_SNIPPET, context)).not.toThrow();
     expect(dataset.theme).toBeUndefined();
+    // The flag comes first: a blocked storage does not keep the faces from stacking.
+    expect(dataset.js).toBe('');
   });
   it('swallows a page without storage at all', () => expect(() => runInNewContext(THEME_SNIPPET, {})).not.toThrow());
 });

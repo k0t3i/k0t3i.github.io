@@ -1,11 +1,30 @@
 /*
- * The board as an object: a PCB with a real thickness, two faces, an edge. On the client, the two
- * faces are stacked (data-flip-ready, useFlip.ts) and the face that is down is hidden; the board
- * leans towards a mouse (data-tilting, useTilt.ts) and SW2 turns it over (data-turning, then
- * data-flipped). At rest nothing is in 3D: no transform, so the text stays crisp; the 3D layout and
- * will-change exist only while the board leans or turns. The transition itself is in motion.css.
- * Without JavaScript the back face follows the front one, flat, each with its own edge.
+ * The board as an object: a PCB with a real thickness, two faces, an edge. With JavaScript (the
+ * head script sets data-js on <html> before the first paint) the two faces of the home board are
+ * stacked from the first paint and the face that is down is hidden; once the app has mounted
+ * (useFlip.ts, useTilt.ts) the board leans towards a mouse (data-tilting) and SW2 turns it over
+ * (data-turning, then data-flipped). At rest nothing is in 3D: no transform, so the text stays
+ * crisp; the 3D layout and will-change exist only while the board leans or turns. The transition
+ * itself is in motion.css. Without JavaScript the back face follows the front one, flat, each with
+ * its own edge; the 404 board, one face, is always flat.
  */
+
+/*
+ * The angles of the tilt, written each frame on the body and the edge only (useTilt.ts). Registered
+ * and not inherited: a new angle restyles those two elements, never the content of the board.
+ */
+@property --tilt-x {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@property --tilt-y {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
 @layer depth {
   .board {
     /* The thickness of the edge seen under the face: FR4 between two layers of solder mask. */
@@ -29,10 +48,11 @@
   }
 
   /*
-   * Flat, before the app mounts and without JavaScript: each face draws its own edge in layered
-   * shadows (the routed edge, the top mask, the FR4 core, the bottom mask), then its shadow.
+   * Flat (without JavaScript, and the 404 board): each face draws its own edge in layered shadows
+   * (the routed edge, the top mask, the FR4 core, the bottom mask), then its shadow.
    */
-  .board:not([data-flip-ready]) .board__face {
+  :root:not([data-js]) .board__face,
+  .board:not(.board--home) .board__face {
     box-shadow:
       var(--board-ring),
       0 1px 0 1px var(--mask-side),
@@ -42,18 +62,18 @@
       var(--board-shadow);
   }
 
-  /* The back face, readable after the front one: a second board under it. */
-  .board:not([data-flip-ready]) .board__face--back {
+  /* Without JavaScript the back face is readable after the front one: a second board under it. */
+  :root:not([data-js]) .board__face--back {
     margin-top: 2.5rem;
   }
 
   /*
    * On the wide board the home board is centred on the page: the back face is laid out of the flow,
-   * under the front one, so that the front board lies where it will lie once the faces are stacked.
-   * Its ::after keeps some page under it.
+   * under the front one, so that the front board lies where it does with JavaScript. Its ::after
+   * keeps some page under it.
    */
   @media (min-width: 79rem) {
-    .board--home:not([data-flip-ready]) .board__face--back {
+    :root:not([data-js]) .board--home .board__face--back {
       position: absolute;
       top: calc(100% + 2.5rem);
       left: 0;
@@ -61,7 +81,7 @@
       margin: 0;
     }
 
-    .board--home:not([data-flip-ready]) .board__face--back::after {
+    :root:not([data-js]) .board--home .board__face--back::after {
       content: "";
       position: absolute;
       top: 100%;
@@ -73,24 +93,28 @@
     }
   }
 
-  /* Mounted: the two faces share one place; the one that is down is hidden (and inert, useFlip.ts). */
-  .board[data-flip-ready] {
+  /*
+   * With JavaScript, from the first paint: the two faces share one place, the one that is down is
+   * hidden (and inert once mounted). The page is as tall as one face, so no scrollbar comes and goes
+   * when the app mounts. Should the app never mount, the front face is all there is, and works.
+   */
+  :root[data-js] .board--home {
     perspective: 2400px;
   }
 
   /* One column as wide as the board: the content of a face never widens it. */
-  .board[data-flip-ready] .board__body {
+  :root[data-js] .board--home .board__body {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .board[data-flip-ready] .board__face {
+  :root[data-js] .board--home .board__face {
     grid-area: 1 / 1;
   }
 
   /* At rest only: during the turn both faces are drawn (below). */
-  .board[data-flip-ready]:not([data-flipped], [data-turning]) .board__face--back,
-  .board[data-flip-ready][data-flipped]:not([data-turning]) .board__face--front {
+  :root[data-js] .board--home:not([data-flipped], [data-turning]) .board__face--back,
+  :root[data-js] .board--home[data-flipped]:not([data-turning]) .board__face--front {
     visibility: hidden;
   }
 
@@ -103,7 +127,7 @@
     display: none;
   }
 
-  .board[data-flip-ready] .board__edge {
+  :root[data-js] .board--home .board__edge {
     position: absolute;
     z-index: 0;
     inset: 0 0 calc(-1px - var(--thick));
@@ -151,5 +175,10 @@
   .board[data-turning] .board__face {
     visibility: visible;
     backface-visibility: hidden;
+  }
+
+  /* With the back face up, the link to the content of the front face would lead into an inert face. */
+  .skip-link:has(~ .board[data-flipped]) {
+    display: none;
   }
 }

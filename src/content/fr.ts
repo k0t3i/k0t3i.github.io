@@ -56,6 +56,7 @@ export const fr: SiteContent = {
         { ref: 'U20', part: 'Électronique', value: 'Arduino · Raspberry Pi · IoT' },
       ],
     },
+    populatedTitle: 'Face arrière · composants',
     populatedAlt: 'Face arrière de la carte, couverte de composants',
   },
   marks: [

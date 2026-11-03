@@ -43,7 +43,7 @@ export const en: SiteContent = {
       rows: [
         { ref: 'U10', part: 'Vue.js', value: '2 → 3 · Composition API · SSR' },
         { ref: 'U11', part: 'TypeScript / JavaScript', value: 'strict · ES modules' },
-        { ref: 'U12', part: 'Semantic HTML', value: 'landmarks · ARIA juste' },
+        { ref: 'U12', part: 'Semantic HTML', value: 'landmarks · ARIA done right' },
         { ref: 'U13', part: 'CSS', value: 'layers · container queries · motion' },
         { ref: 'U14', part: 'Accessibility', value: 'WCAG 2.2 AA · product guidelines' },
         { ref: 'U15', part: 'Web performance', value: 'audits · Core Web Vitals' },
@@ -54,6 +54,7 @@ export const en: SiteContent = {
         { ref: 'U20', part: 'Electronics', value: 'Arduino · Raspberry Pi · IoT' },
       ],
     },
+    populatedTitle: 'Back side · components',
     populatedAlt: 'Back side of the board, covered with components',
   },
   marks: [

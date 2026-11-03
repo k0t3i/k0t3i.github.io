@@ -1,22 +1,45 @@
 import { mount, type VueWrapper } from '@vue/test-utils';
-import { defineComponent, h, ref } from 'vue';
+import { defineComponent, h, nextTick, ref } from 'vue';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useTilt } from '../../src/composables/useTilt';
 
 const TILT_QUERY = '(min-width: 79rem) and (hover: hover) and (pointer: fine)';
+const REDUCED_QUERY = '(prefers-reduced-motion: reduce)';
+
+type Listener = (event: { matches: boolean }) => void;
+/** The media queries of the test: whether each matches, and the listeners attached to it. */
+let queries = new Map<string, { matches: boolean; listeners: Set<Listener> }>();
 
 /** The device as the test sets it: a wide window with a mouse or not, reduced motion or not. */
 function stubMedia({ fine, reduced }: { fine: boolean; reduced: boolean }): void {
-  vi.stubGlobal('matchMedia', (query: string) => ({
-    matches: query === TILT_QUERY ? fine : query === '(prefers-reduced-motion: reduce)' ? reduced : false,
-    media: query,
-    onchange: null,
-    addEventListener: () => {},
-    removeEventListener: () => {},
-    addListener: () => {},
-    removeListener: () => {},
-    dispatchEvent: () => false,
-  }));
+  queries = new Map([
+    [TILT_QUERY, { matches: fine, listeners: new Set() }],
+    [REDUCED_QUERY, { matches: reduced, listeners: new Set() }],
+  ]);
+  vi.stubGlobal('matchMedia', (query: string) => {
+    const q = queries.get(query) ?? { matches: false, listeners: new Set<Listener>() };
+    queries.set(query, q);
+    return {
+      get matches() {
+        return q.matches;
+      },
+      media: query,
+      onchange: null,
+      addEventListener: (_: string, l: Listener) => q.listeners.add(l),
+      removeEventListener: (_: string, l: Listener) => q.listeners.delete(l),
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    };
+  });
+}
+
+/** The device changes: a query starts or stops matching, its listeners hear it. */
+function change(query: string, matches: boolean): void {
+  const q = queries.get(query);
+  if (!q) throw new Error(`no query ${query}`);
+  q.matches = matches;
+  for (const l of [...q.listeners]) l({ matches });
 }
 
 /** Animation frames run by hand, one batch per frame. */
@@ -33,25 +56,28 @@ function runFrames(count: number, ms = 1000 / 60): void {
   }
 }
 
-/** The board of a test: a div whose box is 1600 x 900 at the origin of the page. */
-function mountBoard(): { wrapper: VueWrapper; board: HTMLElement } {
+/** The board of a test: a 1600 x 900 box at the origin of the page, with its body and its edge. */
+function mountBoard(): { wrapper: VueWrapper; board: HTMLElement; body: HTMLElement; edge: HTMLElement } {
   const Harness = defineComponent({
     setup() {
       const el = ref<HTMLElement | null>(null);
       useTilt(el);
-      return () => h('div', { ref: el, class: 'board' });
+      return () => h('div', { ref: el, class: 'board' }, [h('div', { class: 'board__body' }, [h('div', { class: 'board__face' })]), h('div', { class: 'board__edge' })]);
     },
   });
   const wrapper = mount(Harness, { attachTo: document.body });
   const board = wrapper.element as HTMLElement;
   board.getBoundingClientRect = () => new DOMRect(0, 0, 1600, 900);
-  return { wrapper, board };
+  return { wrapper, board, body: board.querySelector('.board__body') as HTMLElement, edge: board.querySelector('.board__edge') as HTMLElement };
 }
 
 const move = (board: HTMLElement, x: number, y: number): void => {
   board.dispatchEvent(new PointerEvent('pointermove', { clientX: x, clientY: y, bubbles: true }));
 };
-const angle = (board: HTMLElement, axis: 'x' | 'y'): number => parseFloat(board.style.getPropertyValue(`--tilt-${axis}`) || '0');
+/** The angle the body reads (the edge reads the same one). */
+const angle = (el: HTMLElement, axis: 'x' | 'y'): number => parseFloat(el.style.getPropertyValue(`--tilt-${axis}`) || '0');
+const isFlat = (board: HTMLElement): boolean =>
+  !board.hasAttribute('data-tilting') && [...board.children].every((c) => !c.hasAttribute('style')) && !board.hasAttribute('style');
 
 beforeEach(() => {
   frames = new Map();
@@ -79,146 +105,215 @@ describe('useTilt', () => {
       { fine: true, reduced: true },
     ]) {
       stubMedia(device);
-      const { wrapper, board } = mountBoard();
+      const { wrapper, board, body } = mountBoard();
       move(board, 1500, 100);
       runFrames(30);
       expect(frames.size, JSON.stringify(device)).toBe(0);
-      expect(board.style.getPropertyValue('--tilt-x'), JSON.stringify(device)).toBe('');
-      expect(board.style.getPropertyValue('--tilt-y'), JSON.stringify(device)).toBe('');
-      expect(board.hasAttribute('data-tilting')).toBe(false);
+      expect(body.style.getPropertyValue('--tilt-x'), JSON.stringify(device)).toBe('');
+      expect(isFlat(board)).toBe(true);
       wrapper.unmount();
     }
   });
 
+  it('writes the angles on the body and the edge only, never on the board', () => {
+    stubMedia({ fine: true, reduced: false });
+    const { board, body, edge } = mountBoard();
+    move(board, 1600, 900);
+    runFrames(10);
+    expect(angle(body, 'y')).toBeGreaterThan(0);
+    expect(edge.style.getPropertyValue('--tilt-y')).toBe(body.style.getPropertyValue('--tilt-y'));
+    expect(edge.style.getPropertyValue('--tilt-x')).toBe(body.style.getPropertyValue('--tilt-x'));
+    // The board carries the state only; the faces inside the body, nothing.
+    expect(board.hasAttribute('style')).toBe(false);
+    expect(board.hasAttribute('data-tilting')).toBe(true);
+    expect((board.querySelector('.board__face') as HTMLElement).hasAttribute('style')).toBe(false);
+  });
+
   it('tilt clamps to ±4deg', () => {
     stubMedia({ fine: true, reduced: false });
-    const { board } = mountBoard();
+    const { board, body } = mountBoard();
     // Far beyond a corner: each axis is held at its limit, never past it.
     move(board, 9000, -9000);
     let peak = 0;
     for (let i = 0; i < 200; i++) {
       runFrames(1);
-      peak = Math.max(peak, Math.abs(angle(board, 'x')), Math.abs(angle(board, 'y')));
+      peak = Math.max(peak, Math.abs(angle(body, 'x')), Math.abs(angle(body, 'y')));
     }
     expect(peak).toBeLessThanOrEqual(4);
-    expect(Math.abs(angle(board, 'x'))).toBeCloseTo(4, 1);
-    expect(Math.abs(angle(board, 'y'))).toBeCloseTo(4, 1);
+    expect(Math.abs(angle(body, 'x'))).toBeCloseTo(4, 1);
+    expect(Math.abs(angle(body, 'y'))).toBeCloseTo(4, 1);
     expect(board.hasAttribute('data-tilting')).toBe(true);
     // Damped: one frame covers only part of the way (factor 0.12).
     move(board, 800, 450);
     runFrames(1);
-    expect(Math.abs(angle(board, 'y'))).toBeCloseTo(4 * 0.88, 1);
+    expect(Math.abs(angle(body, 'y'))).toBeCloseTo(4 * 0.88, 1);
     // At the centre of the board, it is flat again.
     runFrames(200);
-    expect(Math.abs(angle(board, 'x'))).toBeLessThan(0.02);
-    expect(Math.abs(angle(board, 'y'))).toBeLessThan(0.02);
+    expect(Math.abs(angle(body, 'x'))).toBeLessThan(0.02);
+    expect(Math.abs(angle(body, 'y'))).toBeLessThan(0.02);
   });
 
   it('leans towards the pointer: right and bottom go away under it', () => {
     stubMedia({ fine: true, reduced: false });
-    const { board } = mountBoard();
+    const { board, body } = mountBoard();
     move(board, 1600, 900);
     runFrames(200);
     // rotateY > 0 sends the right edge away from the viewer, rotateX < 0 the bottom edge.
-    expect(angle(board, 'y')).toBeGreaterThan(3.9);
-    expect(angle(board, 'x')).toBeLessThan(-3.9);
+    expect(angle(body, 'y')).toBeGreaterThan(3.9);
+    expect(angle(body, 'x')).toBeLessThan(-3.9);
   });
 
   it('eases by time, not by frame: the same course at 30 Hz as at 60 Hz', () => {
     stubMedia({ fine: true, reduced: false });
-    const { board } = mountBoard();
+    const { board, body } = mountBoard();
     move(board, 1600, 450);
     runFrames(30);
-    const at60 = angle(board, 'y');
+    const at60 = angle(body, 'y');
     board.dispatchEvent(new PointerEvent('pointerleave'));
     runFrames(1000);
     move(board, 1600, 450);
     runFrames(15, 2000 / 60);
-    expect(angle(board, 'y')).toBeCloseTo(at60, 1);
+    expect(angle(body, 'y')).toBeCloseTo(at60, 1);
   });
 
   it('ignores a target a hair away from the current one', () => {
     stubMedia({ fine: true, reduced: false });
-    const { board } = mountBoard();
+    const { board, body } = mountBoard();
     move(board, 1200, 450);
     runFrames(500);
     expect(frames.size).toBe(0);
-    const still = angle(board, 'y');
+    const still = angle(body, 'y');
     // 10px further right: well under 0.1 degree, the board does not move.
     move(board, 1210, 450);
     expect(frames.size).toBe(0);
-    expect(angle(board, 'y')).toBe(still);
+    expect(angle(body, 'y')).toBe(still);
     // 60px further: it follows.
     move(board, 1270, 450);
     expect(frames.size).toBe(1);
   });
 
-  it('is flat at once when a sheet opens', () => {
+  it('measures the board when the pointer enters it and after a resize or a scroll, not on each move', () => {
     stubMedia({ fine: true, reduced: false });
     const { board } = mountBoard();
+    const measure = vi.fn(() => new DOMRect(0, 0, 1600, 900));
+    board.getBoundingClientRect = measure;
+    board.dispatchEvent(new PointerEvent('pointerenter'));
+    for (let x = 900; x < 1600; x += 50) move(board, x, 300);
+    expect(measure).toHaveBeenCalledTimes(1);
+    window.dispatchEvent(new Event('scroll'));
+    move(board, 1000, 300);
+    move(board, 1100, 300);
+    expect(measure).toHaveBeenCalledTimes(2);
+    window.dispatchEvent(new Event('resize'));
+    move(board, 1200, 300);
+    expect(measure).toHaveBeenCalledTimes(3);
+  });
+
+  it('is flat at once when a sheet opens, and stays flat until it closes', () => {
+    stubMedia({ fine: true, reduced: false });
+    const { board, body } = mountBoard();
     const sheet = document.createElement('div');
-    board.append(sheet);
+    body.append(sheet);
+    const toggle = (newState: string) => {
+      const event = new Event('toggle');
+      Object.defineProperty(event, 'newState', { value: newState });
+      sheet.dispatchEvent(event);
+    };
     move(board, 1600, 0);
     runFrames(40);
     expect(board.hasAttribute('data-tilting')).toBe(true);
-    const open = new Event('toggle');
-    Object.defineProperty(open, 'newState', { value: 'open' });
-    sheet.dispatchEvent(open);
+    toggle('open');
     expect(frames.size).toBe(0);
-    expect(board.hasAttribute('data-tilting')).toBe(false);
-    expect(board.hasAttribute('style')).toBe(false);
+    expect(isFlat(board)).toBe(true);
+    // Moves under the open sheet do not lean the board.
+    move(board, 0, 900);
+    runFrames(40);
+    expect(isFlat(board)).toBe(true);
+    toggle('closed');
+    move(board, 0, 900);
+    runFrames(40);
+    expect(board.hasAttribute('data-tilting')).toBe(true);
+  });
+
+  it('goes flat at once when the window stops being wide with a mouse, or asks for less motion', async () => {
+    stubMedia({ fine: true, reduced: false });
+    const { board } = mountBoard();
+    // The reduced-motion setting read at mount reaches the watcher first.
+    await nextTick();
+    move(board, 1600, 900);
+    runFrames(20);
+    expect(board.hasAttribute('data-tilting')).toBe(true);
+    change(TILT_QUERY, false);
+    expect(frames.size).toBe(0);
+    expect(isFlat(board)).toBe(true);
+    move(board, 1600, 900);
+    expect(frames.size).toBe(0);
+
+    // Wide with a mouse again: it follows again, until reduced motion is asked for.
+    change(TILT_QUERY, true);
+    move(board, 0, 0);
+    runFrames(20);
+    expect(board.hasAttribute('data-tilting')).toBe(true);
+    change(REDUCED_QUERY, true);
+    await nextTick();
+    expect(frames.size).toBe(0);
+    expect(isFlat(board)).toBe(true);
+    move(board, 1600, 900);
+    expect(frames.size).toBe(0);
   });
 
   it('returns to 0 on leave and stops the rAF loop', () => {
     stubMedia({ fine: true, reduced: false });
-    const { board } = mountBoard();
+    const { board, body } = mountBoard();
     move(board, 1600, 0);
     runFrames(40);
-    expect(Math.abs(angle(board, 'y'))).toBeGreaterThan(3);
+    expect(Math.abs(angle(body, 'y'))).toBeGreaterThan(3);
     board.dispatchEvent(new PointerEvent('pointerleave'));
     runFrames(1000);
     // The loop stopped by itself, and the board is back at rest: no 3D, no inline property left.
     expect(frames.size).toBe(0);
-    expect(board.style.getPropertyValue('--tilt-x')).toBe('');
-    expect(board.style.getPropertyValue('--tilt-y')).toBe('');
-    expect(board.hasAttribute('data-tilting')).toBe(false);
-    expect(board.hasAttribute('style')).toBe(false);
+    expect(isFlat(board)).toBe(true);
   });
 
   it('holds still while the board turns over', () => {
     stubMedia({ fine: true, reduced: false });
-    const { board } = mountBoard();
+    const { board, body } = mountBoard();
     move(board, 1600, 450);
     runFrames(5);
-    const held = angle(board, 'y');
+    const held = angle(body, 'y');
     board.dataset.turning = 'run';
     move(board, 0, 450);
     runFrames(20);
-    expect(angle(board, 'y')).toBe(held);
+    expect(angle(body, 'y')).toBe(held);
     delete board.dataset.turning;
     runFrames(20);
-    expect(angle(board, 'y')).toBeLessThan(held);
+    expect(angle(body, 'y')).toBeLessThan(held);
   });
 
   it('cleanup on unmount', () => {
     stubMedia({ fine: true, reduced: false });
-    const remove = vi.spyOn(HTMLElement.prototype, 'removeEventListener');
+    const removeOn = vi.spyOn(HTMLElement.prototype, 'removeEventListener');
+    const removeWindow = vi.spyOn(window, 'removeEventListener');
     try {
       const { wrapper, board } = mountBoard();
       move(board, 1600, 900);
       runFrames(3);
       expect(frames.size).toBe(1);
+      expect([...(queries.get(TILT_QUERY)?.listeners ?? [])]).toHaveLength(1);
       wrapper.unmount();
-      // The pending frame is cancelled, the listeners are gone, the properties are removed.
+      // The pending frame is cancelled, every listener is gone, nothing of the tilt is left.
       expect(frames.size).toBe(0);
-      const own = remove.mock.calls.filter((_, i) => remove.mock.contexts[i] === board).map(([type]) => type);
-      expect(own).toEqual(expect.arrayContaining(['pointerleave', 'pointermove']));
-      expect(board.style.getPropertyValue('--tilt-x')).toBe('');
-      expect(board.hasAttribute('data-tilting')).toBe(false);
+      const own = removeOn.mock.calls.filter((_, i) => removeOn.mock.contexts[i] === board).map(([type, , options]) => `${type}${options ? ` ${JSON.stringify(options)}` : ''}`);
+      expect(own).toEqual(expect.arrayContaining(['pointerenter', 'pointermove', 'pointerleave', 'toggle {"capture":true}']));
+      expect(removeWindow.mock.calls.map(([type]) => type)).toEqual(expect.arrayContaining(['resize', 'scroll']));
+      expect(queries.get(TILT_QUERY)?.listeners.size).toBe(0);
+      expect(queries.get(REDUCED_QUERY)?.listeners.size).toBe(0);
+      expect(isFlat(board)).toBe(true);
       move(board, 0, 0);
       expect(frames.size).toBe(0);
     } finally {
-      remove.mockRestore();
+      removeOn.mockRestore();
+      removeWindow.mockRestore();
     }
   });
 });

@@ -40,8 +40,8 @@ export interface SiteContent {
   theme: { ref: string; green: string; dark: string; switchHidden: string };
   /**
    * The back side of the board, and SW2, the slide switch that turns the board over: its reference,
-   * its two positions and its hidden text; the title of the back side; its bill of materials (one row
-   * per skill, ref U10 to U20) and the text alternative of the populated variant.
+   * its two positions and its hidden text; the title of the back side with its bill of materials
+   * (one row per skill, ref U10 to U20); the title and the text alternative of the populated variant.
    */
   back: {
     ref: string;
@@ -54,6 +54,7 @@ export interface SiteContent {
       columns: { ref: string; part: string; value: string };
       rows: { ref: string; part: string; value: string }[];
     };
+    populatedTitle: string;
     populatedAlt: string;
   };
   marks: { visible: string; hidden: string }[];

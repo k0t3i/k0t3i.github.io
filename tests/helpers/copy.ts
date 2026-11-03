@@ -48,6 +48,8 @@ export interface Copy {
     columns: string[];
     /** Each row: reference, part, value. */
     rows: [string, string, string][];
+    /** The title of the populated variant (title is the one of the bill of materials). */
+    populatedTitle: string;
     populatedAlt: string;
   };
   marks: { visible: string; hidden: string }[];
@@ -118,6 +120,7 @@ export const FR: Copy = {
       ['U19', 'Équipe', 'recrutement · formation · coaching'],
       ['U20', 'Électronique', 'Arduino · Raspberry Pi · IoT'],
     ],
+    populatedTitle: 'Face arrière · composants',
     populatedAlt: 'Face arrière de la carte, couverte de composants',
   },
   marks: [
@@ -234,7 +237,7 @@ export const EN: Copy = {
     rows: [
       ['U10', 'Vue.js', '2 → 3 · Composition API · SSR'],
       ['U11', 'TypeScript / JavaScript', 'strict · ES modules'],
-      ['U12', 'Semantic HTML', 'landmarks · ARIA juste'],
+      ['U12', 'Semantic HTML', 'landmarks · ARIA done right'],
       ['U13', 'CSS', 'layers · container queries · motion'],
       ['U14', 'Accessibility', 'WCAG 2.2 AA · product guidelines'],
       ['U15', 'Web performance', 'audits · Core Web Vitals'],
@@ -244,6 +247,7 @@ export const EN: Copy = {
       ['U19', 'Team', 'hiring · training · coaching'],
       ['U20', 'Electronics', 'Arduino · Raspberry Pi · IoT'],
     ],
+    populatedTitle: 'Back side · components',
     populatedAlt: 'Back side of the board, covered with components',
   },
   marks: [

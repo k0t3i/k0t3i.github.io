@@ -10,8 +10,17 @@ import type { SiteContent } from '../content/types';
  */
 const props = defineProps<{ back: SiteContent['back'] }>();
 
-/** The items of a value with their separator: "a · b · c" gives "a ·", "b ·", "c". */
-const items = (value: string): string[] => value.split(' · ').map((item, i, all) => (i < all.length - 1 ? `${item} ·` : item));
+/**
+ * The items of a value, each but the last with its separator glued to its last word: "two words · c"
+ * gives { text: "two ", glued: "words ·" }, { text: "c", glued: "" }. A line can break inside an item,
+ * never before a dot; the text of the cell is unchanged.
+ */
+const items = (value: string): { text: string; glued: string }[] =>
+  value.split(' · ').map((item, i, all) => {
+    if (i === all.length - 1) return { text: item, glued: '' };
+    const cut = item.lastIndexOf(' ') + 1;
+    return { text: item.slice(0, cut), glued: `${item.slice(cut)} ·` };
+  });
 
 type Pad = { x: number; y: number; r: number; drill: number; square?: boolean };
 type Point = [number, number];
@@ -247,13 +256,16 @@ const RING: Point[] = [[28, 0], [20, 20], [0, 28], [-20, 20], [-28, 0], [-20, -2
             {{ row.ref }}
           </th>
           <td>{{ row.part }}</td>
-          <!-- Each item with its separator: a line breaks after a dot, never before one. -->
+          <!-- The last word of each item is glued to its dot: a line never starts with a dot. -->
           <td>
             <template
               v-for="(item, i) in items(row.value)"
               :key="i"
             >
-              {{ i ? ' ' : '' }}<span class="bom__item">{{ item }}</span>
+              {{ i ? ' ' : '' }}{{ item.text }}<span
+                v-if="item.glued"
+                class="bom__glue"
+              >{{ item.glued }}</span>
             </template>
           </td>
         </tr>
