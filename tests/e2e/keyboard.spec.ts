@@ -84,11 +84,7 @@ test('one sheet at a time', async ({ page }) => {
   expect(open).toEqual(['sheet-c1']);
 });
 
-test('the J1 image loads only when the sheet opens', async ({ page, browserName }) => {
-  // Playwright's WebKit fetches this lazy image (both JPEG sizes) once the app script has run, though
-  // the sheet is closed. Not reproduced with a plain popover + picture + script page, nor caused by
-  // the CSS or the fonts. Open question, reported in the task 7 report.
-  test.fixme(browserName === 'webkit', 'WebKit loads the lazy J1 image while its sheet is closed');
+test('the J1 image loads only when the sheet opens', async ({ page }) => {
   const requests: string[] = [];
   page.on('request', (r) => {
     if (/\/kit-urgence-\d+\./.test(r.url())) requests.push(r.url());
@@ -98,6 +94,10 @@ test('the J1 image loads only when the sheet opens', async ({ page, browserName 
   expect(requests).toHaveLength(0);
   await trigger(page, 'j1').click();
   await expect.poll(() => requests.length).toBe(1);
+  // One file, one format: no second fetch once everything has settled.
+  await expect(page.locator('#sheet-j1 picture img')).toHaveJSProperty('complete', true);
+  await page.waitForLoadState('networkidle');
+  expect(requests).toHaveLength(1);
 });
 
 test('SW1 is focusable and does nothing yet', async ({ page }) => {

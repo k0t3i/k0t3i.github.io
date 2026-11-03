@@ -72,10 +72,24 @@ describe('PartSheet', () => {
     expect(wrapper.get('.sheet__ref').text()).toBe('R1 · résistance');
   });
 
-  it('J1 sheet image is lazy', () => {
+  it('J1 sheet renders its image only once the sheet has opened', async () => {
     const wrapper = mount(PartSheet, { props: { part: part(fr, 'j1'), close: fr.close } });
+    const toggle = async (newState: 'open' | 'closed') => {
+      await wrapper.get('div.sheet').trigger('toggle', { newState, oldState: newState === 'open' ? 'closed' : 'open' });
+    };
+    // Server render and first client render: no picture, so hydration matches and nothing loads.
+    expect(wrapper.find('picture').exists()).toBe(false);
+    await toggle('closed');
+    expect(wrapper.find('picture').exists()).toBe(false);
+    await toggle('open');
     const img = wrapper.get('picture.sheet__media img');
-    expect(img.attributes('loading')).toBe('lazy');
+    // Its own URLs come one tick after the picture (one request in WebKit: keyboard.spec checks it).
+    await wrapper.vm.$nextTick();
+    expect(img.attributes('src')).toBe('/img/kit-urgence-380.jpg');
+    expect(img.attributes('srcset')).toBe('/img/kit-urgence-380.jpg 380w, /img/kit-urgence-760.jpg 760w');
+    // Kept after closing: a second opening shows it at once.
+    await toggle('closed');
+    expect(wrapper.find('picture.sheet__media img').exists()).toBe(true);
     expect(img.attributes('decoding')).toBe('async');
     expect(img.attributes('sizes')).toBe('19rem');
     expect(img.attributes('width')).toBe('380');

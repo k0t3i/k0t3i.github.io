@@ -26,6 +26,15 @@ for (const copy of [FR, EN] as Copy[]) {
       await expect(page.locator('#sheet-r1')).toBeHidden();
     });
 
+    test('the J1 sheet opens with its pitch and link, without the image', async ({ page }) => {
+      const j1 = copy.connectors[0];
+      await page.locator('.part__trigger[popovertarget="sheet-j1"]').click();
+      await expect(page.locator('#sheet-j1 .sheet__body')).toHaveText(j1?.body ?? '');
+      await expect(page.locator('#sheet-j1 a.sheet__link')).toHaveAttribute('href', j1?.link?.href ?? '');
+      // The picture is rendered by the script on the first opening: none without JavaScript.
+      await expect(page.locator('#sheet-j1 picture')).toHaveCount(0);
+    });
+
     test('the uptime has its static value', async ({ page }) => {
       expect(await page.locator('.uptime').evaluate((el) => el.textContent)).toBe(copy.uptime);
       await expect(page.locator('.uptime__value')).toHaveAttribute('value', '46000');

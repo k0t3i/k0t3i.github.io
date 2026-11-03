@@ -1,7 +1,26 @@
 <script setup lang="ts">
+import { nextTick, ref } from 'vue';
 import type { PartContent } from '../content/types';
 
 const props = defineProps<{ part: PartContent; close: string }>();
+
+/**
+ * The picture of a sheet is rendered on its first opening only, so nothing is fetched before
+ * (loading="lazy" is not enough: WebKit fetched it with the sheet closed). It stays false in the
+ * prerender and the first client render, so hydration matches. Without JavaScript: no picture.
+ *
+ * The <img> gets its own URLs one tick later, once it sits in its <picture>: WebKit starts a load on
+ * each attribute set on a detached image, so src, srcset and sizes set at creation cost three
+ * requests. Inside the picture, the sources are chosen first and the fallback adds no request.
+ */
+const mediaReady = ref(false);
+const fallbackReady = ref(false);
+async function onToggle(event: Event): Promise<void> {
+  if ((event as ToggleEvent).newState !== 'open' || mediaReady.value) return;
+  mediaReady.value = true;
+  await nextTick();
+  fallbackReady.value = true;
+}
 
 const FORMATS = [
   { type: 'image/avif', ext: 'avif' },
@@ -18,6 +37,7 @@ const srcset = (ext: string): string => `/img/kit-urgence-380.${ext} 380w, /img/
     popover
     role="dialog"
     :aria-labelledby="`sheet-${props.part.id}-title`"
+    @toggle="onToggle"
   >
     <p class="sheet__ref">
       {{ props.part.ref }} · {{ props.part.kind }}
@@ -41,7 +61,7 @@ const srcset = (ext: string): string => `/img/kit-urgence-380.${ext} 380w, /img/
       {{ props.part.body }}
     </p>
     <picture
-      v-if="props.part.media"
+      v-if="props.part.media && mediaReady"
       class="sheet__media"
     >
       <source
@@ -52,12 +72,11 @@ const srcset = (ext: string): string => `/img/kit-urgence-380.${ext} 380w, /img/
         sizes="19rem"
       >
       <img
-        :src="fallback"
-        :srcset="srcset('jpg')"
         sizes="19rem"
+        :srcset="fallbackReady ? srcset('jpg') : undefined"
+        :src="fallbackReady ? fallback : undefined"
         width="380"
         height="475"
-        loading="lazy"
         decoding="async"
         :alt="props.part.media.alt"
       >

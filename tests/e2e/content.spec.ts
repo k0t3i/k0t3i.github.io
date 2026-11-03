@@ -65,7 +65,10 @@ for (const copy of [FR, EN] as Copy[]) {
           await expect(link.locator('span[aria-hidden="true"]')).toHaveText('↗');
         }
       }
+      // The picture is rendered when the J1 sheet first opens.
+      await page.locator('.part__trigger[popovertarget="sheet-j1"]').click();
       await expect(page.locator('#sheet-j1 img')).toHaveAttribute('alt', copy.connectors[0]?.mediaAlt ?? '');
+      await page.keyboard.press('Escape');
       const contacts = page.locator('#sheet-j3 ul.sheet__links > li');
       await expect(contacts).toHaveCount(2);
       for (const [i, text] of (copy.connectors[2]?.contacts ?? []).entries()) {
