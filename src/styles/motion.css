@@ -70,6 +70,45 @@
           animation-delay: 0.9s;
         }
       }
+
+      /*
+       * The power-on of the flowing board (see below): one glint runs down each bus in turn, the
+       * principles first, and LED1 comes on as the first one passes it.
+       */
+      .board--home[data-booting] .parts__list::after {
+        animation: boot-glint 700ms cubic-bezier(0.45, 0.05, 0.55, 0.95) 80ms both;
+      }
+
+      .board--home[data-booting] .parts + .parts .parts__list::after {
+        animation-delay: 300ms;
+      }
+
+      @media (min-width: 46rem) {
+        .board--home[data-booting] .parts__list::before {
+          animation: boot-glint 700ms cubic-bezier(0.45, 0.05, 0.55, 0.95) 190ms both;
+        }
+
+        .board--home[data-booting] .parts + .parts .parts__list::before {
+          animation-delay: 410ms;
+        }
+      }
+    }
+
+    @keyframes boot-glint {
+      0% {
+        opacity: 0;
+        transform: translateY(calc(-100% + 3rem));
+      }
+
+      8%,
+      88% {
+        opacity: 1;
+      }
+
+      100% {
+        opacity: 0;
+        transform: translateY(0);
+      }
     }
 
     @keyframes bus-glint {
@@ -124,6 +163,255 @@
       .sheet:popover-open {
         opacity: 0;
         translate: 0 1rem;
+      }
+    }
+
+    /*
+     * Anchored to its part (the wide board), a sheet unfolds from it instead: it grows in 200ms from
+     * the corner that faces the part (above it, at its left edge), which stays in place. A scale
+     * only: with a translate on top of it, WebKit no longer flipped a sheet below its part.
+     */
+    @media (min-width: 79rem) {
+      @supports (position-area: center) {
+        .sheet {
+          transform-origin: left bottom;
+          transition:
+            opacity 160ms ease-out,
+            scale 200ms cubic-bezier(0.2, 0.7, 0.2, 1),
+            overlay 200ms ease-out allow-discrete,
+            display 200ms ease-out allow-discrete;
+        }
+
+        .sheet:not(:popover-open) {
+          translate: none;
+          scale: 0.95;
+        }
+
+        @starting-style {
+          .sheet:popover-open {
+            translate: none;
+            scale: 0.95;
+          }
+        }
+      }
+    }
+
+    /*
+     * The current that follows the pointer and the focus (wide board, wide.css): the trace of the
+     * active part draws itself from DISP1 to the part in 540ms, its signal running just ahead of it
+     * on the same course. Left, the trace fades out, and goes back to the start of its route once
+     * dark: a part lit again meanwhile simply brightens. Each path follows only its own part, so a
+     * fast sweep across the parts ends on the last one. The power-on leaves the active part alone.
+     */
+    .trace-live,
+    .trace-pulse {
+      transition:
+        opacity 220ms ease-out,
+        stroke-dashoffset 0s linear 220ms;
+    }
+
+    .board__live > :is(
+        .board[data-active="r1"] [data-part="r1"],
+        .board[data-active="c1"] [data-part="c1"],
+        .board[data-active="led1"] [data-part="led1"],
+        .board[data-active="d1"] [data-part="d1"],
+        .board[data-active="u2"] [data-part="u2"],
+        .board[data-active="j1"] [data-part="j1"],
+        .board[data-active="j2"] [data-part="j2"],
+        .board[data-active="j3"] [data-part="j3"]
+      ) {
+      transition:
+        opacity 120ms ease-out,
+        stroke-dashoffset 540ms cubic-bezier(0.3, 0.45, 0.2, 1);
+      animation: none;
+    }
+
+    /*
+     * The power-on, once per session (useBoot.ts, BOOT_MS = 1200ms). Before the first paint the head
+     * script puts the board in standby (data-boot on <html>, lib/boot.ts): the screen of DISP1 is
+     * dark, LED1 is off and the ambient signals wait. Once the app has mounted, the board powers on
+     * (data-booting): a gold sweep runs from DISP1 along every trace, LED1 comes on as its current
+     * arrives, then the screen lights up. Every effect ends at the state of the board at rest, so the
+     * end of data-booting changes nothing on screen. Only decor moves: no text, no layout.
+     */
+
+    /* The screen of DISP1 has a veil, lifted at rest. Should the app never mount, the standby ends by itself, softly. */
+    .board--home .disp__screen::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: var(--glass);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 400ms ease-out;
+    }
+
+    :root[data-boot] .board--home:not([data-booting]) .disp__screen::before {
+      opacity: 1;
+    }
+
+    :root[data-boot] .board--home:not([data-booting]) #part-led1 .part__trigger::after {
+      animation: none;
+      opacity: 0;
+    }
+
+    :root[data-boot] .board--home .signal,
+    .board--home[data-booting] .signal,
+    :root[data-boot] .board--home .parts__list::before,
+    :root[data-boot] .board--home .parts__list::after {
+      animation-play-state: paused;
+    }
+
+    /* The screen lights up last, once the board is powered: from 750ms to 1100ms. */
+    .board--home[data-booting] .disp__screen::before {
+      transition: none;
+      animation: boot-veil 1100ms both;
+    }
+
+    @keyframes boot-veil {
+      0%,
+      68% {
+        opacity: 1;
+        animation-timing-function: cubic-bezier(0.3, 0, 0.2, 1);
+      }
+
+      100% {
+        opacity: 0;
+      }
+    }
+
+    /* LED1 comes on when the current reaches it: a quick bloom of its glow. */
+    .board--home[data-booting] #part-led1 .part__trigger::after {
+      animation: boot-led 460ms cubic-bezier(0.2, 0.8, 0.3, 1) 640ms both;
+    }
+
+    /* On the flowing board, as the glint of the principles bus passes it. */
+    @media (width < 79rem) {
+      .board--home[data-booting] #part-led1 .part__trigger::after {
+        animation-delay: 420ms;
+      }
+    }
+
+    @keyframes boot-led {
+      0% {
+        opacity: 0;
+        transform: scale(0.6);
+      }
+
+      30% {
+        opacity: 1;
+        transform: scale(1.08);
+      }
+
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    /*
+     * The wide board: each trace lights up from DISP1, its signal at the head, and the light runs on
+     * into the part (the dash offset goes from 100 to -100, wide.css), in a cascade that sweeps from
+     * DISP1 across the board: the connectors under it first, then the principles from U2 to R1.
+     */
+    .board--home[data-booting] .trace-live {
+      animation: boot-trace 760ms both;
+    }
+
+    .board--home[data-booting] .trace-pulse {
+      animation: boot-pulse 760ms both;
+    }
+
+    .board--home[data-booting] [data-part="j3"] {
+      animation-delay: 60ms;
+    }
+
+    .board--home[data-booting] [data-part="j2"] {
+      animation-delay: 105ms;
+    }
+
+    .board--home[data-booting] [data-part="j1"] {
+      animation-delay: 150ms;
+    }
+
+    .board--home[data-booting] [data-part="u2"] {
+      animation-delay: 195ms;
+    }
+
+    .board--home[data-booting] [data-part="d1"] {
+      animation-delay: 240ms;
+    }
+
+    .board--home[data-booting] [data-part="led1"] {
+      animation-delay: 285ms;
+    }
+
+    .board--home[data-booting] [data-part="c1"] {
+      animation-delay: 330ms;
+    }
+
+    .board--home[data-booting] [data-part="r1"] {
+      animation-delay: 375ms;
+    }
+
+    /* The head reaches the part half way (the signal on the same course), then the tail follows it in. */
+    @keyframes boot-trace {
+      0% {
+        opacity: 0;
+        stroke-dashoffset: 100;
+        animation-timing-function: cubic-bezier(0.35, 0.1, 0.25, 1);
+      }
+
+      12% {
+        opacity: 0.7;
+      }
+
+      50% {
+        stroke-dashoffset: 0;
+        animation-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
+      }
+
+      78% {
+        opacity: 0.7;
+      }
+
+      99% {
+        opacity: 0;
+        stroke-dashoffset: -100;
+      }
+
+      100% {
+        opacity: 0;
+        stroke-dashoffset: 100;
+      }
+    }
+
+    @keyframes boot-pulse {
+      0% {
+        opacity: 0;
+        stroke-dashoffset: 5;
+        animation-timing-function: cubic-bezier(0.35, 0.1, 0.25, 1);
+      }
+
+      6% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 1;
+        stroke-dashoffset: -101;
+      }
+
+      52%,
+      99% {
+        opacity: 0;
+        stroke-dashoffset: -101;
+      }
+
+      100% {
+        opacity: 0;
+        stroke-dashoffset: 5;
       }
     }
 

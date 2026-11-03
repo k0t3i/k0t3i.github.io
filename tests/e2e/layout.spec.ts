@@ -341,6 +341,8 @@ test.describe('flowing board', () => {
 
   test('from 46rem a glint runs down every bus', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'no-preference' });
+    // The ambient glints, at rest: the power-on has already played in this session.
+    await page.addInitScript(() => sessionStorage.setItem('k0t3i.booted', '1'));
     await page.setViewportSize({ width: 768, height: 1024 });
     await page.goto('/');
     const glints = await page.evaluate(() =>
@@ -805,6 +807,33 @@ test.describe('wide board', () => {
     if (!s || !p) throw new Error('no box for r1');
     expect(p.y).toBeLessThan(80);
     // Flipped below the part, with the room there: not squeezed into the strip above it.
+    expect(s.y).toBeGreaterThanOrEqual(p.y + p.height);
+    expect(s.height).toBeGreaterThan(120);
+    expect(s.y + s.height).toBeLessThanOrEqual(330);
+  });
+
+  test('a sheet with no room above its part opens below it, after the pointer has rested on the part', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'a mouse: the board leans under it');
+    // As a visitor does it: the pointer rests on R1 (the board leans, its trace is lit), then clicks.
+    await page.setViewportSize({ width: 1600, height: 330 });
+    await page.goto('/');
+    const supported = await page.evaluate(() => CSS.supports('position-area: center') && CSS.supports('position-try-order: most-height'));
+    test.skip(!supported, 'no anchor positioning with try order');
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    const box = await trigger(page, 'r1').boundingBox();
+    if (!box) throw new Error('no box for R1');
+    await page.mouse.move(box.x + box.width / 4, box.y + box.height / 2, { steps: 4 });
+    await expect(page.locator('.board')).toHaveAttribute('data-tilting', '');
+    await page.waitForTimeout(300);
+    // Pressed where the pointer is (a click() would first scroll the leaning part into view).
+    await page.mouse.down();
+    await page.mouse.up();
+    const sheet = page.locator('#sheet-r1');
+    await expect(sheet).toBeVisible();
+    await settled(sheet);
+    await page.waitForTimeout(300);
+    const [s, p] = await Promise.all([sheet.boundingBox(), page.locator('#part-r1').boundingBox()]);
+    if (!s || !p) throw new Error('no box for r1');
     expect(s.y).toBeGreaterThanOrEqual(p.y + p.height);
     expect(s.height).toBeGreaterThan(120);
     expect(s.y + s.height).toBeLessThanOrEqual(330);

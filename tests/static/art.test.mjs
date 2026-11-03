@@ -76,6 +76,20 @@ for (const file of ['index.html', 'en/index.html']) {
       assert.ok(artDs.has(p.d), `live trace ${p['data-part']} is not a trace of the art`);
     }
   });
+
+  test(`the signal of each part runs on the route of its live trace (${file})`, () => {
+    const { paths } = layer(file);
+    const live = Object.fromEntries(paths.filter((p) => p.class === 'trace-live').map((p) => [p['data-part'], p.d]));
+    const pulses = paths.filter((p) => p.class === 'trace-pulse');
+    assert.deepEqual(
+      pulses.map((p) => p['data-part']),
+      PART_IDS,
+    );
+    for (const p of pulses) {
+      assert.equal(p.pathLength, '100');
+      assert.equal(p.d, live[p['data-part']], `signal ${p['data-part']}`);
+    }
+  });
 }
 
 test('art ≤ 10 KB gzip', () => {

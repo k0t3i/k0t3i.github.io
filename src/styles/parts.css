@@ -279,6 +279,24 @@
   }
 
   /*
+   * The active part (data-active on the board: under the pointer, or with the keyboard focus): its
+   * own trace to the bus is lit in gold, the fan-out of U2 drawn in its symbol with it. The wide
+   * board draws no stubs: its live layer lights the whole route from DISP1 instead (wide.css).
+   */
+  :is(
+    .board[data-active="r1"] #part-r1,
+    .board[data-active="c1"] #part-c1,
+    .board[data-active="led1"] #part-led1,
+    .board[data-active="d1"] #part-d1,
+    .board[data-active="u2"] #part-u2,
+    .board[data-active="j1"] #part-j1,
+    .board[data-active="j2"] #part-j2,
+    .board[data-active="j3"] #part-j3
+  ) {
+    --wire: var(--gold);
+  }
+
+  /*
    * Pressed, by touch as by mouse: the part is pushed down towards its bus and its courtyard is
    * printed brighter, at once (no transition), so a tap reads before the sheet rises.
    */

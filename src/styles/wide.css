@@ -9,6 +9,7 @@
 @layer wide {
   /* The paths of the live layer (BoardSignal.vue): gold, and unlit until something lights them. */
   .trace-live,
+  .trace-pulse,
   .signal {
     fill: none;
     stroke: var(--gold);
@@ -22,6 +23,58 @@
   .signal {
     stroke-dasharray: 6 94;
     stroke-dashoffset: 100;
+  }
+
+  /*
+   * A trace is lit from DISP1 to its part: one dash as long as the route, then a longer gap, so the
+   * offset draws it from the start of the route (100: nothing yet, 0: all of it, -100: all of it gone
+   * on into the part), a little softer than the pads. Its signal is a short dash of the lit gold, a
+   * little wider, waiting just before the start of the route (5), or gone past its end (-101):
+   * nothing of it is drawn at rest.
+   */
+  .trace-live {
+    stroke-opacity: 0.8;
+    stroke-dasharray: 100 150;
+    stroke-dashoffset: 100;
+  }
+
+  .trace-pulse {
+    stroke: var(--pad-lit);
+    stroke-width: 3;
+    stroke-dasharray: 4 200;
+    stroke-dashoffset: 5;
+  }
+
+  /*
+   * The active part (data-active: under the pointer, or with the keyboard focus): its trace is lit
+   * all the way, and its signal has run into it. motion.css draws the way there.
+   */
+  .trace-live:is(
+      .board[data-active="r1"] [data-part="r1"],
+      .board[data-active="c1"] [data-part="c1"],
+      .board[data-active="led1"] [data-part="led1"],
+      .board[data-active="d1"] [data-part="d1"],
+      .board[data-active="u2"] [data-part="u2"],
+      .board[data-active="j1"] [data-part="j1"],
+      .board[data-active="j2"] [data-part="j2"],
+      .board[data-active="j3"] [data-part="j3"]
+    ) {
+    opacity: 1;
+    stroke-dashoffset: 0;
+  }
+
+  .trace-pulse:is(
+      .board[data-active="r1"] [data-part="r1"],
+      .board[data-active="c1"] [data-part="c1"],
+      .board[data-active="led1"] [data-part="led1"],
+      .board[data-active="d1"] [data-part="d1"],
+      .board[data-active="u2"] [data-part="u2"],
+      .board[data-active="j1"] [data-part="j1"],
+      .board[data-active="j2"] [data-part="j2"],
+      .board[data-active="j3"] [data-part="j3"]
+    ) {
+    opacity: 1;
+    stroke-dashoffset: -101;
   }
 
   /*
@@ -399,7 +452,10 @@
       margin-inline-end: 0;
     }
 
-    /* The live layer, over the art and under every block. */
+    /*
+     * The live layer, over the art and under every block. Decor never anchors the scroll: WebKit
+     * otherwise followed the traces lit by the power-on, a pixel up and down.
+     */
     .board--home .board__signal {
       position: absolute;
       inset: 0;
@@ -407,6 +463,7 @@
       width: 100%;
       height: 100%;
       overflow: hidden;
+      overflow-anchor: none;
       pointer-events: none;
     }
 
@@ -613,10 +670,13 @@
       /*
        * The sheet takes the side of its part with the most room: without it, the first position
        * always "fits" (max-height shrinks the sheet into the strip above a part at the top of a
-       * short or scrolled window) and flip-block never fires.
+       * short or scrolled window) and flip-block never fires. And it is never squeezed below 10rem
+       * (all of them are taller): a strip that low never fits, so no engine keeps the sheet there
+       * (WebKit did, after placing it again while the board moved).
        */
       .sheet {
         inset: auto;
+        min-height: min(10rem, 100dvh - 1.5rem);
         max-height: calc(100% - 1.5rem);
         margin: 0.75rem;
         position-area: block-start span-inline-end;

@@ -1,3 +1,5 @@
+import { STANDBY_SNIPPET } from './boot';
+
 /** The two boards: the green one on a light page (default), and the matte black one. */
 export type Theme = 'green' | 'dark';
 
@@ -19,6 +21,7 @@ export function resolveTheme(input: { saved: string | null; prefersDark: boolean
  * (depth.css), and the page never shows the back face below the front one, then takes it away.
  * Then it sets data-theme only when a choice is saved (resolveTheme then returns that choice):
  * without one, the CSS follows the device scheme by itself, which also holds without JavaScript.
+ * Last, in a try of its own, the standby of the power-on (lib/boot.ts).
  */
 export const THEME_SNIPPET: string =
   '(function(){try{document.documentElement.dataset.js="";var r=(' +
@@ -26,4 +29,6 @@ export const THEME_SNIPPET: string =
   ');var s=localStorage.getItem("' +
   THEME_KEY +
   '");if(r({saved:s,prefersDark:matchMedia("(prefers-color-scheme: dark)").matches})===s)' +
-  'document.documentElement.dataset.theme=s}catch(e){}})()';
+  'document.documentElement.dataset.theme=s}catch(e){}' +
+  STANDBY_SNIPPET +
+  '})()';

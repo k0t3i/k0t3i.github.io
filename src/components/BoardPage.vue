@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, provide, ref } from 'vue';
+import { provideBoardState } from '../composables/useBoardState';
+import { useBoot } from '../composables/useBoot';
 import { FLIP, useFlip } from '../composables/useFlip';
 import { useTilt } from '../composables/useTilt';
 import type { SiteContent } from '../content/types';
@@ -25,6 +27,14 @@ provide(FLIP, useFlip(board));
 useTilt(board);
 
 /*
+ * The live state of the board, for the parts and DISP1: the part the current runs to, and the
+ * power-on of the first visit. Both are reflected on the board for the CSS (data-active,
+ * data-booting); neither is in the prerender, which renders the board at rest.
+ */
+const { booting } = useBoot();
+const { activePart } = provideBoardState(booting);
+
+/*
  * iOS Safari applies :active on a tap only when the page listens to touchstart: this passive no-op
  * listener is enough for the pressed states of the parts, SW1, JP1, SW2 and Close. Client only (mounted).
  */
@@ -42,6 +52,8 @@ onBeforeUnmount(() => document.removeEventListener('touchstart', touchActive));
   <div
     ref="board"
     class="board board--home"
+    :data-active="activePart ?? undefined"
+    :data-booting="booting ? '' : undefined"
   >
     <PartSprite />
     <div class="board__body">
