@@ -5,6 +5,8 @@ const desktop = { viewport: { width: 1440, height: 900 } };
 export default defineConfig({
   testDir: './tests/e2e',
   fullyParallel: true,
+  // Chrome-mobile workers crashed (V8 out of memory) with the default worker count on this machine.
+  workers: 4,
   reporter: [['list'], ['html', { open: 'never' }]],
   // French by default: the home page redirects other languages to /en/.
   use: { baseURL: 'http://localhost:4173', locale: 'fr-FR' },

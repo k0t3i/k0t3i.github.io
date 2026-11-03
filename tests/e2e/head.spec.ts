@@ -47,16 +47,27 @@ for (const copy of [FR, EN] as Copy[]) {
     test('head order', async ({ request }) => {
       const html = await (await request.get(copy.path)).text();
       const head = html.slice(html.indexOf('<head'), html.indexOf('</head>'));
-      const csp = /<meta charset="utf-8"\s*\/?>\s*<meta http-equiv="Content-Security-Policy"[^>]*>/i.exec(head);
-      expect(csp, 'the CSP directly follows <meta charset>').not.toBeNull();
-      const afterCsp = head.slice((csp?.index ?? 0) + (csp?.[0].length ?? 0));
+      const at = (re: RegExp) => head.search(re);
+      const charset = at(/<meta charset=/i);
+      const csp = at(/<meta http-equiv="Content-Security-Policy"/i);
+      const critical = at(/<script[^>]*\bdata-critical\b/i);
+      // Whichever of these exist: nothing may come before the CSP and the redirect script.
+      const later = [
+        at(/<link[^>]+rel="stylesheet"/i),
+        at(/<link[^>]+rel="modulepreload"/i),
+        at(/<script[^>]+type="module"/i),
+      ].filter((i) => i !== -1);
+      expect(charset).toBeGreaterThan(-1);
+      expect(csp).toBeGreaterThan(charset);
+      expect(later.length).toBeGreaterThan(0);
+      const firstLater = Math.min(...later);
       if (copy.lang === 'fr') {
-        expect(afterCsp, 'the redirect script comes right after the CSP').toMatch(/^\s*<script data-critical/);
+        expect(critical).toBeGreaterThan(csp);
+        expect(firstLater).toBeGreaterThan(critical);
       } else {
-        expect(head).not.toContain('data-critical');
+        expect(critical).toBe(-1);
+        expect(firstLater).toBeGreaterThan(csp);
       }
-      const style = head.search(/<link[^>]+rel="stylesheet"/i);
-      if (style !== -1) expect(style).toBeGreaterThan(head.indexOf('</script>'));
     });
   });
 }

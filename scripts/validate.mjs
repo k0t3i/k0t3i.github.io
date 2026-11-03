@@ -38,9 +38,13 @@ function run(label, cmd, args, env = {}) {
 }
 
 // vnu reads the pages from file://, where the CSP keyword 'self' matches nothing, so it reports every
-// external script as blocked, and it does not understand the sha256 hashes, so it reports the inline redirect script
-// too. The CSP itself (hashes included) is checked by tests/static/dist.test.mjs and the e2e tests.
-const CSP_ORIGIN_NOISE = String.raw`(Resource violates Content Security Policy \(meta tag\): external .*|Inline script violates Content Security Policy \(meta tag\): ?.*) ?blocked by .*`;
+// external script as blocked. It also cannot evaluate sha256 sources, so it reports every inline script,
+// hashed or not, with one and the same message:
+//   Inline script violates Content Security Policy (meta tag): blocked by "script-src" directive
+//   (missing "'unsafe-inline'" or nonce/hash).
+// vnu therefore cannot see an unhashed inline script: tests/static/dist.test.mjs is the guard for that
+// (every inline executable script must have its hash in the CSP), together with the e2e CSP check.
+const CSP_ORIGIN_NOISE = String.raw`(Resource violates Content Security Policy \(meta tag\): external .* blocked by .*|Inline script violates Content Security Policy \(meta tag\): blocked by .* \(missing .*nonce/hash\)\.)`;
 
 const results = [
   run('html-validate', 'npx', ['html-validate', '--config', '.htmlvalidate.json', ...pages], {
