@@ -1,7 +1,9 @@
 <template>
   <!--
-    The parts seen from above, drawn at 1 unit = 1 CSS px (64 x 32, the switch 32 x 32). Each shape
-    has a material class (pads, tin, body...) styled in parts.css: CSS relights or recolours a part.
+    The parts seen from above, drawn at 1 unit = 1/16 rem (1 CSS px at the default root size): 64 x 32,
+    the switch 32 x 32, the jumper 32 x 14. They scale with the root font, so anything placed over a
+    part (the LED glow) is placed in rem too. Each shape has a material class (pads, tin, body...)
+    styled in parts.css: CSS relights or recolours a part.
     Every part starts at x = 1 with its first pad, where the trace from the bus arrives (y = 16).
   -->
   <svg
@@ -455,6 +457,76 @@
         cy="16"
         r="5"
       />
+    </symbol>
+
+    <!--
+      JP1: 1x3 pin header, 2.54 mm pitch, square pad for pin 1, and its shunt: a black cap over two
+      pins, the spring contact seen through its top. CSS shows the cap on pins 1-2 or on pins 2-3.
+    -->
+    <symbol
+      id="part-jumper"
+      viewBox="0 0 32 14"
+    >
+      <rect
+        class="pcb-silk"
+        x="0.5"
+        y="1.5"
+        width="31"
+        height="11"
+        rx="0.5"
+      />
+      <rect
+        class="pcb-pad"
+        x="2"
+        y="3"
+        width="8"
+        height="8"
+        rx="0.5"
+      />
+      <path
+        class="pcb-pad"
+        d="M12 7a4 4 0 1 0 8 0a4 4 0 1 0-8 0M22 7a4 4 0 1 0 8 0a4 4 0 1 0-8 0"
+      />
+      <path
+        class="pcb-drill"
+        d="M4.25 7a1.75 1.75 0 1 0 3.5 0a1.75 1.75 0 1 0-3.5 0M14.25 7a1.75 1.75 0 1 0 3.5 0a1.75 1.75 0 1 0-3.5 0M24.25 7a1.75 1.75 0 1 0 3.5 0a1.75 1.75 0 1 0-3.5 0"
+      />
+      <g class="pcb-shunt pcb-shunt--a">
+        <rect
+          class="pcb-body"
+          x="1.5"
+          y="2.5"
+          width="19"
+          height="9"
+          rx="1"
+        />
+        <rect
+          class="pcb-tin"
+          x="8.5"
+          y="5.5"
+          width="5"
+          height="3"
+          rx="0.5"
+        />
+      </g>
+      <g class="pcb-shunt pcb-shunt--b">
+        <rect
+          class="pcb-body"
+          x="11.5"
+          y="2.5"
+          width="19"
+          height="9"
+          rx="1"
+        />
+        <rect
+          class="pcb-tin"
+          x="18.5"
+          y="5.5"
+          width="5"
+          height="3"
+          rx="0.5"
+        />
+      </g>
     </symbol>
   </svg>
 </template>

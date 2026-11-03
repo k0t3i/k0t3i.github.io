@@ -17,7 +17,7 @@ test('tab order', async ({ page, browserName, isMobile }) => {
   const withLinks = browserName !== 'webkit';
   const tab = 'Tab';
   const seen: string[] = [];
-  for (let i = 0; i < (withLinks ? 12 : 9); i++) {
+  for (let i = 0; i < (withLinks ? 13 : 10); i++) {
     await page.keyboard.press(tab);
     seen.push(
       await page.evaluate(() => {
@@ -26,11 +26,12 @@ test('tab order', async ({ page, browserName, isMobile }) => {
         if (el.matches('.skip-link')) return 'skip';
         if (el.matches('.lang__link')) return `lang:${el.getAttribute('hreflang')}`;
         if (el.matches('.sw1')) return 'sw1';
+        if (el.matches('.jp1')) return 'jp1';
         return el.getAttribute('popovertarget') ?? el.tagName;
       }),
     );
   }
-  const buttons = ['sw1', ...IDS.map((id) => `sheet-${id}`)];
+  const buttons = ['jp1', 'sw1', ...IDS.map((id) => `sheet-${id}`)];
   expect(seen).toEqual(withLinks ? ['skip', 'lang:fr', 'lang:en', ...buttons] : buttons);
 });
 
@@ -40,7 +41,7 @@ test('focusable elements are in the DOM order, with no positive tabindex', async
       .filter((el) => !el.closest('.sheet') && el.tabIndex >= 0)
       .map((el) => (el.matches('.skip-link') ? 'skip' : (el.getAttribute('hreflang') ?? el.getAttribute('popovertarget') ?? el.className))),
   );
-  expect(order).toEqual(['skip', 'fr', 'en', 'sw1', ...IDS.map((id) => `sheet-${id}`)]);
+  expect(order).toEqual(['skip', 'fr', 'en', 'jp1', 'sw1', ...IDS.map((id) => `sheet-${id}`)]);
   expect(await page.locator('[tabindex]:not([tabindex="-1"])').count()).toBe(0);
 });
 

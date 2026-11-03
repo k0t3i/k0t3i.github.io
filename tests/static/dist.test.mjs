@@ -43,6 +43,40 @@ test('CSP is first after charset and hashes every inline script', () => {
   }
 });
 
+test('the theme script follows the CSP on every page, then the redirect on / only, both hashed', () => {
+  const files = htmlFiles();
+  assert.deepEqual([...files].sort(), ['404.html', 'en/index.html', 'index.html']);
+  for (const f of files) {
+    const html = readFileSync(at(f), 'utf8');
+    const csp = html.match(/<meta http-equiv="Content-Security-Policy" content="([^"]*)">/)[1];
+    const after = html.slice(html.indexOf('<meta http-equiv="Content-Security-Policy"'));
+    const critical = [...after.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/g)].filter(([, attrs]) => /\bdata-critical\b/.test(attrs));
+    const expected = f === 'index.html' ? ['theme', 'redirect'] : ['theme'];
+    assert.deepEqual(critical.map(([, attrs]) => attrs.match(/data-critical="([^"]*)"/)?.[1]), expected, `${f}: critical scripts`);
+    // Right after the CSP, one after the other, before anything else.
+    const head = critical.map(([tag]) => tag).join('');
+    assert.ok(after.replace(/^<meta http-equiv="Content-Security-Policy"[^>]*>/, '').startsWith(head), `${f}: not right after the CSP`);
+    const [theme, redirect] = critical.map(([, , body]) => body);
+    assert.match(theme, /k0t3i\.theme/);
+    assert.match(theme, /prefers-color-scheme: dark/);
+    if (redirect !== undefined) assert.match(redirect, /k0t3i\.lang/);
+    for (const body of [theme, redirect].filter((b) => b !== undefined)) {
+      const hash = createHash('sha256').update(body, 'utf8').digest('base64');
+      assert.ok(csp.includes(`'sha256-${hash}'`), `${f}: critical script without its hash`);
+    }
+  }
+});
+
+test('the board follows the device scheme before any choice', () => {
+  for (const f of htmlFiles()) {
+    const html = readFileSync(at(f), 'utf8');
+    assert.match(html, /<meta name="color-scheme" content="light dark">/, `${f}: color-scheme`);
+    assert.match(html, /<meta name="theme-color" content="#eceae3" media="\(prefers-color-scheme: light\)">/, `${f}: light theme-color`);
+    assert.match(html, /<meta name="theme-color" content="#08090a" media="\(prefers-color-scheme: dark\)">/, `${f}: dark theme-color`);
+    assert.doesNotMatch(html, /<html[^>]*data-theme/, `${f}: the prerender sets no theme`);
+  }
+});
+
 test('no kit-urgence folder in dist', () => {
   assert.ok(!existsSync(at('kit-urgence')));
   assert.ok(!distFiles().some((f) => f.startsWith('kit-urgence/')));

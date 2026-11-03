@@ -86,9 +86,11 @@ const srcset = (ext: string): string => `/img/kit-urgence-380.${ext} 380w, /img/
       class="sheet__link"
       :href="props.part.link.href"
     >{{ props.part.link.text }}<span aria-hidden="true"> ↗</span></a>
+    <!-- role=list: VoiceOver drops the list role of a list without bullets. -->
     <ul
       v-if="props.part.contacts"
       class="sheet__links"
+      role="list"
     >
       <li
         v-for="c in props.part.contacts"
@@ -103,7 +105,7 @@ const srcset = (ext: string): string => `/img/kit-urgence-380.${ext} 380w, /img/
       :popovertarget="`sheet-${props.part.id}`"
       popovertargetaction="hide"
     >
-      {{ props.close }}
+      <span class="sheet__close-zone">{{ props.close }}</span>
     </button>
   </div>
 </template>

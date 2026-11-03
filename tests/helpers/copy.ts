@@ -35,6 +35,8 @@ export interface Copy {
   captions: { avatar: string; uptime: string; morse: string };
   switchRef: string;
   switchHidden: string;
+  /** JP1, the jumper that switches the board between green and black. */
+  theme: { ref: string; green: string; dark: string; switchHidden: string };
   marks: { visible: string; hidden: string }[];
   sections: { principles: { id: string; title: string }; connectors: { id: string; title: string } };
   close: string;
@@ -81,6 +83,7 @@ export const FR: Copy = {
   captions: { avatar: 'DISP1 · avatar', uptime: 'DISP1 · uptime', morse: 'DISP1 · morse' },
   switchRef: 'SW1',
   switchHidden: 'changer l’écran',
+  theme: { ref: 'JP1', green: 'VERT', dark: 'NOIR', switchHidden: 'carte noire' },
   marks: [
     { visible: 'a11y AA', hidden: 'Accessibilité WCAG 2.2, niveau AA' },
     { visible: 'INTJ-A', hidden: 'Personnalité INTJ-A' },
@@ -183,6 +186,7 @@ export const EN: Copy = {
   captions: { avatar: 'DISP1 · avatar', uptime: 'DISP1 · uptime', morse: 'DISP1 · morse' },
   switchRef: 'SW1',
   switchHidden: 'change screen',
+  theme: { ref: 'JP1', green: 'GREEN', dark: 'BLACK', switchHidden: 'black board' },
   marks: [
     { visible: 'a11y AA', hidden: 'Accessibility WCAG 2.2, level AA' },
     { visible: 'INTJ-A', hidden: 'Personality INTJ-A' },

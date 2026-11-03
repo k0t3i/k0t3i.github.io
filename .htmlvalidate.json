@@ -3,6 +3,7 @@
   "rules": {
     "attribute-empty-style": "off",
     "attribute-boolean-style": ["error", { "style": "empty" }],
+    "no-redundant-role": ["error", { "exclude": ["list"] }],
     "no-trailing-whitespace": "off"
   }
 }

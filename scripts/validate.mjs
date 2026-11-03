@@ -46,13 +46,16 @@ function run(label, cmd, args, env = {}) {
 // vnu therefore cannot see an unhashed inline script: tests/static/dist.test.mjs is the guard for that
 // (every inline executable script must have its hash in the CSP), together with the e2e CSP check.
 const CSP_ORIGIN_NOISE = String.raw`(Resource violates Content Security Policy \(meta tag\): (external .* blocked by .*|image .\/img\/\S+. blocked by .img-src. directive\.)|Inline script violates Content Security Policy \(meta tag\): blocked by .* \(missing .*nonce/hash\)\.)`;
+// The lists drawn without bullets restate role="list" on purpose: VoiceOver drops the implicit role
+// of a list styled with list-style: none. That one warning, for <ul> only, is expected.
+const LIST_ROLE = String.raw`The .list. role is unnecessary for element .ul.\.`;
 
 const results = [
   run('html-validate', 'npx', ['html-validate', '--config', '.htmlvalidate.json', ...pages], {
     // html-validate uses fs.globSync, still flagged experimental on Node 22.
     NODE_NO_WARNINGS: '1',
   }),
-  run('vnu', 'java', ['-jar', 'node_modules/vnu-jar/build/dist/vnu.jar', '--Werror', '--filterpattern', CSP_ORIGIN_NOISE, ...pages]),
+  run('vnu', 'java', ['-jar', 'node_modules/vnu-jar/build/dist/vnu.jar', '--Werror', '--filterpattern', `(${CSP_ORIGIN_NOISE}|${LIST_ROLE})`, ...pages]),
   run('fonts check', 'python', ['scripts/fonts.py', 'check', ...pages]),
 ];
 

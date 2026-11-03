@@ -5,7 +5,11 @@ const props = defineProps<{ marks: SiteContent['marks'] }>();
 </script>
 
 <template>
-  <ul class="pcb-marks">
+  <!-- role=list: VoiceOver drops the list role of a list without bullets. -->
+  <ul
+    class="pcb-marks"
+    role="list"
+  >
     <li
       v-for="mark in props.marks"
       :key="mark.visible"

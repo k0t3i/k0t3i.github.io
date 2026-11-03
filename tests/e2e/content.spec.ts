@@ -12,6 +12,7 @@ const PRIVATE_NAMES = existsSync(NAMES_FILE)
       .map((n) => n.trim().toLowerCase())
       .filter(Boolean)
   : [];
+if (PRIVATE_NAMES.length === 0) console.warn('WARNING: private-names.local.txt is missing or empty, private names are not checked');
 
 for (const copy of [FR, EN] as Copy[]) {
   const sheets = [...copy.principles, ...copy.connectors];
@@ -102,6 +103,18 @@ for (const copy of [FR, EN] as Copy[]) {
       await expect(sw1.locator('.vh')).toHaveText(copy.switchHidden);
     });
 
+    test('JP1 is a named toggle next to the language pads', async ({ page }) => {
+      const jp1 = page.getByRole('button', { name: `${copy.theme.ref} ${copy.theme.switchHidden}` });
+      await expect(jp1).toHaveCount(1);
+      await expect(jp1).toHaveClass(/jp1/);
+      await expect(jp1).toHaveAttribute('aria-pressed', 'false');
+      await expect(jp1.locator('.part__ref')).toHaveText(copy.theme.ref);
+      await expect(jp1.locator('.jp1__pos[aria-hidden="true"]')).toHaveText([copy.theme.green, copy.theme.dark]);
+      await expect(jp1.locator('.vh')).toHaveText(copy.theme.switchHidden);
+      // In the banner, right after the language navigation.
+      await expect(page.locator('header.board__header nav.lang + .board__jp1 > button.jp1')).toHaveCount(1);
+    });
+
     test('the three PCB marks', async ({ page }) => {
       const marks = page.locator('.pcb-marks > li');
       await expect(marks).toHaveCount(copy.marks.length);
@@ -154,8 +167,12 @@ for (const copy of [FR, EN] as Copy[]) {
       expect(await page.locator('a[target]').count()).toBe(0);
     });
 
-    test('no inline style and no private name', async ({ page }) => {
+    test('no inline style', async ({ page }) => {
       expect(await page.locator('[style]').count()).toBe(0);
+    });
+
+    test('no private name', async ({ page }) => {
+      test.skip(PRIVATE_NAMES.length === 0, 'private-names.local.txt is missing or empty');
       const html = (await page.content()).toLowerCase();
       expect(PRIVATE_NAMES.filter((n) => html.includes(n))).toEqual([]);
     });

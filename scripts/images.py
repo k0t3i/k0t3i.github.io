@@ -29,33 +29,62 @@ BODY_RECT = (8, 8, 24, 24)
 DOT = (12, 12, 2)  # cx, cy, r
 
 
+# Placeholder avatar, until Anthony's own: a calm, neutral pixel character, placed by hand.
+# Light comes from the left; the right side of the face and of the top is in shadow.
+AVATAR_COLOURS = {
+    "H": (0x3A, 0x2E, 0x28),  # hair, dark warm brown (also the eyes and brows)
+    "h": (0x5B, 0x48, 0x3B),  # hair, lit
+    "S": (0xC6, 0x9E, 0x82),  # skin, muted
+    "s": (0xA3, 0x7D, 0x65),  # skin, shadow
+    "T": (0x2E, 0x46, 0x69),  # top, deep blue
+    "t": (0x20, 0x33, 0x50),  # top, shadow and collar
+    "G": GOLD,                 # the gold accent: a small pin on the chest
+}
+AVATAR = [
+    "................................",
+    "................................",
+    "................................",
+    "............HHHHHHHH............",
+    "..........HHhhhHHHHHHH..........",
+    ".........HHhhhHHHHHHHHH.........",
+    "........HHhhHHHHHHHHHHHH........",
+    "........HHHHHHHHHHHHHHHH........",
+    "........HHHHHHHHHHSSSSHH........",
+    "........HHHHHHSSSSSSSSHH........",
+    "........HHHSSSSSSSSSSSHH........",
+    "........HHSHHSSSSSSHHsHH........",
+    "........sSSSSSSSSSSSSsss........",
+    "........sSSSHSSSSSSHSsss........",
+    "........sSSSSSSSSSSSSsss........",
+    ".........SSSSSSSsSSSSss.........",
+    ".........SSSSSSSSSSSSss.........",
+    "..........SSSSSssSSSSs..........",
+    "..........SSSSSSSSSSSs..........",
+    "...........SSSSSSSSSs...........",
+    "............SSSSSSSs............",
+    ".............ssssss.............",
+    ".............SSSSss.............",
+    ".........TTTTSSSSsstttt.........",
+    "......TTTTTTTtSSSstTTTTttt......",
+    "....TTTTTTTTTTtSstTTTTTTtttt....",
+    "...TTTTTTTTTTTTttTTTTTTTTtttt...",
+    "..TTTTTTTTTTTTTTTTTTTTTTTttttt..",
+    "..TTTTTTGGTTTTTTTTTTTTTTTttttt..",
+    ".TTTTTTTTTTTTTTTTTTTTTTTTtttttt.",
+    ".TTTTTTTTTTTTTTTTTTTTTTTTtttttt.",
+    ".TTTTTTTTTTTTTTTTTTTTTTTTtttttt.",
+]
+
+
 def avatar():
-    """32 x 32 neutral head-and-shoulders, 5 colours, transparent background."""
-    light, mid, dark = (0x5A, 0x5F, 0x69), (0x45, 0x49, 0x52), (0x31, 0x34, 0x3B)
+    """32 x 32 head and shoulders, 7 colours, transparent background (see AVATAR)."""
+    assert len(AVATAR) == 32 and all(len(row) == 32 for row in AVATAR), "the avatar map must be 32 x 32"
     im = Image.new("RGBA", (32, 32), (0, 0, 0, 0))
     px = im.load()
-
-    def inside_ellipse(x, y, cx, cy, rx, ry):
-        return ((x + 0.5 - cx) / rx) ** 2 + ((y + 0.5 - cy) / ry) ** 2 <= 1
-
-    for y in range(32):
-        for x in range(32):
-            c = None
-            # shoulders: wide rounded block from y=22 down
-            if y >= 22 and inside_ellipse(x, y, 16, 36, 14.5, 14.5):
-                c = mid if x < 19 else dark
-            # neck
-            if 13 <= x <= 18 and 17 <= y <= 23:
-                c = dark if x >= 16 else mid
-            # head
-            if inside_ellipse(x, y, 16, 11, 6.2, 7.6):
-                c = light if x < 17 else mid
-            if c:
-                px[x, y] = (*c, 255)
-    # single gold accent: a thin collar line on the shoulders
-    for x in range(12, 21):
-        if px[x, 25][3]:
-            px[x, 25] = (*GOLD, 255)
+    for y, row in enumerate(AVATAR):
+        for x, key in enumerate(row):
+            if key != ".":
+                px[x, y] = (*AVATAR_COLOURS[key], 255)
     IMG.mkdir(parents=True, exist_ok=True)
     im.save(IMG / "avatar.png", optimize=True)
     return im

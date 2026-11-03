@@ -36,6 +36,8 @@ export interface SiteContent {
     switchRef: string;
     switchHidden: string;
   };
+  /** JP1, the jumper that switches the board between green and black: reference, positions, hidden text. */
+  theme: { ref: string; green: string; dark: string; switchHidden: string };
   marks: { visible: string; hidden: string }[];
   sections: { principles: { id: string; title: string }; connectors: { id: string; title: string } };
   principles: PartContent[];

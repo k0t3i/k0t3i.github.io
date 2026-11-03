@@ -49,6 +49,15 @@
     stroke-linejoin: round;
   }
 
+  /* The shunt of JP1, on pins 1-2 or on pins 2-3: its button sets which one shows. */
+  .pcb-shunt--a {
+    opacity: var(--shunt-a, 1);
+  }
+
+  .pcb-shunt--b {
+    opacity: var(--shunt-b, 0);
+  }
+
   /* The sprite only holds symbols: it takes no room. */
   .sprite {
     position: absolute;
@@ -58,6 +67,15 @@
   }
 
   .parts {
+    /*
+     * x of the bus, the length of the stubs, the radius of the vias at both ends of a bus, and the
+     * gap between two columns of parts. Set on the section, so its heading can reach the bus too.
+     */
+    --bus: 0.5rem;
+    --stub: 1rem;
+    --via-r: 0.25rem;
+    --gap: 2.5rem;
+
     margin-top: 3.5rem;
   }
 
@@ -70,16 +88,10 @@
   }
 
   .parts__list {
-    /*
-     * x of the bus, the length of the stubs, and the vias at both ends of the bus. These vias are
-     * tented, as on most boards: covered by the mask, a faint ring, never gold.
-     */
-    --bus: 0.5rem;
-    --stub: 1rem;
-    --via-r: 0.25rem;
+    /* The vias at both ends of a bus are tented, as on most boards: covered by the mask, a faint ring, never gold. */
     --via: radial-gradient(
       circle,
-      var(--page) 0 0.09375rem,
+      var(--hole) 0 0.09375rem,
       var(--tented) calc(0.09375rem + 0.5px) var(--via-r),
       transparent calc(var(--via-r) + 0.5px)
     );
@@ -153,7 +165,8 @@
     position: relative;
     isolation: isolate;
     display: grid;
-    grid-template-columns: auto 1fr;
+    /* As wide as the drawing of every part (stub + 4rem): all the parts share one text column. */
+    grid-template-columns: calc(var(--stub) + 4rem) minmax(0, 1fr);
     align-items: start;
     column-gap: 0.75rem;
     width: 100%;
@@ -211,8 +224,9 @@
     content: "";
     position: absolute;
     z-index: -1;
+    /* Centred on the lens (x = 23 of the 64-unit symbol, 1 unit = 1/16 rem). */
     top: calc(1rem - 1.375rem);
-    left: calc(var(--stub) + 23px - 1.75rem);
+    left: calc(var(--stub) + 1.4375rem - 1.75rem);
     width: 3.5rem;
     height: 2.75rem;
     background: radial-gradient(
@@ -226,7 +240,7 @@
 
   /* Lit by the pointer or the keyboard: brighter pads, silkscreen and courtyard. */
   .part__trigger:focus-visible {
-    --pad: #dcb872;
+    --pad: var(--pad-lit);
   }
 
   .part__trigger:focus-visible .part__label {
@@ -239,7 +253,7 @@
 
   @media (hover: hover) {
     .part__trigger:hover {
-      --pad: #dcb872;
+      --pad: var(--pad-lit);
     }
 
     .part__trigger:hover .part__label {
@@ -251,13 +265,41 @@
     }
   }
 
-  @media (min-width: 48rem) {
+  /*
+   * Pressed, by touch as by mouse: the part is pushed down towards its bus and its courtyard is
+   * printed brighter, at once (no transition), so a tap reads before the sheet rises.
+   */
+  .part__trigger:active {
+    --pad: var(--pad-lit);
+  }
+
+  .part__trigger:active .part__body {
+    transform-origin: 0 50%;
+    scale: 0.96;
+  }
+
+  .part__trigger:active .part__label {
+    color: var(--silk);
+  }
+
+  .part__trigger:active::before {
+    border-color: var(--silk-dim);
+    opacity: 1;
+  }
+
+  /*
+   * Two columns from 46rem, where the board reaches its 44rem width. They fill column by column, so
+   * each bus carries a run of parts in reading order: ceil(n / 2) rows (5 parts: 3 + 2; 3 parts: 2 + 1).
+   */
+  @media (min-width: 46rem) {
     .parts__list {
-      --gap: 2.5rem;
       /* A percentage position accounts for the width of each layer: one offset centres line and vias. */
       --bus-2: calc(50% + (var(--bus) + var(--gap)) / 2 - 1px);
+      --rows: 1;
 
       grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-rows: repeat(var(--rows), auto);
+      grid-auto-flow: column;
       column-gap: var(--gap);
       /* A second bus for the right column, at its left edge. */
       background-image:
@@ -281,6 +323,18 @@
         var(--via-size) var(--via-size),
         var(--via-size) var(--via-size),
         2px calc(100% - var(--via-r) * 2);
+    }
+
+    .parts__list:has(> :nth-child(3)) {
+      --rows: 2;
+    }
+
+    .parts__list:has(> :nth-child(5)) {
+      --rows: 3;
+    }
+
+    .parts__list:has(> :nth-child(7)) {
+      --rows: 4;
     }
   }
 }

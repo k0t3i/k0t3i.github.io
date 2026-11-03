@@ -18,7 +18,11 @@ const props = defineProps<{ section: { id: string; title: string }; parts: PartC
     >
       {{ props.section.title }}
     </h2>
-    <ul class="parts__list">
+    <!-- role=list: VoiceOver drops the list role of a list without bullets. -->
+    <ul
+      class="parts__list"
+      role="list"
+    >
       <li
         v-for="part in props.parts"
         :id="`part-${part.id}`"

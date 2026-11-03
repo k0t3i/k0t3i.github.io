@@ -16,13 +16,14 @@
     );
     --mount-size: calc(var(--ring) * 2 + 2px);
     --mount-at: calc(var(--hole-at) - var(--ring) - 1px);
-    /* Matte grain of the solder mask: a 160px noise tile, 5% strong. */
-    --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23g)' opacity='.05'/%3E%3C/svg%3E");
+    /* Side padding of the board, and the keep-out kept clear around each mounting hole. */
+    --pad-x: 1.75rem;
+    --keep-out: 1rem;
 
     position: relative;
     max-width: 44rem;
     margin-inline: auto;
-    padding: 1.5rem 1.75rem 0.375rem;
+    padding: 1.5rem var(--pad-x) 0.375rem;
     border-radius: 0.875rem;
     background-color: var(--mask);
     background-image: var(--mount), var(--mount), var(--mount), var(--mount), var(--grain);
@@ -39,10 +40,8 @@
       var(--mount-size) var(--mount-size),
       160px 160px;
     background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, repeat;
-    /* The routed edge of the board catches a little light. */
-    box-shadow:
-      0 0 0 1px var(--trace),
-      0 2rem 3rem -2rem #000;
+    /* The routed edge of the board catches a little light; the green board also lies on a light page. */
+    box-shadow: var(--board-shadow);
   }
 
   /* The live trace layer belongs to the wide board. */
@@ -50,22 +49,29 @@
     display: none;
   }
 
-  /* Header: silkscreen name and revision, and the language pads. */
+  /*
+   * Header: silkscreen name and revision, the language pads, and JP1. On a phone JP1 sits under the
+   * pads; from 32rem it is the last item of one row.
+   */
   .board__header {
     display: grid;
     grid-template-columns: 1fr auto;
+    grid-template-areas:
+      "name lang"
+      "rev  lang"
+      "jp1  jp1";
     align-items: center;
     column-gap: 1rem;
   }
 
   .board__name {
-    grid-column: 1;
+    grid-area: name;
     font: 500 0.875rem / 1.25 var(--font-mono);
     letter-spacing: 0.28em;
   }
 
   .board__rev {
-    grid-column: 1;
+    grid-area: rev;
     color: var(--silk-dim);
     font: 400 var(--text-floor) / 1.4 var(--font-mono);
     letter-spacing: 0.06em;
@@ -73,8 +79,7 @@
 
   .lang {
     display: flex;
-    grid-column: 2;
-    grid-row: 1 / 3;
+    grid-area: lang;
   }
 
   .lang__link {
@@ -118,6 +123,110 @@
 
     .lang__link:hover::before {
       border-color: var(--silk-dim);
+    }
+  }
+
+  /*
+   * The slot of JP1: laid out in the prerender at its final size, so the jumper appears (once the
+   * app has mounted) without moving anything. Sized for the longer English positions (GREEN, BLACK:
+   * 2 x 5 mono characters, the 2rem jumper, two gaps and the side padding).
+   */
+  .board__jp1 {
+    display: grid;
+    grid-area: jp1;
+    justify-self: end;
+    justify-items: end;
+    align-items: center;
+    width: 8.25rem;
+    min-height: 2.75rem;
+  }
+
+  /* JP1: the reference over the jumper, its two positions printed at the ends of the pin row. */
+  .jp1 {
+    --shunt-a: 1;
+    --shunt-b: 0;
+
+    display: grid;
+    grid-template-columns: auto auto auto;
+    grid-template-areas:
+      ".     ref  ."
+      "green body dark";
+    align-content: center;
+    align-items: center;
+    column-gap: 0.375rem;
+    row-gap: 0.25rem;
+    min-height: 2.75rem;
+    padding-inline: 0.25rem;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .jp1[aria-pressed="true"] {
+    --shunt-a: 0;
+    --shunt-b: 1;
+  }
+
+  .jp1 .part__ref {
+    grid-area: ref;
+    justify-self: center;
+    padding: 0;
+    color: var(--silk);
+    font: 500 var(--text-silk) / 1 var(--font-mono);
+    letter-spacing: 0.06em;
+  }
+
+  .jp1__body {
+    grid-area: body;
+    width: 2rem;
+    height: 0.875rem;
+  }
+
+  .jp1__pos {
+    color: var(--silk-dim);
+    font: 400 var(--text-floor) / 1 var(--font-mono);
+    letter-spacing: 0.04em;
+  }
+
+  .jp1__pos--green {
+    grid-area: green;
+  }
+
+  .jp1__pos--dark {
+    grid-area: dark;
+  }
+
+  /* The position the shunt is on is printed bright. */
+  .jp1[aria-pressed="false"] .jp1__pos--green,
+  .jp1[aria-pressed="true"] .jp1__pos--dark {
+    color: var(--silk);
+  }
+
+  .jp1:focus-visible {
+    --pad: var(--pad-lit);
+
+    outline-offset: -0.125rem;
+  }
+
+  @media (hover: hover) {
+    .jp1:hover {
+      --pad: var(--pad-lit);
+    }
+
+    .jp1:hover .jp1__pos {
+      color: var(--silk);
+    }
+  }
+
+  /* Pressed: the cap is pushed down, at once. */
+  .jp1:active .jp1__body {
+    scale: 0.92;
+  }
+
+  @media (min-width: 32rem) {
+    .board__header {
+      grid-template-columns: 1fr auto auto;
+      grid-template-areas:
+        "name lang jp1"
+        "rev  lang jp1";
     }
   }
 
@@ -174,7 +283,7 @@
     background: var(--module);
     box-shadow:
       inset 0 0 0 1px var(--body-edge),
-      0 0.75rem 1.5rem -0.75rem #000;
+      0 0.75rem 1.5rem -0.75rem var(--shadow);
   }
 
   .disp__pins {
@@ -241,8 +350,8 @@
     inset: 0;
     border-radius: inherit;
     background:
-      linear-gradient(155deg, rgb(255 255 255 / 0.04), transparent 42%),
-      repeating-linear-gradient(to bottom, rgb(0 0 0 / 0.08) 0 1px, transparent 1px 3px);
+      linear-gradient(155deg, var(--glare), transparent 42%),
+      repeating-linear-gradient(to bottom, var(--scan) 0 1px, transparent 1px 3px);
     pointer-events: none;
   }
 
@@ -282,17 +391,20 @@
   }
 
   .sw1:focus-visible {
-    --pad: #dcb872;
+    --pad: var(--pad-lit);
   }
 
   @media (hover: hover) {
     .sw1:hover {
-      --pad: #dcb872;
+      --pad: var(--pad-lit);
     }
   }
 
+  /* Pressed: the plunger goes down and its rim catches the light, at once (no transition). */
   .sw1:active .sw1__body {
-    --body: #0b0c0e;
+    --body-edge: var(--body-edge-lit);
+
+    scale: 0.92;
   }
 
   /* Footer: the uptime in silkscreen, and the manufacturing marks along the bottom edge. */
@@ -313,22 +425,29 @@
     font-variant-numeric: tabular-nums;
   }
 
+  /* Along the bottom edge, clear of the mounting hole by the keep-out. */
   .pcb-marks {
     display: flex;
     flex-wrap: wrap;
     justify-content: flex-end;
-    gap: 0.375rem;
+    align-items: center;
+    gap: 0.375rem 0.875rem;
+    margin-inline-end: max(0px, var(--hole-at) + var(--ring) + var(--keep-out) - var(--pad-x));
   }
 
-  /* Like the conformity marks of a real board: tiny, thin frames, dim silkscreen. */
+  /* Like the marks of a real board: tiny, dim silkscreen, bare like a lot number. */
   .pcb-marks > li > [aria-hidden="true"] {
     display: block;
-    padding: 0.0625rem 0.3125rem;
-    border: 1px solid var(--line);
-    border-radius: 0.125rem;
     color: var(--silk-dim);
     font: 400 var(--text-floor) / 1.3 var(--font-mono);
     letter-spacing: 0.04em;
+  }
+
+  /* The first one, a11y AA, is a conformity mark: it alone keeps a thin frame. */
+  .pcb-marks > li:first-child > [aria-hidden="true"] {
+    padding: 0.0625rem 0.3125rem;
+    border: 1px solid var(--line);
+    border-radius: 0.125rem;
   }
 
   @media (min-width: 40rem) {
@@ -336,8 +455,9 @@
       --hole-at: 1.25rem;
       --ring: 0.5rem;
       --drill-r: 0.25rem;
+      --pad-x: 3rem;
 
-      padding: 0.75rem 3rem 0.625rem;
+      padding: 0.75rem var(--pad-x) 0.625rem;
     }
 
     .hero {
@@ -381,6 +501,45 @@
 
     .parts {
       grid-column: 1 / -1;
+    }
+
+    /* main is a stacking context: the trace below can pass under DISP1 and under the via it ends in. */
+    main {
+      isolation: isolate;
+    }
+
+    /*
+     * A trace from DISP1 to the principles: it leaves from under the module, 2.5rem above its bottom,
+     * bends at 45° and runs down into the top via of the second bus. It is drawn on the heading that
+     * follows DISP1, whose top is the bottom of the DISP1 row: above it, 3.5rem of margin, then the
+     * 3.5rem caption row of DISP1. Its bottom is the centre of the via (1.25rem under the heading).
+     * Horizontally it starts on the bus (50% + (bus + gap) / 2, as the bus) and ends under DISP1.
+     */
+    .disp + .parts .silk-heading {
+      position: relative;
+    }
+
+    .disp + .parts .silk-heading::before {
+      --bend: 0.75rem;
+
+      content: "";
+      position: absolute;
+      z-index: -1;
+      top: calc(-1 * (3.5rem + 3.5rem + 2.5rem));
+      bottom: calc(-1 * (1.25rem + var(--via-r) + 1px));
+      left: calc(50% + (var(--bus) + var(--gap)) / 2 - 2px);
+      right: calc(192px + 3rem - 1rem);
+      background:
+        linear-gradient(var(--trace), var(--trace)) right top / calc(100% - var(--bend)) 2px no-repeat,
+        linear-gradient(
+            to bottom right,
+            transparent calc(50% - 1.5px),
+            var(--trace) calc(50% - 0.5px) calc(50% + 0.5px),
+            transparent calc(50% + 1.5px)
+          )
+          0 0 / calc(var(--bend) + 1px) calc(var(--bend) + 1px) no-repeat,
+        linear-gradient(var(--trace), var(--trace)) left bottom / 2px calc(100% - var(--bend)) no-repeat;
+      pointer-events: none;
     }
   }
 }

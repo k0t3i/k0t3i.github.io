@@ -45,6 +45,21 @@ test('a data-critical script moves right after the CSP', () => {
   assert.ok(html.includes(hashOf('var go=1')));
 });
 
+test('the theme script goes first, then the redirect, whatever their order in the page', () => {
+  const html = transformHtml(
+    page(
+      '<link rel="stylesheet" href="/a.css"><script data-critical="redirect">var go=1</script>' +
+        '<title>x</title><script data-critical="theme">var t=1</script>',
+    ),
+  );
+  assert.match(
+    html,
+    /<meta http-equiv="Content-Security-Policy"[^>]*><script data-critical="theme">var t=1<\/script><script data-critical="redirect">var go=1<\/script><link rel="stylesheet"/,
+  );
+  assert.equal(html.match(/data-critical/g).length, 2);
+  assert.ok(html.includes(hashOf('var t=1')) && html.includes(hashOf('var go=1')));
+});
+
 test('hoistCritical leaves a page without a critical script untouched', () => {
   const html = insertCsp(page('<title>x</title>'));
   assert.equal(hoistCritical(html), html);

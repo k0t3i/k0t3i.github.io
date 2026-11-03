@@ -1,7 +1,7 @@
 // Post-build step run after `vite-ssg build`:
 //   1. dist/404/index.html -> dist/404.html (GitHub Pages serves 404.html for unknown paths);
 //   2. every dist/**/*.html gets its Content-Security-Policy <meta>, right after <meta charset>,
-//      and its data-critical script (the language redirect) right after the CSP;
+//      and its data-critical scripts right after the CSP: the theme, then the language redirect;
 //   3. fails if a page has an inline style (the CSP forbids it);
 //   4. fails if dist/kit-urgence exists (that folder belongs to another repository).
 // It also removes dist/.vite (the SSR manifest is of no use once pages are prerendered).
@@ -52,18 +52,31 @@ export function insertCsp(html) {
 }
 
 /**
- * Moves the inline script marked data-critical (the language redirect) right after the CSP <meta>.
- * Its body is untouched, so the hash computed by insertCsp stays valid.
+ * The critical scripts, in the order they must run: the theme first (it sets the board before the
+ * first paint, on every page), then the language redirect (on / only). Others follow, as found.
+ */
+const CRITICAL_ORDER = ['theme', 'redirect'];
+const CRITICAL = /<script\b[^>]*\bdata-critical(?:="([^"]*)")?[^>]*>[\s\S]*?<\/script>/gi;
+
+/**
+ * Moves the inline scripts marked data-critical right after the CSP <meta>, theme then redirect.
+ * Their bodies are untouched, so the hashes computed by insertCsp stay valid.
  */
 export function hoistCritical(html) {
   const csp = html.match(CSP_META);
   if (!csp) throw new Error('hoistCritical needs the CSP: run insertCsp first');
-  const critical = html.match(/<script\b[^>]*\bdata-critical\b[^>]*>[\s\S]*?<\/script>/i);
-  if (!critical) return html;
-  return html.replace(critical[0], '').replace(csp[0], (meta) => meta + critical[0]);
+  const found = [...html.matchAll(CRITICAL)];
+  if (found.length === 0) return html;
+  const rank = ([, name]) => {
+    const i = CRITICAL_ORDER.indexOf(name);
+    return i === -1 ? CRITICAL_ORDER.length : i;
+  };
+  const ordered = [...found].sort((a, b) => rank(a) - rank(b)).map(([tag]) => tag);
+  const rest = found.reduce((acc, [tag]) => acc.replace(tag, ''), html);
+  return rest.replace(csp[0], (meta) => meta + ordered.join(''));
 }
 
-// Head order: <meta charset>, the CSP, the critical inline script (data-critical), then everything else.
+// Head order: <meta charset>, the CSP, the critical inline scripts (data-critical), then everything else.
 // Each step maps the HTML string to a new one.
 const STEPS = [insertCsp, hoistCritical];
 

@@ -32,6 +32,7 @@ export const fr: SiteContent = {
     switchRef: 'SW1',
     switchHidden: 'changer l’écran',
   },
+  theme: { ref: 'JP1', green: 'VERT', dark: 'NOIR', switchHidden: 'carte noire' },
   marks: [
     { visible: 'a11y AA', hidden: 'Accessibilité WCAG 2.2, niveau AA' },
     { visible: 'INTJ-A', hidden: 'Personnalité INTJ-A' },

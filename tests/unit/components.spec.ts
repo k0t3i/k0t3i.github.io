@@ -1,10 +1,14 @@
 import { mount } from '@vue/test-utils';
+import { createSSRApp, h } from 'vue';
+import { renderToString } from 'vue/server-renderer';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import DisplayModule from '../../src/components/DisplayModule.vue';
+import PartList from '../../src/components/PartList.vue';
 import PartSheet from '../../src/components/PartSheet.vue';
 import PartTrigger from '../../src/components/PartTrigger.vue';
 import PcbMarks from '../../src/components/PcbMarks.vue';
 import TactileSwitch from '../../src/components/TactileSwitch.vue';
+import ThemeJumper from '../../src/components/ThemeJumper.vue';
 import UptimeCounter from '../../src/components/UptimeCounter.vue';
 import { en } from '../../src/content/en';
 import { fr } from '../../src/content/fr';
@@ -103,6 +107,8 @@ describe('PartSheet', () => {
     const wrapper = mount(PartSheet, { props: { part: part(fr, 'j3'), close: fr.close } });
     const hrefs = wrapper.findAll('ul.sheet__links a').map((a) => a.attributes('href'));
     expect(hrefs).toEqual([`mailto:${SITE.email}`, SITE.github]);
+    // VoiceOver drops the list role of an unstyled list: it is restated.
+    expect(wrapper.get('ul.sheet__links').attributes('role')).toBe('list');
   });
 
   it('puts the language of the title on the heading', () => {
@@ -133,9 +139,72 @@ describe('TactileSwitch', () => {
   });
 });
 
+describe('PartList', () => {
+  it('keeps the list role on its unstyled list', () => {
+    const wrapper = mount(PartList, { props: { section: fr.sections.principles, parts: fr.principles, close: fr.close } });
+    expect(wrapper.get('ul.parts__list').attributes('role')).toBe('list');
+    expect(wrapper.findAll('ul.parts__list > li')).toHaveLength(5);
+  });
+});
+
+describe('ThemeJumper', () => {
+  beforeEach(() => {
+    localStorage.clear();
+    delete document.documentElement.dataset.theme;
+  });
+
+  it('JP1 is a named toggle button, hidden until mounted', async () => {
+    // The prerender: hidden, not pressed (green), so it never shows without JavaScript.
+    const ssr = await renderToString(createSSRApp({ render: () => h(ThemeJumper, { theme: fr.theme }) }));
+    expect(ssr).toMatch(/^<button class="jp1" type="button" aria-pressed="false" hidden/);
+
+    const wrapper = mount(ThemeJumper, { props: { theme: fr.theme } });
+    const button = wrapper.get('button.jp1');
+    // onMounted has run, the DOM is patched on the next tick: the first client render equals the prerender.
+    expect(button.attributes()).toHaveProperty('hidden');
+    await wrapper.vm.$nextTick();
+    expect(button.attributes()).not.toHaveProperty('hidden');
+
+    expect(button.attributes('type')).toBe('button');
+    expect(button.attributes('aria-pressed')).toBe('false');
+    expect(wrapper.get('svg').attributes('aria-hidden')).toBe('true');
+    expect(wrapper.get('svg > use').attributes('href')).toBe('#part-jumper');
+    expect(wrapper.get('.part__ref').text()).toBe('JP1');
+    expect(wrapper.findAll('[aria-hidden="true"].jp1__pos').map((s) => s.text())).toEqual(['VERT', 'NOIR']);
+    expect(wrapper.get('.vh').text()).toBe('carte noire');
+    // Accessible name: the reference, then the hidden text (the positions are aria-hidden).
+    expect(`${wrapper.get('.part__ref').text()} ${wrapper.get('.vh').text()}`).toBe('JP1 carte noire');
+  });
+
+  it('toggles the board and remembers the choice', async () => {
+    const wrapper = mount(ThemeJumper, { props: { theme: en.theme } });
+    await wrapper.vm.$nextTick();
+    const button = wrapper.get('button.jp1');
+    await button.trigger('click');
+    expect(button.attributes('aria-pressed')).toBe('true');
+    expect(document.documentElement.dataset.theme).toBe('dark');
+    expect(localStorage.getItem('k0t3i.theme')).toBe('dark');
+    await button.trigger('click');
+    expect(button.attributes('aria-pressed')).toBe('false');
+    expect(document.documentElement.dataset.theme).toBe('green');
+    expect(localStorage.getItem('k0t3i.theme')).toBe('green');
+    expect(wrapper.findAll('.jp1__pos').map((s) => s.text())).toEqual(['GREEN', 'BLACK']);
+    expect(wrapper.get('.vh').text()).toBe('black board');
+  });
+
+  it('reads the saved choice once mounted, and leaves the page attribute to the head script', async () => {
+    localStorage.setItem('k0t3i.theme', 'dark');
+    const wrapper = mount(ThemeJumper, { props: { theme: fr.theme } });
+    await wrapper.vm.$nextTick();
+    expect(wrapper.get('button.jp1').attributes('aria-pressed')).toBe('true');
+    expect(document.documentElement.dataset.theme).toBeUndefined();
+  });
+});
+
 describe('PcbMarks', () => {
   it('renders the three marks', () => {
     const wrapper = mount(PcbMarks, { props: { marks: fr.marks } });
+    expect(wrapper.get('ul.pcb-marks').attributes('role')).toBe('list');
     const items = wrapper.findAll('ul.pcb-marks > li');
     expect(items).toHaveLength(3);
     items.forEach((li, i) => {

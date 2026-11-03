@@ -13,8 +13,12 @@ for (const copy of [FR, EN] as Copy[]) {
       await page.goto(copy.path);
       await expect(page).toHaveTitle(copy.title);
       await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', copy.description);
-      await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#0c0d0f');
-      await expect(page.locator('meta[name="color-scheme"]')).toHaveAttribute('content', 'dark');
+      // The page colour of each board, for the browser chrome; the page follows the device scheme.
+      const themeColors = await page.locator('meta[name="theme-color"]').evaluateAll((metas) =>
+        metas.map((m) => `${m.getAttribute('content')} ${m.getAttribute('media')}`),
+      );
+      expect(themeColors).toEqual(['#eceae3 (prefers-color-scheme: light)', '#08090a (prefers-color-scheme: dark)']);
+      await expect(page.locator('meta[name="color-scheme"]')).toHaveAttribute('content', 'light dark');
       await expect(page.locator('html')).toHaveAttribute('lang', copy.lang);
     });
 
@@ -50,8 +54,9 @@ for (const copy of [FR, EN] as Copy[]) {
       const at = (re: RegExp) => head.search(re);
       const charset = at(/<meta charset=/i);
       const csp = at(/<meta http-equiv="Content-Security-Policy"/i);
-      const critical = at(/<script[^>]*\bdata-critical\b/i);
-      // Whichever of these exist: nothing may come before the CSP and the redirect script.
+      const theme = at(/<script[^>]*\bdata-critical="theme"/i);
+      const redirect = at(/<script[^>]*\bdata-critical="redirect"/i);
+      // Whichever of these exist: nothing may come before the CSP and the critical scripts.
       const later = [
         at(/<link[^>]+rel="stylesheet"/i),
         at(/<link[^>]+rel="modulepreload"/i),
@@ -61,12 +66,14 @@ for (const copy of [FR, EN] as Copy[]) {
       expect(csp).toBeGreaterThan(charset);
       expect(later.length).toBeGreaterThan(0);
       const firstLater = Math.min(...later);
+      // The theme script on every page, right after the CSP; the redirect after it, on / only.
+      expect(theme).toBeGreaterThan(csp);
       if (copy.lang === 'fr') {
-        expect(critical).toBeGreaterThan(csp);
-        expect(firstLater).toBeGreaterThan(critical);
+        expect(redirect).toBeGreaterThan(theme);
+        expect(firstLater).toBeGreaterThan(redirect);
       } else {
-        expect(critical).toBe(-1);
-        expect(firstLater).toBeGreaterThan(csp);
+        expect(redirect).toBe(-1);
+        expect(firstLater).toBeGreaterThan(theme);
       }
     });
   });
@@ -87,5 +94,6 @@ test('the font preloads are the files the stylesheet loads', async ({ page, requ
 test('the 404 page is not indexed', async ({ request }) => {
   const html = await (await request.get('/nope')).text();
   expect(html).toMatch(/<meta name="robots" content="noindex">/);
-  expect(html).not.toMatch(/data-critical/);
+  // The theme script only: the 404 page never redirects.
+  expect(html.match(/data-critical="[^"]*"/g)).toEqual(['data-critical="theme"']);
 });

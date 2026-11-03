@@ -15,10 +15,12 @@
   @media (forced-colors: active) {
     :root {
       --pad: CanvasText;
+      --pad-lit: Highlight;
       --drill: Canvas;
       --tin: CanvasText;
       --body: Canvas;
       --body-edge: CanvasText;
+      --body-edge-lit: Highlight;
       --ceramic: Canvas;
       --lens: Canvas;
       --mark: CanvasText;
@@ -27,16 +29,38 @@
     }
 
     .part__body,
-    .sw1__body {
+    .sw1__body,
+    .jp1__body {
       forced-color-adjust: none;
     }
 
+    /* The mask, the buses and the traces go; the board keeps its outline. */
     .board,
     .parts__list,
     .part__body,
     .disp__screen::after,
+    .silk-heading::before,
     #part-led1 .part__trigger::after {
       background: none;
+    }
+
+    .board {
+      outline: 1px solid CanvasText;
+    }
+
+    /* The fan-out of U2 would lead to a bus that is not drawn. */
+    .pcb-wire {
+      stroke: none;
+    }
+
+    /* JP1: the position the shunt is on stays in the text colour, the other one is greyed. */
+    .jp1__pos {
+      color: GrayText;
+    }
+
+    .jp1[aria-pressed="false"] .jp1__pos--green,
+    .jp1[aria-pressed="true"] .jp1__pos--dark {
+      color: CanvasText;
     }
 
     .disp::before,
@@ -55,7 +79,8 @@
     }
 
     .part__trigger:focus-visible,
-    .sw1:focus-visible {
+    .sw1:focus-visible,
+    .jp1:focus-visible {
       --pad: Highlight;
       --body-edge: Highlight;
     }

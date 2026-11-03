@@ -39,9 +39,34 @@
       animation: bus-glint 9s linear infinite;
     }
 
-    /* The glint reaches the second bus when it leaves the first one. */
+    /* The glint reaches the second list when it leaves the first one. */
     .parts + .parts .parts__list::after {
       animation-delay: 0.6s;
+    }
+
+    /* From 46rem each list has a second bus, at the left of its right column: the glint runs it next. */
+    @media (min-width: 46rem) {
+      .parts__list::before {
+        content: "";
+        position: absolute;
+        top: var(--via-r);
+        bottom: var(--via-r);
+        left: calc(50% + (var(--bus) + var(--gap)) / 2 - 2px);
+        width: 2px;
+        background: linear-gradient(
+          to bottom,
+          transparent calc(100% - 3rem),
+          color-mix(in srgb, var(--gold) 85%, transparent) calc(100% - 0.5rem),
+          transparent
+        );
+        opacity: 0;
+        pointer-events: none;
+        animation: bus-glint 9s linear 0.3s infinite;
+      }
+
+      .parts + .parts .parts__list::before {
+        animation-delay: 0.9s;
+      }
     }
 
     @keyframes bus-glint {
@@ -97,6 +122,13 @@
         opacity: 0;
         translate: 0 1rem;
       }
+    }
+
+    /* JP1 swaps the board in a short cross-fade (a view transition, started by useTheme). */
+    ::view-transition-old(root),
+    ::view-transition-new(root) {
+      animation-duration: 280ms;
+      animation-timing-function: ease-out;
     }
   }
 }

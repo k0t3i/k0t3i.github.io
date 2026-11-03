@@ -13,6 +13,8 @@ export default tseslint.config(
   {
     files: ['**/*.vue'],
     languageOptions: { parserOptions: { parser: tseslint.parser } },
+    // VoiceOver drops the list role of a list styled without bullets: role="list" restates it on purpose.
+    rules: { 'vuejs-accessibility/no-redundant-roles': ['error', { ul: ['list'] }] },
   },
   {
     files: ['**/*.{ts,vue}'],

@@ -35,7 +35,14 @@ const COMPRESSIBLE = /^(text\/|application\/(json|xml)|image\/svg)/;
  * none of them (Chromium and Firefox exempt localhost). The directive is dropped from the served
  * HTML only; dist/ keeps it, and the rest of the CSP is enforced as is.
  */
-const asOverHttps = (html) => html.replace(/; upgrade-insecure-requests(?=")/, '');
+export function asOverHttps(html) {
+  const served = html.replace(/; upgrade-insecure-requests(?=")/, '');
+  // If postbuild ever writes the directive elsewhere, WebKit would silently test a page without assets.
+  if (served.includes('upgrade-insecure-requests')) {
+    throw new Error('serve: upgrade-insecure-requests is still in the CSP after stripping; update asOverHttps');
+  }
+  return served;
+}
 
 async function resolveFile(pathname) {
   let rel;
@@ -96,8 +103,13 @@ const server = createServer(async (req, res) => {
   res.end(req.method === 'HEAD' ? undefined : body);
 });
 
-if (!existsSync(ROOT)) {
-  console.error('dist/ does not exist: run `npm run build` first.');
-  process.exit(1);
+function main() {
+  if (!existsSync(ROOT)) {
+    console.error('dist/ does not exist: run `npm run build` first.');
+    process.exit(1);
+  }
+  server.listen(PORT, () => console.log(`Serving ${ROOT} on http://localhost:${PORT}`));
 }
-server.listen(PORT, () => console.log(`Serving ${ROOT} on http://localhost:${PORT}`));
+
+// Imported by the tests (asOverHttps): the server only starts when this file is run.
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main();

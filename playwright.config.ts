@@ -1,6 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
 
 const desktop = { viewport: { width: 1440, height: 900 } };
+// The port of the local server: scripts/serve.mjs reads the same variable (4173 by default).
+const PORT = Number(process.env.PORT) || 4173;
+const baseURL = `http://localhost:${PORT}`;
 
 export default defineConfig({
   testDir: './tests/e2e',
@@ -9,10 +12,11 @@ export default defineConfig({
   workers: 4,
   reporter: [['list'], ['html', { open: 'never' }]],
   // French by default: the home page redirects other languages to /en/.
-  use: { baseURL: 'http://localhost:4173', locale: 'fr-FR' },
+  use: { baseURL, locale: 'fr-FR' },
   webServer: {
     command: 'npm run build && npm run serve',
-    url: 'http://localhost:4173',
+    url: baseURL,
+    env: { PORT: String(PORT) },
     reuseExistingServer: false,
     timeout: 120_000,
   },

@@ -23,6 +23,7 @@ const props = defineProps<{ content: SiteContent }>();
     <BoardHeader
       :header="props.content.header"
       :nav="props.content.langNav"
+      :theme="props.content.theme"
     />
     <main id="contenu">
       <HeroBlock :hero="props.content.hero" />

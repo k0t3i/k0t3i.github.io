@@ -5,15 +5,32 @@
  */
 @layer reset, tokens, fonts, base, board, parts, sheets, wide, motion, modes;
 
+/*
+ * Two boards. The green one, on a light page, is the default (no preference, robots, link previews);
+ * the matte black one follows a dark device scheme. A choice made with JP1 sets data-theme on <html>
+ * and wins over the device. Only the mask, the traces, the page, the dim silkscreen, the sheets and
+ * the shadow of the board change: the gold, the silkscreen, the holes and DISP1 are the same.
+ */
 @layer tokens {
   :root {
-    /* Palette of the board. Text uses --silk and --silk-dim only, never an opacity. */
-    --page: #08090a;
-    --mask: #0c0d0f;
-    --trace: #17191d;
+    color-scheme: light dark;
+
+    /* The green board. Text uses --silk and --silk-dim only, never an opacity. */
+    --page: #eceae3;
+    --mask: #0f372a;
+    --trace: #174a39;
+    --silk-dim: #b3b8a6;
+    --sheet-bg: #0b2b20;
+    /* An object lying on the page: its routed edge, then a soft shadow, lifted a little on standoffs. */
+    --board-shadow:
+      0 0 0 1px var(--trace),
+      0 1px 2px rgb(16 30 23 / 0.2),
+      0 0.5rem 1rem -0.5rem rgb(16 30 23 / 0.22),
+      0 1.75rem 3rem -1.5rem rgb(16 30 23 / 0.4);
+
+    /* Common to both boards. */
     --gold: #c9a45c;
     --silk: #e8e4da;
-    --silk-dim: #a29e95;
     --hole: #050506;
     --led: #ffb062;
 
@@ -22,24 +39,71 @@
 
     /* Materials of the drawn parts (never text). The sprite reads them, so CSS can relight a part. */
     --pad: var(--gold);
+    --pad-lit: #dcb872;
     --drill: var(--hole);
     --tin: #6c6f75;
     --body: #141518;
     --body-edge: #2a2c31;
+    --body-edge-lit: #4a4d55;
     --ceramic: #7c6a50;
     --lens: #ffdcb0;
     --mark: #8f8b83;
-    --silk-line: #5c5a55;
-    --tented: #1f2125;
     --module: #0f1012;
     --glass: #030405;
+    /* The glass of DISP1: a faint reflection and scan lines, never a tint. */
+    --glare: rgb(255 255 255 / 0.04);
+    --scan: rgb(0 0 0 / 0.08);
+    /* Shadows cast on the board (DISP1, the sheets), the veil behind an open sheet. */
+    --shadow: #000;
+    --backdrop: rgb(5 5 6 / 0.6);
+    /* Matte grain of the solder mask: a 160px noise tile, 5% strong, the same on both masks. */
+    --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .5 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23g)' opacity='.05'/%3E%3C/svg%3E");
 
-    /* Silkscreen lines drawn in CSS (frames, courtyards). */
-    --line: #4a4945;
+    /*
+     * Derived from the mask, so each board gets its own: silkscreen lines (frames, courtyards, the
+     * outlines of the parts), tented vias (a bump in the mask over a trace), the selection, and the
+     * top edge of a sheet.
+     */
+    --line: color-mix(in srgb, var(--silk) 28%, var(--mask));
+    --silk-line: color-mix(in srgb, var(--silk) 35%, var(--mask));
+    --tented: color-mix(in srgb, var(--trace) 95%, var(--silk));
+    --selection: color-mix(in srgb, var(--gold) 35%, var(--mask));
+    --sheet-edge: color-mix(in srgb, var(--silk) 12%, var(--sheet-bg));
 
     /* Type: rem only. */
     --text-floor: 0.75rem;
     --text-silk: 0.8125rem;
     --text-label: 0.9375rem;
+  }
+
+  /* The black board: the device asks for a dark scheme and no choice says green, or the choice says black. */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="green"]) {
+      --page: #08090a;
+      --mask: #0c0d0f;
+      --trace: #17191d;
+      --silk-dim: #a29e95;
+      --sheet-bg: #101114;
+      --board-shadow:
+        0 0 0 1px var(--trace),
+        0 2rem 3rem -2rem var(--shadow);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+
+    --page: #08090a;
+    --mask: #0c0d0f;
+    --trace: #17191d;
+    --silk-dim: #a29e95;
+    --sheet-bg: #101114;
+    --board-shadow:
+      0 0 0 1px var(--trace),
+      0 2rem 3rem -2rem var(--shadow);
+  }
+
+  :root[data-theme="green"] {
+    color-scheme: light;
   }
 }

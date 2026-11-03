@@ -8,7 +8,10 @@ useHead({ title: content.value.notFound.title, meta: [{ name: 'robots', content:
 </script>
 
 <template>
-  <main>
-    <h1>{{ content.notFound.title }}</h1>
-  </main>
+  <!-- On a board, as the home page: silkscreen on the mask stays readable on both pages, light or black. -->
+  <div class="board">
+    <main>
+      <h1>{{ content.notFound.title }}</h1>
+    </main>
+  </div>
 </template>
