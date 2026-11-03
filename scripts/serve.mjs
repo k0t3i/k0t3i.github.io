@@ -8,7 +8,8 @@ import { dirname, extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'dist');
+// DIST_DIR serves another build folder (the populated variant of the e2e suite).
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', process.env.DIST_DIR || 'dist');
 const PORT = Number(process.env.PORT) || 4173;
 
 const MIME = {
@@ -105,7 +106,7 @@ const server = createServer(async (req, res) => {
 
 function main() {
   if (!existsSync(ROOT)) {
-    console.error('dist/ does not exist: run `npm run build` first.');
+    console.error(`${ROOT} does not exist: run \`npm run build\` first.`);
     process.exit(1);
   }
   server.listen(PORT, () => console.log(`Serving ${ROOT} on http://localhost:${PORT}`));

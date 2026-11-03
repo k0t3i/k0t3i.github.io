@@ -62,6 +62,18 @@ describe('content', () => {
     expect(en.marks.map((m) => m.visible)).toEqual(['a11y AA', 'INTJ-A', 'Vue 3']);
   });
 
+  it('the bill of materials lists U10 to U20, the same parts in both languages', () => {
+    const refs = Array.from({ length: 11 }, (_, i) => `U${10 + i}`);
+    expect(fr.back.bom.rows.map((r) => r.ref)).toEqual(refs);
+    expect(en.back.bom.rows.map((r) => r.ref)).toEqual(refs);
+    // The marks a11y AA, INTJ-A and Vue 3 belong to the PCB marks only.
+    for (const c of [fr, en]) {
+      for (const [path, text] of strings(c.back)) {
+        for (const mark of c.marks) expect(text, path).not.toContain(mark.visible);
+      }
+    }
+  });
+
   it('only allowed outbound links', () => {
     const allowed = new Set([
       SITE.baseUrl,

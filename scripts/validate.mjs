@@ -1,4 +1,5 @@
-// Validates the built pages of dist/: html-validate, the Nu HTML checker (vnu, --Werror)
+// Validates the built pages of dist/ (and dist-populated/, the other variant of the back side, when
+// built): html-validate, the Nu HTML checker (vnu, --Werror)
 // and the font glyph coverage (scripts/fonts.py check).
 import { spawnSync } from 'node:child_process';
 import { existsSync, readdirSync } from 'node:fs';
@@ -13,9 +14,13 @@ if (!existsSync(dist)) {
   process.exit(1);
 }
 
-const pages = readdirSync(dist, { recursive: true, withFileTypes: true })
-  .filter((d) => d.isFile() && d.name.endsWith('.html'))
-  .map((d) => relative(root, join(d.parentPath, d.name)));
+const htmlOf = (dir) =>
+  readdirSync(dir, { recursive: true, withFileTypes: true })
+    .filter((d) => d.isFile() && d.name.endsWith('.html'))
+    .map((d) => relative(root, join(d.parentPath, d.name)));
+// The populated variant of the back side, when the e2e suite has built it (npm test runs e2e first).
+const populated = join(root, 'dist-populated');
+const pages = [...htmlOf(dist), ...(existsSync(populated) ? htmlOf(populated) : [])];
 
 if (pages.length === 0) {
   console.error('validate: dist/ contains no HTML page.');
@@ -42,10 +47,10 @@ function run(label, cmd, args, env = {}) {
 // hashed or not, with one and the same message:
 //   Inline script violates Content Security Policy (meta tag): blocked by "script-src" directive
 //   (missing "'unsafe-inline'" or nonce/hash).
-// The same goes for same-origin images (/img/...), blocked by img-src for the same reason.
+// The same goes for same-origin images (/img/... and the hashed /assets/...), blocked by img-src for the same reason.
 // vnu therefore cannot see an unhashed inline script: tests/static/dist.test.mjs is the guard for that
 // (every inline executable script must have its hash in the CSP), together with the e2e CSP check.
-const CSP_ORIGIN_NOISE = String.raw`(Resource violates Content Security Policy \(meta tag\): (external .* blocked by .*|image .\/img\/\S+. blocked by .img-src. directive\.)|Inline script violates Content Security Policy \(meta tag\): blocked by .* \(missing .*nonce/hash\)\.)`;
+const CSP_ORIGIN_NOISE = String.raw`(Resource violates Content Security Policy \(meta tag\): (external .* blocked by .*|image .\/(img|assets)\/\S+. blocked by .img-src. directive\.)|Inline script violates Content Security Policy \(meta tag\): blocked by .* \(missing .*nonce/hash\)\.)`;
 // The lists drawn without bullets restate role="list" on purpose: VoiceOver drops the implicit role
 // of a list styled with list-style: none. That one warning, for <ul> only, is expected.
 const LIST_ROLE = String.raw`The .list. role is unnecessary for element .ul.\.`;

@@ -9,6 +9,7 @@ import './styles/board.css';
 import './styles/parts.css';
 import './styles/sheets.css';
 import './styles/wide.css';
+import './styles/depth.css';
 import './styles/motion.css';
 import './styles/modes.css';
 

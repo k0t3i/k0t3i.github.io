@@ -181,7 +181,8 @@ test.describe('flowing board', () => {
     await page.emulateMedia({ forcedColors: 'active' });
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/');
-    const outline = await page.locator('.board').evaluate((el) => `${getComputedStyle(el).outlineStyle} ${getComputedStyle(el).outlineWidth}`);
+    // The outline of the board is drawn by its face (the side of the board that is up).
+    const outline = await page.locator('.board__face--front').evaluate((el) => `${getComputedStyle(el).outlineStyle} ${getComputedStyle(el).outlineWidth}`);
     expect(outline).toBe('solid 1px');
     // The buses are not drawn in forced colours: the fan-out of U2 is not drawn either.
     expect(await page.locator('#part-chip .pcb-wire').evaluate((el) => getComputedStyle(el).stroke)).toBe('none');
@@ -513,6 +514,8 @@ function wideProblems(page: Page): Promise<string[]> {
       const problems: string[] = [];
       const boardEl = document.querySelector('.board') as HTMLElement;
       const board = boardEl.getBoundingClientRect();
+      // The front face holds the blocks and the art; the back face is checked by depth.spec.ts.
+      const front = boardEl.querySelector('.board__face--front') as HTMLElement;
       const u = board.width / 1600;
       const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
       const selectors = [
@@ -527,7 +530,7 @@ function wideProblems(page: Page): Promise<string[]> {
         '.pcb-marks',
       ];
       const blocks = selectors.flatMap((s) =>
-        [...document.querySelectorAll<HTMLElement>(s)].map((el, i) => ({ name: `${s}[${i}]`, el, r: el.getBoundingClientRect() })),
+        [...front.querySelectorAll<HTMLElement>(s)].map((el, i) => ({ name: `${s}[${i}]`, el, r: el.getBoundingClientRect() })),
       );
       for (const [i, a] of blocks.entries()) {
         for (const b of blocks.slice(i + 1)) {
@@ -556,7 +559,7 @@ function wideProblems(page: Page): Promise<string[]> {
       }
 
       // The copper of the art: every trace, as segments in page pixels, widened by half its stroke and 1px.
-      const url = getComputedStyle(boardEl).backgroundImage.match(/url\("?([^")]*board-wide[^")]*)"?\)/)?.[1];
+      const url = getComputedStyle(front).backgroundImage.match(/url\("?([^")]*board-wide[^")]*)"?\)/)?.[1];
       if (!url) return [...problems, 'the board has no art'];
       const art = new DOMParser().parseFromString(await (await fetch(url)).text(), 'image/svg+xml');
       const segments: { a: number[]; b: number[]; half: number }[] = [];
@@ -574,7 +577,7 @@ function wideProblems(page: Page): Promise<string[]> {
       }
       if (segments.length < 20) problems.push(`only ${segments.length} segments of copper in the art`);
       // Lines of text printed on the board itself (DISP1 covers the art under its own labels).
-      const walker = document.createTreeWalker(boardEl, NodeFilter.SHOW_TEXT);
+      const walker = document.createTreeWalker(front, NodeFilter.SHOW_TEXT);
       for (let n = walker.nextNode(); n; n = walker.nextNode()) {
         const el = n.parentElement;
         if (!el || !n.nodeValue?.trim() || el.closest('.vh, .sheet, .disp__pins, .disp__screen') || !el.checkVisibility()) continue;
@@ -717,7 +720,7 @@ test.describe('wide board', () => {
         const boardEl = document.querySelector('.board') as HTMLElement;
         const board = boardEl.getBoundingClientRect();
         const u = board.width / 1600;
-        const url = getComputedStyle(boardEl).backgroundImage.match(/url\("?([^")]*board-wide[^")]*)"?\)/)?.[1] ?? '';
+        const url = getComputedStyle(boardEl.querySelector('.board__face--front') as Element).backgroundImage.match(/url\("?([^")]*board-wide[^")]*)"?\)/)?.[1] ?? '';
         const art = new DOMParser().parseFromString(await (await fetch(url)).text(), 'image/svg+xml');
         // The drills of the header footprint, left to right.
         const drills = [...art.querySelectorAll('#disp1-pads circle[r="3"]')].map((c) => [

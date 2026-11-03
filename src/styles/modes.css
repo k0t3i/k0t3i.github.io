@@ -5,8 +5,8 @@
       --silk-dim: var(--silk);
       --line: var(--silk);
       --silk-line: var(--silk-dim);
-      /* JP1 keeps its off position dimmer than the on one (still above 6:1): its state stays readable. */
-      --jp1-off: color-mix(in srgb, var(--silk) 72%, var(--mask));
+      /* JP1 and SW2 keep their off position dimmer than the on one (still above 6:1): their state stays readable. */
+      --pos-off: color-mix(in srgb, var(--silk) 72%, var(--mask));
     }
   }
 
@@ -35,12 +35,13 @@
 
     .part__body,
     .sw1__body,
-    .jp1__body {
+    .jp1__body,
+    .sw2__body {
       forced-color-adjust: none;
     }
 
-    /* The mask, the buses and the traces go; the board keeps its outline. */
-    .board,
+    /* The mask, the buses and the traces go; each face of the board keeps its outline. */
+    .board__face,
     .parts__list,
     .part__body,
     .disp__screen::after,
@@ -49,8 +50,18 @@
       background: none;
     }
 
-    .board {
+    .board__face {
       outline: 1px solid CanvasText;
+    }
+
+    /* The edge and the copper of the back face are drawings of colour only: they go with the mask. */
+    .board__edge,
+    .bom__copper {
+      display: none;
+    }
+
+    .board__face--back::after {
+      background: none;
     }
 
     /* The fan-out of U2 would lead to a bus that is not drawn. */
@@ -63,13 +74,16 @@
       display: none;
     }
 
-    /* JP1: the position the shunt is on stays in the text colour, the other one is greyed. */
-    .jp1__pos {
+    /* JP1 and SW2: the position the part is on stays in the text colour, the other one is greyed. */
+    .jp1__pos,
+    .sw2__pos {
       color: GrayText;
     }
 
     .jp1[aria-pressed="false"] .jp1__pos--green,
-    .jp1[aria-pressed="true"] .jp1__pos--dark {
+    .jp1[aria-pressed="true"] .jp1__pos--dark,
+    .sw2[aria-pressed="false"] .sw2__pos--top,
+    .sw2[aria-pressed="true"] .sw2__pos--bot {
       color: CanvasText;
     }
 
@@ -90,7 +104,8 @@
 
     .part__trigger:focus-visible,
     .sw1:focus-visible,
-    .jp1:focus-visible {
+    .jp1:focus-visible,
+    .sw2:focus-visible {
       --pad: Highlight;
       --body-edge: Highlight;
     }

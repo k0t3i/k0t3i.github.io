@@ -37,6 +37,19 @@ export interface Copy {
   switchHidden: string;
   /** JP1, the jumper that switches the board between green and black. */
   theme: { ref: string; green: string; dark: string; switchHidden: string };
+  /** SW2 and the back side: the switch, the title, the bill of materials, the populated variant. */
+  back: {
+    ref: string;
+    top: string;
+    bot: string;
+    switchHidden: string;
+    title: string;
+    caption: string;
+    columns: string[];
+    /** Each row: reference, part, value. */
+    rows: [string, string, string][];
+    populatedAlt: string;
+  };
   marks: { visible: string; hidden: string }[];
   sections: { principles: { id: string; title: string }; connectors: { id: string; title: string } };
   close: string;
@@ -84,6 +97,29 @@ export const FR: Copy = {
   switchRef: 'SW1',
   switchHidden: 'changer l’écran',
   theme: { ref: 'JP1', green: 'VERT', dark: 'NOIR', switchHidden: 'carte noire' },
+  back: {
+    ref: 'SW2',
+    top: 'TOP',
+    bot: 'BOT',
+    switchHidden: 'face arrière',
+    title: 'Face arrière · nomenclature',
+    caption: `Nomenclature${NB}: les composants de la carte`,
+    columns: ['Repère', 'Composant', 'Valeur'],
+    rows: [
+      ['U10', 'Vue.js', '2 → 3 · Composition API · SSR'],
+      ['U11', 'TypeScript / JavaScript', 'strict · ES modules'],
+      ['U12', 'HTML sémantique', 'landmarks · ARIA juste'],
+      ['U13', 'CSS', 'layers · container queries · motion'],
+      ['U14', 'Accessibilité', 'WCAG 2.2 AA · guidelines produit'],
+      ['U15', 'Performance web', 'audits · Core Web Vitals'],
+      ['U16', 'Architecture front', 'composants · migrations'],
+      ['U17', 'Tests', 'unitaires · e2e · a11y'],
+      ['U18', 'Debug', 'navigateurs · réseau · mémoire'],
+      ['U19', 'Équipe', 'recrutement · formation · coaching'],
+      ['U20', 'Électronique', 'Arduino · Raspberry Pi · IoT'],
+    ],
+    populatedAlt: 'Face arrière de la carte, couverte de composants',
+  },
   marks: [
     { visible: 'a11y AA', hidden: 'Accessibilité WCAG 2.2, niveau AA' },
     { visible: 'INTJ-A', hidden: 'Personnalité INTJ-A' },
@@ -187,6 +223,29 @@ export const EN: Copy = {
   switchRef: 'SW1',
   switchHidden: 'change screen',
   theme: { ref: 'JP1', green: 'GREEN', dark: 'BLACK', switchHidden: 'black board' },
+  back: {
+    ref: 'SW2',
+    top: 'TOP',
+    bot: 'BOT',
+    switchHidden: 'back side',
+    title: 'Back side · bill of materials',
+    caption: 'Bill of materials: the parts on this board',
+    columns: ['Ref', 'Part', 'Value'],
+    rows: [
+      ['U10', 'Vue.js', '2 → 3 · Composition API · SSR'],
+      ['U11', 'TypeScript / JavaScript', 'strict · ES modules'],
+      ['U12', 'Semantic HTML', 'landmarks · ARIA juste'],
+      ['U13', 'CSS', 'layers · container queries · motion'],
+      ['U14', 'Accessibility', 'WCAG 2.2 AA · product guidelines'],
+      ['U15', 'Web performance', 'audits · Core Web Vitals'],
+      ['U16', 'Front-end architecture', 'components · migrations'],
+      ['U17', 'Testing', 'unit · e2e · a11y'],
+      ['U18', 'Debugging', 'browsers · network · memory'],
+      ['U19', 'Team', 'hiring · training · coaching'],
+      ['U20', 'Electronics', 'Arduino · Raspberry Pi · IoT'],
+    ],
+    populatedAlt: 'Back side of the board, covered with components',
+  },
   marks: [
     { visible: 'a11y AA', hidden: 'Accessibility WCAG 2.2, level AA' },
     { visible: 'INTJ-A', hidden: 'Personality INTJ-A' },

@@ -10,7 +10,8 @@ import { existsSync, readdirSync, readFileSync, renameSync, rmdirSync, rmSync, w
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const DIST = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'dist');
+// DIST_DIR: another output folder (vite.config.ts builds there too), e.g. the populated variant of the e2e suite.
+const DIST = resolve(dirname(fileURLToPath(import.meta.url)), '..', process.env.DIST_DIR || 'dist');
 
 const CHARSET = /<meta\s+charset=[^>]*>/i;
 const CSP_META = /<meta\s+http-equiv=["']Content-Security-Policy["'][^>]*>/gi;
@@ -99,7 +100,7 @@ function htmlFiles(dir) {
 }
 
 function main() {
-  if (!existsSync(DIST)) throw new Error('dist/ does not exist: run vite-ssg build first');
+  if (!existsSync(DIST)) throw new Error(`${DIST} does not exist: run vite-ssg build first`);
   const errors = [];
 
   rmSync(join(DIST, '.vite'), { recursive: true, force: true });

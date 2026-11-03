@@ -70,6 +70,15 @@
     opacity: var(--shunt-b, 0);
   }
 
+  /* The slider of SW2, at the TOP end or at the BOT end: its button sets which one shows. */
+  .pcb-slider--top {
+    opacity: var(--slider-top, 1);
+  }
+
+  .pcb-slider--bot {
+    opacity: var(--slider-bot, 0);
+  }
+
   /* The sprite only holds symbols: it takes no room. */
   .sprite {
     position: absolute;

@@ -1,16 +1,22 @@
 import { mount } from '@vue/test-utils';
-import { createSSRApp, h } from 'vue';
+import { createSSRApp, h, readonly, ref } from 'vue';
 import { renderToString } from 'vue/server-renderer';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import BackBom from '../../src/components/BackBom.vue';
+import BackPopulated from '../../src/components/BackPopulated.vue';
+import BoardBack from '../../src/components/BoardBack.vue';
 import BoardPage from '../../src/components/BoardPage.vue';
 import DisplayModule from '../../src/components/DisplayModule.vue';
+import FlipSwitch from '../../src/components/FlipSwitch.vue';
 import PartList from '../../src/components/PartList.vue';
 import PartSheet from '../../src/components/PartSheet.vue';
+import PartSprite from '../../src/components/PartSprite.vue';
 import PartTrigger from '../../src/components/PartTrigger.vue';
 import PcbMarks from '../../src/components/PcbMarks.vue';
 import TactileSwitch from '../../src/components/TactileSwitch.vue';
 import ThemeJumper from '../../src/components/ThemeJumper.vue';
 import UptimeCounter from '../../src/components/UptimeCounter.vue';
+import { FLIP, type Flip } from '../../src/composables/useFlip';
 import { en } from '../../src/content/en';
 import { fr } from '../../src/content/fr';
 import { SITE } from '../../src/content/site';
@@ -303,5 +309,130 @@ describe('UptimeCounter', () => {
     vi.setSystemTime(new Date('2026-11-03T12:00:00Z'));
     const wrapper = mount(UptimeCounter, { props: { uptime: en.uptime, locale: 'en' } });
     expect(wrapper.get('.uptime').text()).toBe('uptime: 46,000 h designing, coding, debugging, training, managing, learning');
+  });
+});
+
+/** A flip state as BoardPage provides it, without a board: SW2 reads it, a press calls toggle. */
+function flipState(pressed = false): Flip & { calls: number } {
+  const state = {
+    calls: 0,
+    flipped: readonly(ref(pressed)),
+    ready: readonly(ref(true)),
+    toggle: () => {
+      state.calls += 1;
+    },
+  };
+  return state;
+}
+
+describe('FlipSwitch', () => {
+  it('SW2 is a named toggle button, hidden until the board is ready', async () => {
+    const pending: Flip = { flipped: readonly(ref(false)), ready: readonly(ref(false)), toggle: () => {} };
+    const app = createSSRApp({ render: () => h(FlipSwitch, { back: fr.back }) });
+    app.provide(FLIP, pending);
+    expect(await renderToString(app)).toMatch(/^<button class="sw2" type="button" aria-pressed="false" hidden/);
+
+    const state = flipState();
+    const wrapper = mount(FlipSwitch, { props: { back: fr.back }, global: { provide: { [FLIP as symbol]: state } } });
+    const button = wrapper.get('button.sw2');
+    expect(button.attributes()).not.toHaveProperty('hidden');
+    expect(button.attributes('type')).toBe('button');
+    expect(button.attributes('aria-pressed')).toBe('false');
+    expect(wrapper.get('svg').attributes('aria-hidden')).toBe('true');
+    expect(wrapper.get('svg > use').attributes('href')).toBe('#part-slide-switch');
+    expect(wrapper.findAll('[aria-hidden="true"].sw2__pos').map((s) => s.text())).toEqual(['TOP', 'BOT']);
+    // Accessible name: the reference, then the hidden text (the positions are aria-hidden).
+    expect(`${wrapper.get('.part__ref').text()} ${wrapper.get('.vh').text()}`).toBe('SW2 face arrière');
+    await button.trigger('click');
+    expect(state.calls).toBe(1);
+  });
+
+  it('is pressed while the back side is up', () => {
+    const wrapper = mount(FlipSwitch, { props: { back: en.back }, global: { provide: { [FLIP as symbol]: flipState(true) } } });
+    expect(wrapper.get('button.sw2').attributes('aria-pressed')).toBe('true');
+    expect(wrapper.get('.vh').text()).toBe('back side');
+  });
+});
+
+describe('PartSprite', () => {
+  it('draws SW2 as a slide switch with its slider on either side', () => {
+    const wrapper = mount(PartSprite);
+    const symbol = wrapper.get('symbol#part-slide-switch');
+    expect(symbol.attributes('viewBox')).toBe('0 0 32 14');
+    expect(symbol.findAll('.pcb-slider--top')).toHaveLength(1);
+    expect(symbol.findAll('.pcb-slider--bot')).toHaveLength(1);
+    expect(symbol.findAll('.pcb-pad').length).toBeGreaterThanOrEqual(3);
+  });
+});
+
+describe('BackBom', () => {
+  // The exact copy of Annex A is checked by the e2e suite, against the oracle tests/helpers/copy.ts.
+  for (const content of [fr, en]) {
+    it(`is a real table, one row per part (${content.locale})`, () => {
+      const { bom } = content.back;
+      const wrapper = mount(BackBom, { props: { back: content.back } });
+      const table = wrapper.get('table.bom');
+      expect(table.get('caption').text()).toBe(bom.caption);
+      const heads = table.findAll('thead th');
+      expect(heads.map((th) => th.text())).toEqual([bom.columns.ref, bom.columns.part, bom.columns.value]);
+      expect(heads.map((th) => th.attributes('scope'))).toEqual(['col', 'col', 'col']);
+      const rows = table
+        .findAll('tbody tr')
+        .map((tr) => [...tr.element.children].map((c) => `${c.tagName}${c.getAttribute('scope') ?? ''} ${c.textContent?.trim()}`));
+      expect(rows).toEqual(bom.rows.map((r) => [`THrow ${r.ref}`, `TD ${r.part}`, `TD ${r.value}`]));
+      expect(rows).toHaveLength(11);
+      // The copper of the bottom side is decoration only.
+      const decor = wrapper.get('svg.bom__copper');
+      expect(decor.attributes('aria-hidden')).toBe('true');
+      expect(decor.attributes('focusable')).toBe('false');
+    });
+  }
+});
+
+describe('BackPopulated', () => {
+  it('shows the populated side as one image with its text alternative, no HTML text', () => {
+    const wrapper = mount(BackPopulated, { props: { back: fr.back } });
+    const img = wrapper.get('img.back-populated');
+    expect(img.attributes('alt')).toBe(fr.back.populatedAlt);
+    expect(img.attributes('src')).toMatch(/back-populated[\w-]*\.svg$/);
+    expect([img.attributes('width'), img.attributes('height')]).toEqual(['1600', '900']);
+    expect(img.attributes('decoding')).toBe('async');
+    expect(wrapper.text()).toBe('');
+  });
+});
+
+describe('BoardBack', () => {
+  it('is a section named by its heading, with its SW2 slot and the variant of the build', () => {
+    const wrapper = mount(BoardBack, { props: { back: fr.back }, global: { provide: { [FLIP as symbol]: flipState() } } });
+    const section = wrapper.get('section.board__face.board__face--back');
+    expect(section.attributes('aria-labelledby')).toBe('back-title');
+    expect(section.get('h2#back-title.silk-heading').text()).toBe(fr.back.title);
+    expect(section.findAll('.board__sw2 > button.sw2')).toHaveLength(1);
+    // vitest.config.ts builds the bill of materials.
+    expect(section.findAll('table.bom')).toHaveLength(1);
+    expect(section.findAll('img.back-populated')).toHaveLength(0);
+  });
+});
+
+describe('BoardPage structure', () => {
+  it('two faces in a body, the edge beside them, the skip link outside', () => {
+    const wrapper = mount(BoardPage, { props: { content: fr }, global: { stubs: { RouterLink: true } } });
+    const board = wrapper.get('div.board.board--home');
+    const body = board.get(':scope > div.board__body');
+    const faces = body.findAll(':scope > .board__face');
+    expect(faces.map((f) => `${f.element.tagName} ${f.classes().join(' ')}`)).toEqual([
+      'DIV board__face board__face--front',
+      'SECTION board__face board__face--back',
+    ]);
+    // The front face is a div: its header and footer stay the banner and the contentinfo of the page.
+    const front = faces[0];
+    expect(front?.findAll(':scope > header.board__header, :scope > main#contenu, :scope > footer.board__footer')).toHaveLength(3);
+    const edge = board.get(':scope > div.board__edge');
+    expect(edge.attributes('aria-hidden')).toBe('true');
+    expect(edge.text()).toBe('');
+    expect(wrapper.get('a.skip-link').element.closest('.board')).toBeNull();
+    // One SW2 slot in the header, right after JP1, and one on the back.
+    expect(front?.findAll('header .board__jp1 + .board__sw2 > button.sw2')).toHaveLength(1);
+    expect(faces[1]?.findAll('.board__sw2 > button.sw2')).toHaveLength(1);
   });
 });

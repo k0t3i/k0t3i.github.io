@@ -1,9 +1,10 @@
 /*
  * The order of the cascade layers, declared once: this file is the first stylesheet of the bundle.
- * `wide` (the landscape board, 79rem and up) sits after the flowing board it rearranges;
+ * `wide` (the landscape board, 79rem and up) sits after the flowing board it rearranges; `depth`
+ * (the board as an object: its edge, the tilt, the turn of SW2) after both layouts;
  * `motion` and `modes` come last so that user preferences win.
  */
-@layer reset, tokens, fonts, base, board, parts, sheets, wide, motion, modes;
+@layer reset, tokens, fonts, base, board, parts, sheets, wide, depth, motion, modes;
 
 /*
  * Two boards. The green one, on a light page, is the default (no preference, robots, link previews);
@@ -21,9 +22,8 @@
     --trace: #174a39;
     --silk-dim: #b3b8a6;
     --sheet-bg: #0b2b20;
-    /* An object lying on the page: its routed edge, then a soft shadow, lifted a little on standoffs. */
+    /* An object lying on the page: a soft shadow under it, lifted a little on standoffs (depth.css). */
     --board-shadow:
-      0 0 0 1px var(--trace),
       0 1px 2px rgb(16 30 23 / 0.2),
       0 0.5rem 1rem -0.5rem rgb(16 30 23 / 0.22),
       0 1.75rem 3rem -1.5rem rgb(16 30 23 / 0.4);
@@ -33,6 +33,9 @@
     --silk: #e8e4da;
     --hole: #050506;
     --led: #ffb062;
+    /* The core of the board, seen on its edge: glass-epoxy FR4, between two layers of solder mask; its lower half in shade. */
+    --fr4: #cdc49a;
+    --fr4-shade: color-mix(in srgb, var(--fr4) 82%, #000);
 
     --font-sans: "Hanken Grotesk", "Hanken Fallback", system-ui, sans-serif;
     --font-mono: "JetBrains Mono", "Mono Fallback", ui-monospace, monospace;
@@ -72,8 +75,11 @@
     --tented: color-mix(in srgb, var(--trace) 95%, var(--silk));
     --selection: color-mix(in srgb, var(--gold) 35%, var(--mask));
     --sheet-edge: color-mix(in srgb, var(--silk) 12%, var(--sheet-bg));
-    /* The position JP1 is not on: dim silkscreen, kept dim with more contrast (modes.css). */
-    --jp1-off: var(--silk-dim);
+    /* The routed edge of the face catches a little light; the mask on the side of the board is in shade. */
+    --board-ring: 0 0 0 1px var(--trace);
+    --mask-side: color-mix(in srgb, var(--mask) 72%, #000);
+    /* The position a switch (JP1, SW2) is not on: dim silkscreen, kept dim with more contrast (modes.css). */
+    --pos-off: var(--silk-dim);
 
     /* Type: rem only. */
     --text-floor: 0.75rem;
@@ -89,9 +95,7 @@
       --trace: #17191d;
       --silk-dim: #a29e95;
       --sheet-bg: #101114;
-      --board-shadow:
-        0 0 0 1px var(--trace),
-        0 2rem 3rem -2rem var(--shadow);
+      --board-shadow: 0 2rem 3rem -2rem var(--shadow);
     }
   }
 
@@ -103,9 +107,7 @@
     --trace: #17191d;
     --silk-dim: #a29e95;
     --sheet-bg: #101114;
-    --board-shadow:
-      0 0 0 1px var(--trace),
-      0 2rem 3rem -2rem var(--shadow);
+    --board-shadow: 0 2rem 3rem -2rem var(--shadow);
   }
 
   :root[data-theme="green"] {

@@ -30,12 +30,28 @@
     --via-r: 0.25rem;
     --gap: 2.5rem;
     --block-gap: 3.5rem;
+    --radius: 0.875rem;
 
     position: relative;
     max-width: 44rem;
     margin-inline: auto;
+  }
+
+  /*
+   * A face of the board: the front, with all its content, and the back (BoardBack.vue). Each one is
+   * a whole side of the PCB: the mask, the mounting holes and the grain. The edge under them, the
+   * stacking of the two faces and the turn of SW2 are in depth.css.
+   */
+  .board__face {
+    /*
+     * A size container: the header lays out its switches by the room on the face, which follows
+     * the root font too. On the wide board the face is as wide as the board (no padding there), so
+     * --u resolves to the same unit against it.
+     */
+    container: face / inline-size;
+    position: relative;
     padding: 1.5rem var(--pad-x) 0.375rem;
-    border-radius: 0.875rem;
+    border-radius: var(--radius);
     background-color: var(--mask);
     background-image: var(--mount), var(--mount), var(--mount), var(--mount), var(--grain);
     background-position:
@@ -51,8 +67,7 @@
       var(--mount-size) var(--mount-size),
       160px 160px;
     background-repeat: no-repeat, no-repeat, no-repeat, no-repeat, repeat;
-    /* The routed edge of the board catches a little light; the green board also lies on a light page. */
-    box-shadow: var(--board-shadow);
+    box-shadow: var(--board-ring);
   }
 
   /* The live trace layer belongs to the wide board. */
@@ -61,16 +76,16 @@
   }
 
   /*
-   * Header: silkscreen name and revision, the language pads, and JP1. On a phone JP1 sits under the
-   * pads; from 32rem it is the last item of one row.
+   * Header: silkscreen name and revision, the language pads, then JP1 and SW2. Up to 46rem the two
+   * switches sit side by side under the pads; from there all of them share one row.
    */
   .board__header {
     display: grid;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: 1fr auto auto;
     grid-template-areas:
-      "name lang"
-      "rev  lang"
-      "jp1  jp1";
+      "name lang lang"
+      "rev  lang lang"
+      "jp1  jp1  sw2";
     align-items: center;
     column-gap: 1rem;
   }
@@ -91,6 +106,7 @@
   .lang {
     display: flex;
     grid-area: lang;
+    justify-self: end;
   }
 
   .lang__link {
@@ -153,16 +169,32 @@
     min-height: 2.75rem;
   }
 
-  /* JP1: the reference over the jumper, its two positions printed at the ends of the pin row. */
-  .jp1 {
+  /* The slot of SW2, the same way: its positions (TOP, BOT) are the same in both languages. */
+  .board__sw2 {
+    display: grid;
+    grid-area: sw2;
+    justify-items: end;
+    align-items: center;
+    min-width: 6.25rem;
+    min-height: 2.75rem;
+  }
+
+  /*
+   * JP1 and SW2: the reference over the part, its two positions printed at its ends. JP1 is a
+   * jumper (its shunt on pins 1-2 or 2-3), SW2 a slide switch (its slider at TOP or at BOT).
+   */
+  .jp1,
+  .sw2 {
     --shunt-a: 1;
     --shunt-b: 0;
+    --slider-top: 1;
+    --slider-bot: 0;
 
     display: grid;
     grid-template-columns: auto auto auto;
     grid-template-areas:
-      ".     ref  ."
-      "green body dark";
+      ".   ref  ."
+      "one body two";
     align-content: center;
     align-items: center;
     column-gap: 0.375rem;
@@ -177,7 +209,13 @@
     --shunt-b: 1;
   }
 
-  .jp1 .part__ref {
+  .sw2[aria-pressed="true"] {
+    --slider-top: 0;
+    --slider-bot: 1;
+  }
+
+  .jp1 .part__ref,
+  .sw2 .part__ref {
     grid-area: ref;
     justify-self: center;
     padding: 0;
@@ -186,56 +224,80 @@
     letter-spacing: 0.06em;
   }
 
-  .jp1__body {
+  .jp1__body,
+  .sw2__body {
     grid-area: body;
     width: 2rem;
     height: 0.875rem;
   }
 
-  .jp1__pos {
-    color: var(--jp1-off);
+  .jp1__pos,
+  .sw2__pos {
+    color: var(--pos-off);
     font: 400 var(--text-floor) / 1 var(--font-mono);
     letter-spacing: 0.04em;
   }
 
-  .jp1__pos--green {
-    grid-area: green;
+  .jp1__pos--green,
+  .sw2__pos--top {
+    grid-area: one;
   }
 
-  .jp1__pos--dark {
-    grid-area: dark;
+  .jp1__pos--dark,
+  .sw2__pos--bot {
+    grid-area: two;
   }
 
-  /* The position the cap is on is printed bright, so the state never rests on the cap alone. */
+  /* The position the part is on is printed bright, so the state never rests on the drawing alone. */
   .jp1[aria-pressed="false"] .jp1__pos--green,
-  .jp1[aria-pressed="true"] .jp1__pos--dark {
+  .jp1[aria-pressed="true"] .jp1__pos--dark,
+  .sw2[aria-pressed="false"] .sw2__pos--top,
+  .sw2[aria-pressed="true"] .sw2__pos--bot {
     color: var(--silk);
   }
 
-  .jp1:focus-visible {
+  .jp1:focus-visible,
+  .sw2:focus-visible {
     --pad: var(--pad-lit);
 
     outline-offset: -0.125rem;
   }
 
   @media (hover: hover) {
-    /* Only the pads light up: the position the cap is not on stays dim. */
-    .jp1:hover {
+    /* Only the pads light up: the position the part is not on stays dim. */
+    .jp1:hover,
+    .sw2:hover {
       --pad: var(--pad-lit);
     }
   }
 
-  /* Pressed: the cap is pushed down, at once. */
-  .jp1:active .jp1__body {
+  /* Pressed: the part is pushed down, at once. */
+  .jp1:active .jp1__body,
+  .sw2:active .sw2__body {
     scale: 0.92;
   }
 
-  @media (min-width: 32rem) {
+  /* A face narrower than the two slots side by side (a phone with a large root font): SW2 goes under JP1. */
+  @container face (width < 15.5rem) {
     .board__header {
-      grid-template-columns: 1fr auto auto;
       grid-template-areas:
-        "name lang jp1"
-        "rev  lang jp1";
+        "name lang lang"
+        "rev  lang lang"
+        "jp1  jp1  jp1"
+        "sw2  sw2  sw2";
+    }
+
+    .board__sw2 {
+      justify-self: end;
+    }
+  }
+
+  @media (min-width: 46rem) {
+    .board__header {
+      grid-template-columns: 1fr auto auto auto;
+      grid-template-areas:
+        "name lang jp1 sw2"
+        "rev  lang jp1 sw2";
     }
   }
 
@@ -465,7 +527,9 @@
       --ring: 0.5rem;
       --drill-r: 0.25rem;
       --pad-x: 3rem;
+    }
 
+    .board__face {
       padding: 0.75rem var(--pad-x) 0.625rem;
     }
 
@@ -555,5 +619,169 @@
         linear-gradient(var(--trace), var(--trace)) right bottom / 2px calc(100% - var(--bend) - 1px) no-repeat;
       pointer-events: none;
     }
+  }
+
+  /*
+   * The back face (BoardBack.vue): its silkscreen title, and its SW2 exactly where the one of the
+   * front face is (the same rows as the front header up to 46rem, one row from there), then the
+   * variant of the build. The copper of the bottom layer is drawn on the wide board only (wide.css).
+   */
+  /*
+   * On the flowing board the back face is as tall as the front one: under its content, the rest of
+   * the face is its ground pour, stitched with tented vias (as on most bottom sides).
+   */
+  .board__face--back {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .board__face--back::after {
+    --stitch: radial-gradient(
+      circle,
+      var(--hole) 0 0.09375rem,
+      var(--tented) calc(0.09375rem + 0.5px) var(--via-r),
+      transparent calc(var(--via-r) + 0.5px)
+    );
+
+    content: "";
+    flex: 1 0 4rem;
+    margin: 2.5rem 0 calc(var(--hole-at) + var(--ring) + var(--keep-out) - 0.375rem);
+    border-radius: 0.5rem;
+    background-color: var(--trace);
+    background-image: var(--stitch), var(--stitch);
+    background-position:
+      0.75rem 0.75rem,
+      2.25rem 2.25rem;
+    background-size: 3rem 3rem;
+  }
+
+  .back__header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: minmax(2.75rem, auto) auto;
+    grid-template-areas:
+      "title title"
+      ".     sw2";
+    align-items: center;
+    column-gap: 1rem;
+  }
+
+  .back__title {
+    grid-area: title;
+    margin: 0;
+  }
+
+  /* As on the front face: SW2 under the row of JP1. */
+  @container face (width < 15.5rem) {
+    .back__header {
+      grid-template-rows: minmax(2.75rem, auto) 2.75rem auto;
+      grid-template-areas:
+        "title title"
+        ".     ."
+        ".     sw2";
+    }
+  }
+
+  @media (min-width: 46rem) {
+    .back__header {
+      grid-template-rows: auto;
+      grid-template-areas: "title sw2";
+    }
+  }
+
+  .bom__copper {
+    display: none;
+  }
+
+  /* The bill of materials: a silkscreen table, mono, with fine rules, a reference per row. */
+  .bom {
+    width: 100%;
+    margin-top: 2.5rem;
+    border-collapse: collapse;
+    color: var(--silk);
+    font: 400 var(--text-silk) / 1.4 var(--font-mono);
+    letter-spacing: 0.02em;
+  }
+
+  .bom__caption {
+    padding-bottom: 1rem;
+    color: var(--silk-dim);
+    font-size: var(--text-floor);
+    letter-spacing: 0.06em;
+    text-align: start;
+    text-wrap: balance;
+  }
+
+  .bom th,
+  .bom td {
+    padding: 0.5rem 0.75rem 0.5rem 0;
+    border-bottom: 1px solid var(--line);
+    text-align: start;
+    vertical-align: baseline;
+  }
+
+  .bom th:last-child,
+  .bom td:last-child {
+    padding-right: 0;
+  }
+
+  .bom thead th {
+    padding-top: 0;
+    border-bottom-color: var(--silk-line);
+    color: var(--silk-dim);
+    font-size: var(--text-floor);
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .bom tbody th {
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+  }
+
+  /* The value of each part, dimmer than its name: read second, like the value printed under a reference. */
+  .bom td + td {
+    color: var(--silk-dim);
+  }
+
+  /* A phone: the table is set at the smallest silkscreen size, a little tighter, to fit the face. */
+  @container face (width < 21rem) {
+    .bom {
+      font-size: var(--text-floor);
+    }
+
+    .bom th,
+    .bom td {
+      padding-right: 0.5rem;
+    }
+
+    .bom thead th {
+      letter-spacing: 0.06em;
+    }
+  }
+
+  /* Where the face has room, a value breaks only after one of its separators, never inside an item. */
+  @container face (width >= 19rem) {
+    .bom__item {
+      white-space: nowrap;
+    }
+  }
+
+  .bom tbody tr:last-child > * {
+    border-bottom: 0;
+  }
+
+  /*
+   * The populated side is a drawing of the wide board: on the flowing board, its dense middle (the
+   * MCU, its flash, crystal and networks) at the width of the face, without its outline and holes.
+   */
+  .back-populated {
+    width: 100%;
+    height: auto;
+    margin-top: 2rem;
+    aspect-ratio: 4 / 5;
+    object-fit: cover;
   }
 }

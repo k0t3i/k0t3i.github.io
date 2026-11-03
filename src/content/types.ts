@@ -38,6 +38,24 @@ export interface SiteContent {
   };
   /** JP1, the jumper that switches the board between green and black: reference, positions, hidden text. */
   theme: { ref: string; green: string; dark: string; switchHidden: string };
+  /**
+   * The back side of the board, and SW2, the slide switch that turns the board over: its reference,
+   * its two positions and its hidden text; the title of the back side; its bill of materials (one row
+   * per skill, ref U10 to U20) and the text alternative of the populated variant.
+   */
+  back: {
+    ref: string;
+    top: string;
+    bot: string;
+    switchHidden: string;
+    title: string;
+    bom: {
+      caption: string;
+      columns: { ref: string; part: string; value: string };
+      rows: { ref: string; part: string; value: string }[];
+    };
+    populatedAlt: string;
+  };
   marks: { visible: string; hidden: string }[];
   sections: { principles: { id: string; title: string }; connectors: { id: string; title: string } };
   principles: PartContent[];

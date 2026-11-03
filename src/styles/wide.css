@@ -24,6 +24,51 @@
     stroke-dashoffset: 100;
   }
 
+  /*
+   * The copper of the back face (BackBom.vue), in the materials of the art of the front: copper
+   * under the mask is a white veil, so it reads on both masks; the pour is cut back to the bare mask
+   * round what it does not connect.
+   */
+  .bom__veil {
+    fill: none;
+    stroke: #fff;
+    stroke-opacity: 0.055;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .bom__outline {
+    stroke-opacity: 0.05;
+    stroke-width: 2;
+  }
+
+  .bom__spokes {
+    stroke-width: 3;
+    stroke-linecap: butt;
+  }
+
+  .bom__pour {
+    fill: #fff;
+    fill-opacity: 0.035;
+  }
+
+  .bom__clear {
+    fill: var(--mask);
+    stroke: none;
+  }
+
+  path.bom__clear {
+    fill: none;
+    stroke: var(--mask);
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .bom__via {
+    fill: #fff;
+    fill-opacity: 0.07;
+  }
+
   @media (min-width: 79rem) {
     /*
      * The home board lies on the page, centred when the window is taller than it. Only that page:
@@ -41,6 +86,7 @@
       --sym: var(--u);
       --stub: 0px;
       --w: min(100vw - 4rem, 96rem);
+      --radius: calc(var(--w) * 28 / 1600);
       /* Origin of DISP1, which places SW1 in board units too. */
       --disp-x: 1188;
       --disp-y: 168;
@@ -48,22 +94,36 @@
       container-type: inline-size;
       width: var(--w);
       max-width: none;
+    }
+
+    /* Each face is the whole 16:9 board; the blocks of a face are placed on it. */
+    .board--home .board__face {
       aspect-ratio: 16 / 9;
       padding: 0;
-      border-radius: calc(var(--w) * 28 / 1600);
+    }
+
+    /* The front face is drawn by its art (the holes are in it), the back face by its own variant. */
+    .board--home .board__face--front {
       background-image: url("../assets/img/board-wide.svg"), var(--grain);
       background-position: 0 0, 0 0;
       background-size: 100% 100%, 160px 160px;
       background-repeat: no-repeat, repeat;
     }
 
-    /* Every block is placed at --x, --y; the parts and the headings are placed on the board itself. */
-    .board--home > .board__header,
+    .board--home .board__face--back {
+      background-image: var(--grain);
+      background-position: 0 0;
+      background-size: 160px 160px;
+      background-repeat: repeat;
+    }
+
+    /* Every block is placed at --x, --y; the parts and the headings are placed on the face itself. */
+    .board--home .board__header,
     .board--home .hero,
     .board--home .disp,
     .board--home .part,
-    .board--home .silk-heading,
-    .board--home > .board__footer {
+    .board--home .parts > .silk-heading,
+    .board--home .board__footer {
       position: absolute;
       left: calc(var(--x) * var(--u));
       top: calc(var(--y) * var(--u));
@@ -81,7 +141,7 @@
      * (2.75rem high). Spaced paragraphs (WCAG 1.4.12) make it taller: it grows downwards, the pads
      * stay at its top, clear of the traces under it.
      */
-    .board--home > .board__header {
+    .board--home .board__header {
       --x: 112;
       --y: 52;
 
@@ -90,7 +150,8 @@
     }
 
     .board--home .lang,
-    .board--home .board__jp1 {
+    .board--home .board__jp1,
+    .board--home .board__sw2 {
       align-self: start;
     }
 
@@ -208,7 +269,7 @@
     }
 
     /* The section headings, on one line over the two groups. */
-    .board--home .silk-heading {
+    .board--home .parts > .silk-heading {
       --y: 580;
     }
 
@@ -318,7 +379,7 @@
     }
 
     /* Footer: the uptime and the marks along the bottom edge, centred on the line of the bottom holes. */
-    .board--home > .board__footer {
+    .board--home .board__footer {
       --x: 112;
       --y: 848;
 
@@ -347,6 +408,89 @@
       height: 100%;
       overflow: hidden;
       pointer-events: none;
+    }
+
+    /*
+     * The back face: its header on the line of the top holes, like the front one, so its SW2 is
+     * exactly where the front SW2 was; the variant of the build fills the face under it.
+     */
+    .board--home .back__header {
+      position: absolute;
+      z-index: 1;
+      top: calc(52 * var(--u) - 1.375rem);
+      left: calc(112 * var(--u));
+      grid-template-rows: auto;
+      grid-template-areas: "title sw2";
+      width: calc(1376 * var(--u));
+    }
+
+    .board--home .back__title {
+      align-self: start;
+      line-height: 2.75rem;
+    }
+
+    .board--home .back__header .board__sw2 {
+      align-self: start;
+    }
+
+    /*
+     * The bill of materials: the copper of the bottom layer over the whole face (its through-hole
+     * pads and its pour on the left, under DISP1 and the connectors seen from behind), and the table
+     * in a silkscreen frame over the right of the face, where the front has no through-hole part.
+     */
+    .board--home .back-bom {
+      position: absolute;
+      inset: 0;
+    }
+
+    .board--home .bom__copper {
+      position: absolute;
+      inset: 0;
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* The face is drawn by its variant: no pour of the flowing board. */
+    .board--home .board__face--back::after {
+      display: none;
+    }
+
+    .board--home .bom {
+      position: absolute;
+      top: calc(150 * var(--u));
+      left: calc(568 * var(--u));
+      width: calc(920 * var(--u));
+      margin: 0;
+    }
+
+    .board--home .bom tbody {
+      box-shadow: 0 0 0 1px var(--line);
+    }
+
+    .board--home .bom th:first-child,
+    .board--home .bom td:first-child {
+      padding-left: 1rem;
+    }
+
+    .board--home .bom th:last-child,
+    .board--home .bom td:last-child {
+      padding-right: 1rem;
+    }
+
+    .board--home .bom thead th {
+      padding-bottom: 0.625rem;
+    }
+
+    /* The populated side is drawn over the whole face, its header printed on it. */
+    .board--home .back-populated {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      aspect-ratio: auto;
+      border-radius: inherit;
     }
 
     /*

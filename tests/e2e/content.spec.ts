@@ -31,7 +31,8 @@ for (const copy of [FR, EN] as Copy[]) {
     test('heading outline', async ({ page }) => {
       await expect(page.locator('h1')).toHaveCount(1);
       await expect(page.locator('h1')).toHaveText(`${copy.heroLead} ${copy.heroStrong}`);
-      await expect(page.locator('h2')).toHaveText([copy.sections.principles.title, copy.sections.connectors.title]);
+      // The two sections of the front face, then the back face (after the front one in the DOM).
+      await expect(page.locator('h2')).toHaveText([copy.sections.principles.title, copy.sections.connectors.title, copy.back.title]);
       await expect(page.locator('h3')).toHaveCount(sheets.length);
       for (const { id } of sheets) await expect(page.locator(`#sheet-${id} h3`), id).toHaveCount(1);
     });
@@ -113,6 +114,18 @@ for (const copy of [FR, EN] as Copy[]) {
       await expect(jp1.locator('.vh')).toHaveText(copy.theme.switchHidden);
       // In the banner, right after the language navigation.
       await expect(page.locator('header.board__header nav.lang + .board__jp1 > button.jp1')).toHaveCount(1);
+    });
+
+    test('SW2 is a named toggle after JP1, on both faces', async ({ page }) => {
+      const name = `${copy.back.ref} ${copy.back.switchHidden}`;
+      // The SW2 of the face that is up; the other face is inert.
+      const front = page.getByRole('button', { name });
+      await expect(front).toHaveCount(1);
+      await expect(front).toHaveClass(/sw2/);
+      await expect(front).toHaveAttribute('aria-pressed', 'false');
+      await expect(front.locator('.sw2__pos[aria-hidden="true"]')).toHaveText([copy.back.top, copy.back.bot]);
+      await expect(page.locator('header.board__header .board__jp1 + .board__sw2 > button.sw2')).toHaveCount(1);
+      await expect(page.locator('section.board__face--back[aria-labelledby="back-title"] .board__sw2 > button.sw2')).toHaveCount(1);
     });
 
     test('the three PCB marks', async ({ page }) => {

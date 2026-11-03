@@ -5,9 +5,10 @@ import { EN, FR } from '../helpers/copy';
 const GREEN = { board: 'rgb(15, 55, 42)', page: 'rgb(236, 234, 227)' };
 const BLACK = { board: 'rgb(12, 13, 15)', page: 'rgb(8, 9, 10)' };
 
+// The mask is the background of the face of the board, the side that is up.
 const colours = (page: Page) =>
   page.evaluate(() => ({
-    board: getComputedStyle(document.querySelector('.board') as Element).backgroundColor,
+    board: getComputedStyle(document.querySelector('.board__face') as Element).backgroundColor,
     page: getComputedStyle(document.body).backgroundColor,
   }));
 
@@ -39,7 +40,7 @@ test.describe('light scheme', () => {
         const w = window as unknown as { firstPaint: unknown };
         w.firstPaint = {
           theme: document.documentElement.dataset.theme,
-          board: getComputedStyle(document.querySelector('.board') as Element).backgroundColor,
+          board: getComputedStyle(document.querySelector('.board__face') as Element).backgroundColor,
         };
       });
     });

@@ -1,8 +1,8 @@
 <template>
   <!--
     The parts seen from above, drawn at 1 unit = 1/16 rem (1 CSS px at the default root size): 64 x 32,
-    the switch 32 x 32, the jumper 32 x 14. They scale with the root font, so anything placed over a
-    part (the LED glow) is placed in rem too. Each shape has a material class (pads, tin, body...)
+    the switch 32 x 32, the jumper and the slide switch 32 x 14. They scale with the root font, so
+    anything placed over a part (the LED glow) is placed in rem too. Each shape has a material class (pads, tin, body...)
     styled in parts.css: CSS relights or recolours a part.
     Every part starts at x = 1 with its first pad, where the trace from the bus arrives (y = 16).
   -->
@@ -541,6 +541,97 @@
           y="5.5"
           width="5"
           height="3"
+          rx="0.5"
+        />
+      </g>
+    </symbol>
+
+    <!--
+      SW2: an SPDT slide switch, seen from above, the size of JP1. Two tabs and three legs soldered to
+      gold pads, a tin shell, the slot, and the black slider: CSS shows it at the TOP end (left) or at
+      the BOT end (right).
+    -->
+    <symbol
+      id="part-slide-switch"
+      viewBox="0 0 32 14"
+    >
+      <rect
+        class="pcb-silk"
+        x="0.5"
+        y="1.5"
+        width="31"
+        height="11"
+        rx="0.5"
+      />
+      <rect
+        class="pcb-pad"
+        x="0"
+        y="4"
+        width="3"
+        height="6"
+        rx="0.5"
+      />
+      <rect
+        class="pcb-pad"
+        x="29"
+        y="4"
+        width="3"
+        height="6"
+        rx="0.5"
+      />
+      <path
+        class="pcb-pad"
+        d="M6 11h3v3h-3zM14.5 11h3v3h-3zM23 11h3v3h-3z"
+      />
+      <rect
+        class="pcb-tin"
+        x="2.5"
+        y="2.5"
+        width="27"
+        height="9"
+        rx="0.75"
+      />
+      <rect
+        class="pcb-drill"
+        x="6"
+        y="5"
+        width="20"
+        height="4"
+        rx="1"
+      />
+      <g class="pcb-slider pcb-slider--top">
+        <rect
+          class="pcb-cap"
+          x="6.5"
+          y="3.5"
+          width="9"
+          height="7"
+          rx="1"
+        />
+        <rect
+          class="pcb-cap-top"
+          x="8"
+          y="5"
+          width="6"
+          height="4"
+          rx="0.5"
+        />
+      </g>
+      <g class="pcb-slider pcb-slider--bot">
+        <rect
+          class="pcb-cap"
+          x="16.5"
+          y="3.5"
+          width="9"
+          height="7"
+          rx="1"
+        />
+        <rect
+          class="pcb-cap-top"
+          x="18"
+          y="5"
+          width="6"
+          height="4"
           rx="0.5"
         />
       </g>
