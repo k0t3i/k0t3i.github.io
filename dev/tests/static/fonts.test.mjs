@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { PUBLISHED_ROOT } from '../helpers/pages.mjs';
@@ -21,4 +22,12 @@ test('each woff2 <= 30 KB, total <= 55 KB', () => {
 
 test('woff2 signature', () => {
   for (const f of WOFF2) assert.equal(readFileSync(dir(f)).subarray(0, 4).toString('latin1'), 'wOF2');
+});
+
+test('fonts verify passes', () => {
+  const r = spawnSync('python', ['scripts/fonts.py', 'verify'], {
+    cwd: join(PUBLISHED_ROOT, 'dev'),
+    encoding: 'utf8',
+  });
+  assert.equal(r.status, 0, r.stdout + r.stderr);
 });

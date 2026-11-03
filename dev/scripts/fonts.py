@@ -2,6 +2,7 @@
 """Build the self-hosted subset fonts and check that pages are covered by them.
 
   python dev/scripts/fonts.py build          sources in dev/fonts-src -> assets/fonts/*.woff2
+  python dev/scripts/fonts.py verify         built woff2: axis ranges and key glyphs
   python dev/scripts/fonts.py check a.html   exit 1 if a character has no glyph
 """
 import io
@@ -134,13 +135,16 @@ class TextCollector(HTMLParser):
 def cmd_check(files):
     cover = {k: set(TTFont(OUT / s["out"]).getBestCmap()) for k, s in FONTS.items()}
     mono_only = {"↗", "·"}
+    # Neither font has these two spaces. The CSS stack falls back to the metric-matched
+    # "Hanken Fallback" face (local Arial, which contains them), so they keep Hanken metrics.
+    fallback_ok = {0x2009, 0x202F}
     failed = False
     for name in files:
         parser = TextCollector()
         parser.feed(Path(name).read_text(encoding="utf-8"))
         missing = sorted(
             c for c in parser.chars
-            if ord(c) >= 0x20 and ord(c) not in cover["hanken"]
+            if ord(c) >= 0x20 and ord(c) not in cover["hanken"] and ord(c) not in fallback_ok
             and not (c in mono_only and ord(c) in cover["mono"])
         )
         if missing:
@@ -149,11 +153,39 @@ def cmd_check(files):
     return 1 if failed else 0
 
 
+def cmd_verify():
+    errors = []
+    for key, want in (("hanken", (200, 500)), ("mono", (400, 500))):
+        spec = FONTS[key]
+        font = TTFont(OUT / spec["out"])
+        axis = next((a for a in font["fvar"].axes if a.axisTag == "wght"), None) if "fvar" in font else None
+        got = (axis.minValue, axis.maxValue) if axis else None
+        if got != want:
+            errors.append(f'{spec["out"]}: wght range is {got}, expected {want}')
+        cmap = font.getBestCmap()
+        if key == "hanken":
+            need = set("àâäçéèêëîïôöùûüÿœæÀÂÇÉÈÊËÎÏÔÙÛÜŒ«»’‘“”–—…·")
+            need |= set(range(0x20, 0x7F)) | {0xA0}
+        else:
+            need = set("↗·")
+        need = {ord(c) if isinstance(c, str) else c for c in need}
+        gone = sorted(need - set(cmap))
+        if gone:
+            errors.append(f'{spec["out"]}: missing glyphs ' + " ".join(f"U+{c:04X}" for c in gone))
+    for e in errors:
+        print(e)
+    if not errors:
+        print("fonts verified")
+    return 1 if errors else 0
+
+
 def main(argv):
     sys.stdout.reconfigure(encoding="utf-8")
     if argv[:1] == ["build"]:
         cmd_build()
         return 0
+    if argv[:1] == ["verify"]:
+        return cmd_verify()
     if argv[:1] == ["check"] and len(argv) > 1:
         return cmd_check(argv[1:])
     print(__doc__)
