@@ -8,7 +8,7 @@ import { dirname, extname, join, normalize, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
 
-// DIST_DIR serves another build folder (the populated variant of the e2e suite).
+// DIST_DIR serves another build folder than dist/.
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', process.env.DIST_DIR || 'dist');
 const PORT = Number(process.env.PORT) || 4173;
 

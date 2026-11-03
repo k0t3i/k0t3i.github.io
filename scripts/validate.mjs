@@ -1,5 +1,4 @@
-// Validates the built pages of dist/ (and dist-populated/, the other variant of the back side, when
-// built): html-validate, the Nu HTML checker (vnu, --Werror)
+// Validates the built pages of dist/: html-validate, the Nu HTML checker (vnu, --Werror)
 // and the font glyph coverage (scripts/fonts.py check).
 import { spawnSync } from 'node:child_process';
 import { existsSync, readdirSync } from 'node:fs';
@@ -18,9 +17,7 @@ const htmlOf = (dir) =>
   readdirSync(dir, { recursive: true, withFileTypes: true })
     .filter((d) => d.isFile() && d.name.endsWith('.html'))
     .map((d) => relative(root, join(d.parentPath, d.name)));
-// The populated variant of the back side, when the e2e suite has built it (npm test runs e2e first).
-const populated = join(root, 'dist-populated');
-const pages = [...htmlOf(dist), ...(existsSync(populated) ? htmlOf(populated) : [])];
+const pages = htmlOf(dist);
 
 if (pages.length === 0) {
   console.error('validate: dist/ contains no HTML page.');

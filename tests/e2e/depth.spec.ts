@@ -1,13 +1,9 @@
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { chromium, expect, test, type Locator, type Page, type TestInfo } from '@playwright/test';
+import { chromium, expect, test, type Locator, type Page } from '@playwright/test';
 import { EN, FR, type Copy } from '../helpers/copy';
 
 /*
  * The board as an object: its edge (thickness), the tilt that follows a mouse on the wide board, and
- * SW2, which turns it over to its back face. The project "populated" runs the back-face tests on the
- * other variant of the back side (BACK_VARIANT=populated): every test that depends on the variant
- * has "back face" in its name.
+ * SW2, which turns it over to its back face.
  */
 
 const WIDE = { width: 1600, height: 900 };
@@ -17,7 +13,6 @@ const FR4 = 'rgb(205, 196, 154)';
 const board = (page: Page): Locator => page.locator('div.board');
 const face = (page: Page, side: 'front' | 'back'): Locator => page.locator(`.board__face--${side}`);
 const sw2 = (page: Page, side: 'front' | 'back'): Locator => page.locator(`.board__face--${side} button.sw2`);
-const populated = (testInfo: TestInfo): boolean => testInfo.project.name === 'populated';
 
 /** The page once the app has mounted: SW2 is shown on the front face. */
 async function open(page: Page, path = '/'): Promise<void> {
@@ -234,7 +229,7 @@ test.describe('without JavaScript', () => {
 
   for (const copy of [FR, EN] as Copy[]) {
     for (const viewport of [WIDE, PHONE]) {
-      test(`no JS: back face readable after the front (${copy.path}, ${viewport.width}px)`, async ({ page, isMobile }, testInfo) => {
+      test(`no JS: back face readable after the front (${copy.path}, ${viewport.width}px)`, async ({ page, isMobile }) => {
         if (!isMobile) await page.setViewportSize(viewport);
         await page.goto(copy.path);
         await expect(board(page)).not.toHaveAttribute('data-flip-ready', /.*/);
@@ -250,18 +245,13 @@ test.describe('without JavaScript', () => {
         const title = page.locator('#back-title');
         await title.scrollIntoViewIfNeeded();
         await expect(title).toBeVisible();
-        // Each variant has its own title.
-        expect(await title.evaluate((el) => el.textContent?.trim())).toBe(populated(testInfo) ? copy.back.populatedTitle : copy.back.title);
-        if (populated(testInfo)) {
-          await expect(face(page, 'back').locator('img.back-populated')).toHaveAttribute('alt', copy.back.populatedAlt);
-        } else {
-          const table = face(page, 'back').locator('table.bom');
-          await table.scrollIntoViewIfNeeded();
-          await expect(table).toBeVisible();
-          expect(await table.locator('caption').evaluate((el) => el.textContent?.trim())).toBe(copy.back.caption);
-          const rows = await table.locator('tbody tr').evaluateAll((trs) => trs.map((tr) => [...tr.children].map((c) => c.textContent?.trim())));
-          expect(rows).toEqual(copy.back.rows);
-        }
+        expect(await title.evaluate((el) => el.textContent?.trim())).toBe(copy.back.title);
+        const table = face(page, 'back').locator('table.bom');
+        await table.scrollIntoViewIfNeeded();
+        await expect(table).toBeVisible();
+        expect(await table.locator('caption').evaluate((el) => el.textContent?.trim())).toBe(copy.back.caption);
+        const rows = await table.locator('tbody tr').evaluateAll((trs) => trs.map((tr) => [...tr.children].map((c) => c.textContent?.trim())));
+        expect(rows).toEqual(copy.back.rows);
       });
     }
   }
@@ -324,35 +314,23 @@ test.describe('no layout shift', () => {
 });
 
 test.describe('the back face', () => {
-  test('the back face of this build is its variant: the table, or the populated art as one image', async ({ page }, testInfo) => {
+  test('the back face holds the bill of materials and its copper, no image', async ({ page }) => {
     await open(page);
     const back = face(page, 'back');
-    if (populated(testInfo)) {
-      await expect(back.locator('table.bom, svg.bom__copper')).toHaveCount(0);
-      const img = back.locator('img.back-populated');
-      await expect(img).toHaveCount(1);
-      const src = (await img.getAttribute('src')) ?? '';
-      expect(src).toMatch(/^\/assets\/back-populated-[\w-]+\.svg$/);
-      // The hashed file served is the drawing of the sources.
-      const served = await (await page.request.get(src)).text();
-      expect(served).toBe(readFileSync(fileURLToPath(new URL('../../src/assets/img/back-populated.svg', import.meta.url)), 'utf8'));
-    } else {
-      await expect(back.locator('table.bom')).toHaveCount(1);
-      await expect(back.locator('svg.bom__copper')).toHaveCount(1);
-      await expect(back.locator('img')).toHaveCount(0);
-    }
+    await expect(back.locator('table.bom')).toHaveCount(1);
+    await expect(back.locator('svg.bom__copper')).toHaveCount(1);
+    await expect(back.locator('img')).toHaveCount(0);
   });
 
   for (const viewport of [{ width: 1264, height: 800 }, WIDE, PHONE, { width: 320, height: 720 }]) {
-    test(`back face layout holds at ${viewport.width}x${viewport.height}`, async ({ page, isMobile }, testInfo) => {
+    test(`back face layout holds at ${viewport.width}x${viewport.height}`, async ({ page, isMobile }) => {
       test.skip(isMobile && viewport.width > PHONE.width, 'the phone sizes only');
       if (!isMobile) await page.setViewportSize(viewport);
       for (const path of [FR.path, EN.path]) {
         await open(page, path);
         await turn(page, 'front');
         expect(await backFaceProblems(page), path).toEqual([]);
-        if (populated(testInfo)) await expect(face(page, 'back').locator('img.back-populated')).toBeVisible();
-        else await expect(face(page, 'back').locator('table.bom tbody tr')).toHaveCount(11);
+        await expect(face(page, 'back').locator('table.bom tbody tr')).toHaveCount(11);
       }
     });
   }
@@ -379,8 +357,8 @@ test.describe('the back face', () => {
 
 /*
  * The back face with the user's text settings: the root font at 125 % and WCAG 1.4.12 text spacing,
- * on the wide board and on a phone, in both languages (and, in the project "populated", the other
- * variant). These tests inject a stylesheet: the CSP of the page is bypassed for them only.
+ * on the wide board and on a phone, in both languages. These tests inject a stylesheet: the CSP of
+ * the page is bypassed for them only.
  */
 test.describe('the back face with user text settings', () => {
   test.use({ bypassCSP: true, reducedMotion: 'reduce' });
@@ -419,7 +397,7 @@ function backFaceProblems(page: Page): Promise<string[]> {
     const out: string[] = [];
     const f = faceEl.getBoundingClientRect();
     const inside = (r: DOMRect) => r.left >= f.left - 0.5 && r.right <= f.right + 0.5 && r.top >= f.top - 0.5 && r.bottom <= f.bottom + 0.5;
-    const blocks = [...faceEl.querySelectorAll<HTMLElement>('#back-title, .board__sw2, table.bom, img.back-populated')];
+    const blocks = [...faceEl.querySelectorAll<HTMLElement>('#back-title, .board__sw2, table.bom')];
     for (const b of blocks) {
       if (!inside(b.getBoundingClientRect())) out.push(`${b.className || b.id} leaves the face`);
       if (b.scrollWidth > b.clientWidth + 1) out.push(`${b.className || b.id} overflows`);

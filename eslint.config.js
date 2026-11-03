@@ -5,7 +5,7 @@ import pluginVue from 'eslint-plugin-vue';
 import vueA11y from 'eslint-plugin-vuejs-accessibility';
 
 export default tseslint.config(
-  { ignores: ['dist/', 'dist-populated/', 'node_modules/', 'test-results/', 'playwright-report/', 'lighthouse/', 'fonts-src/'] },
+  { ignores: ['dist/', 'node_modules/', 'test-results/', 'playwright-report/', 'lighthouse/', 'fonts-src/'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   ...pluginVue.configs['flat/recommended'],
@@ -18,7 +18,7 @@ export default tseslint.config(
   },
   {
     files: ['**/*.{ts,vue}'],
-    languageOptions: { globals: { __BUILD_DATE__: 'readonly', __BACK_VARIANT__: 'readonly' } },
+    languageOptions: { globals: { __BUILD_DATE__: 'readonly' } },
     rules: { '@typescript-eslint/no-explicit-any': 'error' },
   },
   { files: ['scripts/**/*.mjs', 'tests/**/*.mjs', '*.config.{js,ts}'], languageOptions: { globals: globals.node } },

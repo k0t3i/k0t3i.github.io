@@ -37,7 +37,7 @@ export interface Copy {
   switchHidden: string;
   /** JP1, the jumper that switches the board between green and black. */
   theme: { ref: string; green: string; dark: string; switchHidden: string };
-  /** SW2 and the back side: the switch, the title, the bill of materials, the populated variant. */
+  /** SW2 and the back side: the switch, the title, the bill of materials. */
   back: {
     ref: string;
     top: string;
@@ -48,9 +48,6 @@ export interface Copy {
     columns: string[];
     /** Each row: reference, part, value. */
     rows: [string, string, string][];
-    /** The title of the populated variant (title is the one of the bill of materials). */
-    populatedTitle: string;
-    populatedAlt: string;
   };
   marks: { visible: string; hidden: string }[];
   sections: { principles: { id: string; title: string }; connectors: { id: string; title: string } };
@@ -120,8 +117,6 @@ export const FR: Copy = {
       ['U19', 'Équipe', 'recrutement · formation · coaching'],
       ['U20', 'Électronique', 'Arduino · Raspberry Pi · IoT'],
     ],
-    populatedTitle: 'Face arrière · composants',
-    populatedAlt: 'Face arrière de la carte, couverte de composants',
   },
   marks: [
     { visible: 'a11y AA', hidden: 'Accessibilité WCAG 2.2, niveau AA' },
@@ -247,8 +242,6 @@ export const EN: Copy = {
       ['U19', 'Team', 'hiring · training · coaching'],
       ['U20', 'Electronics', 'Arduino · Raspberry Pi · IoT'],
     ],
-    populatedTitle: 'Back side · components',
-    populatedAlt: 'Back side of the board, covered with components',
   },
   marks: [
     { visible: 'a11y AA', hidden: 'Accessibility WCAG 2.2, level AA' },

@@ -1,10 +1,10 @@
 /*
  * The order of the cascade layers, declared once: this file is the first stylesheet of the bundle.
- * `wide` (the landscape board, 79rem and up) sits after the flowing board it rearranges; `depth`
- * (the board as an object: its edge, the tilt, the turn of SW2) after both layouts;
- * `motion` and `modes` come last so that user preferences win.
+ * `wide` (the landscape board, 79rem and up) sits after the flowing board it rearranges; `back` (the
+ * back face, both layouts) after them; `depth` (the board as an object: its edge, the tilt, the turn
+ * of SW2) after every layout; `motion` and `modes` come last so that user preferences win.
  */
-@layer reset, tokens, fonts, base, board, parts, sheets, wide, depth, motion, modes;
+@layer reset, tokens, fonts, base, board, parts, sheets, wide, back, depth, motion, modes;
 
 /*
  * Two boards. The green one, on a light page, is the default (no preference, robots, link previews);

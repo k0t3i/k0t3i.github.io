@@ -46,7 +46,7 @@ for (const scheme of ['light', 'dark'] as const) {
         expect(await violations(page)).toEqual([]);
       });
 
-      // The other side of the board (in the project "populated", the other variant of it).
+      // The other side of the board.
       test('back face shown', async ({ page }) => {
         await showBack(page);
         await expect(page.locator('.board__face--back button.sw2')).toBeFocused();

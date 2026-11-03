@@ -1,0 +1,297 @@
+/*
+ * The back face of the board (BoardBack.vue, BackBom.vue): its silkscreen title and its SW2, the
+ * bill of materials, and on the wide board the copper of the bottom layer. Its own layer, after the
+ * two layouts of the front face (board, wide) and before depth, motion and modes: the stacking of
+ * the two faces and the turn are in depth.css, the motion in motion.css, the user modes in modes.css.
+ */
+@layer back {
+  /*
+   * The back face (BoardBack.vue): its silkscreen title, and its SW2 exactly where the one of the
+   * front face is (the same rows as the front header up to 46rem, one row from there), then the
+   * bill of materials. The copper of the bottom layer is drawn on the wide board only (below).
+   */
+  /*
+   * On the flowing board the back face is as tall as the front one: under its content, the rest of
+   * the face is its ground pour, stitched with tented vias (as on most bottom sides).
+   */
+  .board__face--back {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .board__face--back::after {
+    --stitch: radial-gradient(
+      circle,
+      var(--hole) 0 0.09375rem,
+      var(--tented) calc(0.09375rem + 0.5px) var(--via-r),
+      transparent calc(var(--via-r) + 0.5px)
+    );
+
+    content: "";
+    flex: 1 0 4rem;
+    margin: 2.5rem 0 calc(var(--hole-at) + var(--ring) + var(--keep-out) - 0.375rem);
+    border-radius: 0.5rem;
+    background-color: var(--trace);
+    background-image: var(--stitch), var(--stitch);
+    background-position:
+      0.75rem 0.75rem,
+      2.25rem 2.25rem;
+    background-size: 3rem 3rem;
+  }
+
+  .back__header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: minmax(2.75rem, auto) auto;
+    grid-template-areas:
+      "title title"
+      ".     sw2";
+    align-items: center;
+    column-gap: 1rem;
+  }
+
+  .back__title {
+    grid-area: title;
+  }
+
+  /* As on the front face: SW2 under the row of JP1. */
+  @container face (width < 15.5rem) {
+    .back__header {
+      grid-template-rows: minmax(2.75rem, auto) 2.75rem auto;
+      grid-template-areas:
+        "title title"
+        ".     ."
+        ".     sw2";
+    }
+  }
+
+  @media (min-width: 46rem) {
+    .back__header {
+      grid-template-rows: auto;
+      grid-template-areas: "title sw2";
+    }
+  }
+
+  .bom__copper {
+    display: none;
+  }
+
+  /* The bill of materials: a silkscreen table, mono, with fine rules, a reference per row. */
+  .bom {
+    width: 100%;
+    margin-top: 2.5rem;
+    border-collapse: collapse;
+    color: var(--silk);
+    font: 400 var(--text-silk) / 1.4 var(--font-mono);
+    letter-spacing: 0.02em;
+  }
+
+  .bom__caption {
+    padding-bottom: 1rem;
+    color: var(--silk-dim);
+    font-size: var(--text-floor);
+    letter-spacing: 0.06em;
+    text-align: start;
+    text-wrap: balance;
+  }
+
+  .bom th,
+  .bom td {
+    padding: 0.5rem 0.75rem 0.5rem 0;
+    border-bottom: 1px solid var(--line);
+    text-align: start;
+    vertical-align: baseline;
+  }
+
+  .bom th:last-child,
+  .bom td:last-child {
+    padding-right: 0;
+  }
+
+  .bom thead th {
+    padding-top: 0;
+    border-bottom-color: var(--silk-line);
+    color: var(--silk-dim);
+    font-size: var(--text-floor);
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .bom tbody th {
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+  }
+
+  /* The value of each part, dimmer than its name: read second, like the value printed under a reference. */
+  .bom td + td {
+    color: var(--silk-dim);
+  }
+
+  /* A phone: the table is set at the smallest silkscreen size, a little tighter, to fit the face. */
+  @container face (width < 21rem) {
+    .bom {
+      font-size: var(--text-floor);
+    }
+
+    .bom th,
+    .bom td {
+      padding-right: 0.5rem;
+    }
+
+    .bom thead th {
+      letter-spacing: 0.06em;
+    }
+  }
+
+  /* The narrowest faces (a small phone, or the root font at 125 %): tighter still. */
+  @container face (width < 17rem) {
+    .bom th,
+    .bom td {
+      padding-right: 0.375rem;
+    }
+
+    .bom thead th {
+      letter-spacing: 0.02em;
+    }
+  }
+
+  /* Where the face has room, the last word of an item keeps its dot: no line starts with a dot. */
+  @container face (width >= 19rem) {
+    .bom__glue {
+      white-space: nowrap;
+    }
+  }
+
+  .bom tbody tr:last-child > * {
+    border-bottom: 0;
+  }
+
+  /*
+   * The copper of the back face (BackBom.vue), in the materials of the art of the front: copper
+   * under the mask is a white veil, so it reads on both masks; the pour is cut back to the bare mask
+   * round what it does not connect.
+   */
+  .bom__veil {
+    fill: none;
+    stroke: #fff;
+    stroke-opacity: 0.055;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .bom__outline {
+    stroke-opacity: 0.05;
+    stroke-width: 2;
+  }
+
+  .bom__spokes {
+    stroke-width: 3;
+    stroke-linecap: butt;
+  }
+
+  .bom__pour {
+    fill: #fff;
+    fill-opacity: 0.035;
+  }
+
+  .bom__clear {
+    fill: var(--mask);
+    stroke: none;
+  }
+
+  path.bom__clear {
+    fill: none;
+    stroke: var(--mask);
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .bom__via {
+    fill: #fff;
+    fill-opacity: 0.07;
+  }
+
+  @media (min-width: 79rem) {
+    /* The back face is drawn by its copper (BackBom.vue): only the grain of the mask here. */
+    .board--home .board__face--back {
+      background-image: var(--grain);
+      background-position: 0 0;
+      background-size: 160px 160px;
+      background-repeat: repeat;
+    }
+
+    /*
+     * The back face: its header on the line of the top holes, like the front one, so its SW2 is
+     * exactly where the front SW2 was; the bill of materials fills the face under it.
+     */
+    .board--home .back__header {
+      position: absolute;
+      z-index: 1;
+      top: calc(52 * var(--u) - 1.375rem);
+      left: calc(112 * var(--u));
+      grid-template-rows: auto;
+      grid-template-areas: "title sw2";
+      width: calc(1376 * var(--u));
+    }
+
+    .board--home .back__title {
+      align-self: start;
+      line-height: 2.75rem;
+    }
+
+    .board--home .back__header .board__sw2 {
+      align-self: start;
+    }
+
+    /*
+     * The bill of materials: the copper of the bottom layer over the whole face (its through-hole
+     * pads and its pour on the left, under DISP1 and the connectors seen from behind), and the table
+     * in a silkscreen frame over the right of the face, where the front has no through-hole part.
+     */
+    .board--home .back-bom {
+      position: absolute;
+      inset: 0;
+    }
+
+    .board--home .bom__copper {
+      position: absolute;
+      inset: 0;
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* The face is drawn by its copper: no pour of the flowing board. */
+    .board--home .board__face--back::after {
+      display: none;
+    }
+
+    .board--home .bom {
+      position: absolute;
+      top: calc(150 * var(--u));
+      left: calc(568 * var(--u));
+      width: calc(920 * var(--u));
+      margin: 0;
+    }
+
+    .board--home .bom tbody {
+      box-shadow: 0 0 0 1px var(--line);
+    }
+
+    .board--home .bom th:first-child,
+    .board--home .bom td:first-child {
+      padding-left: 1rem;
+    }
+
+    .board--home .bom th:last-child,
+    .board--home .bom td:last-child {
+      padding-right: 1rem;
+    }
+
+    .board--home .bom thead th {
+      padding-bottom: 0.625rem;
+    }
+  }
+}

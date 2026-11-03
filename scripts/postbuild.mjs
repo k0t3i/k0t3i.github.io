@@ -10,7 +10,7 @@ import { existsSync, readdirSync, readFileSync, renameSync, rmdirSync, rmSync, w
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-// DIST_DIR: another output folder (vite.config.ts builds there too), e.g. the populated variant of the e2e suite.
+// DIST_DIR: another output folder (vite.config.ts builds there too).
 const DIST = resolve(dirname(fileURLToPath(import.meta.url)), '..', process.env.DIST_DIR || 'dist');
 
 const CHARSET = /<meta\s+charset=[^>]*>/i;

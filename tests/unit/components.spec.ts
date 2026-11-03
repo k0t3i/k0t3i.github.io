@@ -3,7 +3,6 @@ import { createSSRApp, h, readonly, ref } from 'vue';
 import { renderToString } from 'vue/server-renderer';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import BackBom from '../../src/components/BackBom.vue';
-import BackPopulated from '../../src/components/BackPopulated.vue';
 import BoardBack from '../../src/components/BoardBack.vue';
 import BoardPage from '../../src/components/BoardPage.vue';
 import DisplayModule from '../../src/components/DisplayModule.vue';
@@ -389,28 +388,15 @@ describe('BackBom', () => {
   }
 });
 
-describe('BackPopulated', () => {
-  it('shows the populated side as one image with its text alternative, no HTML text', () => {
-    const wrapper = mount(BackPopulated, { props: { back: fr.back } });
-    const img = wrapper.get('img.back-populated');
-    expect(img.attributes('alt')).toBe(fr.back.populatedAlt);
-    expect(img.attributes('src')).toMatch(/back-populated[\w-]*\.svg$/);
-    expect([img.attributes('width'), img.attributes('height')]).toEqual(['1600', '900']);
-    expect(img.attributes('decoding')).toBe('async');
-    expect(wrapper.text()).toBe('');
-  });
-});
-
 describe('BoardBack', () => {
-  it('is a section named by its heading, with its SW2 slot and the variant of the build', () => {
+  it('is a section named by its heading, with its SW2 slot and the bill of materials', () => {
     const wrapper = mount(BoardBack, { props: { back: fr.back }, global: { provide: { [FLIP as symbol]: flipState() } } });
     const section = wrapper.get('section.board__face.board__face--back');
     expect(section.attributes('aria-labelledby')).toBe('back-title');
     expect(section.get('h2#back-title.silk-heading').text()).toBe(fr.back.title);
     expect(section.findAll('.board__sw2 > button.sw2')).toHaveLength(1);
-    // vitest.config.ts builds the bill of materials.
     expect(section.findAll('table.bom')).toHaveLength(1);
-    expect(section.findAll('img.back-populated')).toHaveLength(0);
+    expect(section.findAll('img')).toHaveLength(0);
   });
 });
 

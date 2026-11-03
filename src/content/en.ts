@@ -54,8 +54,6 @@ export const en: SiteContent = {
         { ref: 'U20', part: 'Electronics', value: 'Arduino · Raspberry Pi · IoT' },
       ],
     },
-    populatedTitle: 'Back side · components',
-    populatedAlt: 'Back side of the board, covered with components',
   },
   marks: [
     { visible: 'a11y AA', hidden: 'Accessibility WCAG 2.2, level AA' },

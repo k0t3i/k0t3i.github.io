@@ -2,7 +2,6 @@ CLAUDE.md
 .superpowers/
 node_modules/
 dist/
-dist-populated/
 test-results/
 playwright-report/
 lighthouse/

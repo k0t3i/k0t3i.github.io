@@ -1,14 +1,14 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { gzipSync } from 'node:zlib';
-import { DIST_ROOT, PUBLISHED_ROOT, distFiles } from '../helpers/pages.mjs';
+import { DIST_ROOT, PUBLISHED_ROOT, distFiles, trackedFiles } from '../helpers/pages.mjs';
 
-// The two variants of the back side: the copper of the bill of materials (an inline SVG of the page)
-// and the populated side (src/assets/img/back-populated.svg, an image). Both are static drawings in
-// the units of the wide board, theme-neutral like its art.
-const POPULATED = readFileSync(join(PUBLISHED_ROOT, 'src/assets/img/back-populated.svg'), 'utf8');
+// The back side of the board: one face, its copper an inline SVG of the page, in the units of the
+// wide board, theme-neutral like the art of the front. Its rules live in their own stylesheet.
+const at = (...p) => join(PUBLISHED_ROOT, ...p);
+const read = (f) => readFileSync(at(f), 'utf8');
+const BINARY = /\.(woff2?|avif|webp|jpe?g|png|ico|gif|pdf|mp4)$/i;
 
 /** Attributes of every tag named `name` in some markup. */
 function tags(markup, name) {
@@ -33,25 +33,34 @@ function assertStaticDrawing(svg, what) {
   }
 }
 
-test('the populated side is a static decorative SVG of the wide board', () => {
-  assert.match(POPULATED, /^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg" viewBox="0 0 1600 900">/);
-  assertStaticDrawing(POPULATED, 'back-populated.svg');
-  // Dense: many parts, each with its fine silkscreen reference.
-  assert.ok(tags(POPULATED, 'use').length >= 60, 'at least 60 placed parts');
-  const texts = tags(POPULATED, 'text');
-  assert.ok(texts.length >= 20, 'silkscreen references');
-  // Solid silkscreen colours only, the ones of the art of the front side.
-  for (const t of texts) assert.ok(['#e8e4da', '#a29e95'].includes(t.fill), `text fill ${t.fill}`);
-  // Theme-neutral: no colour of either mask.
-  assert.doesNotMatch(POPULATED, /#0f372a|#0c0d0f|#174a39|#17191d/i);
+test('one back face: the populated variant and its second build are gone', () => {
+  for (const f of ['src/components/BackPopulated.vue', 'src/assets/img/back-populated.svg']) assert.ok(!existsSync(at(f)), `${f} is still there`);
+  // No variant switch, no second build, no copy of the other variant, anywhere in the sources.
+  const variant = /BACK_VARIANT|dist-populated|back-populated|populatedTitle|populatedAlt/;
+  const hits = trackedFiles()
+    .filter((f) => f !== 'tests/static/back.test.mjs' && !BINARY.test(f) && existsSync(at(f)))
+    .filter((f) => variant.test(read(f)));
+  assert.deepEqual(hits, []);
+  // Nothing of it in the build: no orphan drawing, no rule of the other variant in the CSS.
+  assert.deepEqual(distFiles().filter((f) => /back-populated/.test(f)), []);
+  const code = distFiles().filter((f) => /\.(js|css|html)$/.test(f));
+  assert.deepEqual(code.filter((f) => /back-populated|populated/.test(readFileSync(join(DIST_ROOT, f), 'utf8'))), []);
 });
 
-test('the populated side stays light', () => {
-  const size = gzipSync(POPULATED, { level: 9 }).length;
-  assert.ok(size <= 12 * 1024, `${size} B gzip`);
+test('every rule of the back face is in back.css, in its own layer between wide and depth', () => {
+  assert.match(read('src/styles/tokens.css'), /@layer reset, tokens, fonts, base, board, parts, sheets, wide, back, depth, motion, modes;/);
+  const back = read('src/styles/back.css');
+  assert.match(back.replace(/\/\*[\s\S]*?\*\//g, '').trim(), /^@layer back \{/);
+  assert.match(read('src/main.ts'), /import '\.\/styles\/wide\.css';\nimport '\.\/styles\/back\.css';\nimport '\.\/styles\/depth\.css';/);
+  // The layouts of the front face no longer style the back face.
+  const backSelector = /\.(back__|back-|bom)[\w-]*|\.board__face--back/;
+  for (const f of ['src/styles/board.css', 'src/styles/wide.css', 'src/styles/parts.css']) {
+    const rules = read(f).replace(/\/\*[\s\S]*?\*\//g, '');
+    assert.doesNotMatch(rules, backSelector, `${f} still styles the back face`);
+  }
 });
 
-test('the bill of materials build ships its copper inline, and no populated art', () => {
+test('the back face ships its copper inline, a static drawing', () => {
   for (const page of ['index.html', 'en/index.html']) {
     const html = readFileSync(join(DIST_ROOT, page), 'utf8');
     const copper = html.match(/<svg class="bom__copper"[\s\S]*?<\/svg>/)?.[0];
@@ -61,10 +70,5 @@ test('the bill of materials build ships its copper inline, and no populated art'
     assert.match(copper, /viewBox="0 0 1600 900"/);
     assertStaticDrawing(copper, `${page} copper`);
     assert.match(html, /<table class="bom">/);
-    assert.doesNotMatch(html, /back-populated/);
   }
-  // The populated component is left out of the bundle. Vite still writes the hashed file of an asset
-  // imported by a module it drops: that copy is never referenced, so never loaded (task 13 removes a variant).
-  const code = distFiles().filter((f) => /\.(js|css|html)$/.test(f));
-  assert.deepEqual(code.filter((f) => /back-populated-[\w-]+\.svg/.test(readFileSync(join(DIST_ROOT, f), 'utf8'))), []);
 });
