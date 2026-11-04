@@ -4,7 +4,7 @@ import { renderToString } from 'vue/server-renderer';
 import { afterEach, describe, expect, it } from 'vitest';
 import BackFace from '../../src/components/BackFace.vue';
 import { createBackState, provideBackState } from '../../src/composables/useBackState';
-import { BACK_REFS } from '../../src/content/backNets';
+import { BOM_REFS as BACK_REFS } from '../../src/circuit/bom';
 import { fr } from '../../src/content/fr';
 
 describe('useBackState', () => {

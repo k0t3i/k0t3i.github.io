@@ -2,7 +2,6 @@ import { mount } from '@vue/test-utils';
 import { createSSRApp, h, nextTick, readonly, ref } from 'vue';
 import { renderToString } from 'vue/server-renderer';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import BackCopper from '../../src/components/BackCopper.vue';
 import BackFace from '../../src/components/BackFace.vue';
 import BoardBack from '../../src/components/BoardBack.vue';
 import BoardPage from '../../src/components/BoardPage.vue';
@@ -18,15 +17,12 @@ import ThemeJumper from '../../src/components/ThemeJumper.vue';
 import UptimeCounter from '../../src/components/UptimeCounter.vue';
 import { FLIP, type Flip } from '../../src/composables/useFlip';
 import { bomRows } from '../../src/circuit/bom';
-import { BACK_NETS, BACK_PARTS } from '../../src/content/backNets';
+import LIVE from '../../src/circuit/live.json';
 import { en } from '../../src/content/en';
 import { fr } from '../../src/content/fr';
 import { SITE } from '../../src/content/site';
 import { EN as ORACLE_EN, FR as ORACLE_FR, SITE as ORACLE_SITE, absolute, bomCells, bomDetails, bomSkill } from '../helpers/copy';
 import type { PartContent, PartId } from '../../src/content/types';
-import { BACK_PASSIVES } from '../../src/content/backPassives';
-import { PACKAGES, PACKAGE_IDS } from '../../src/lib/packages';
-import { PASSIVES, PASSIVE_IDS } from '../../src/lib/passives';
 
 const part = (content: typeof fr, id: string): PartContent => {
   const found = [...content.principles, ...content.connectors].find((p) => p.id === id);
@@ -441,20 +437,9 @@ describe('PartSprite', () => {
     expect(symbol.findAll('.pcb-pad').length).toBeGreaterThanOrEqual(3);
   });
 
-  it('draws the package of every part of the back face from its footprint, in the materials of the parts', () => {
-    const wrapper = mount(PartSprite);
-    for (const id of PACKAGE_IDS) {
-      const fp = PACKAGES[id];
-      const symbol = wrapper.get(`symbol#pkg-${id}`);
-      expect(symbol.attributes('viewBox'), id).toBe(`0 0 ${fp.w} ${fp.h}`);
-      expect(symbol.findAll('rect.pcb-pad'), id).toHaveLength(fp.pads.length);
-      expect(symbol.findAll('.pcb-body'), id).toHaveLength(1);
-      expect(symbol.findAll('.pcb-mark'), id).toHaveLength(1);
-      // Colours come from the CSS (the variables of parts.css), never from the drawing.
-      expect(symbol.html(), id).not.toMatch(/fill="#|stroke="#/);
-    }
+  it('draws no package of the back face: those are drawn by the parts of the circuit (BackCircuit.vue)', () => {
+    expect(mount(PartSprite).findAll('symbol[id^="pkg-"], symbol[id^="psv-"]')).toHaveLength(0);
   });
-
 });
 
 describe('BackFace', () => {
@@ -502,13 +487,15 @@ describe('BackFace', () => {
         expect(text(wrapper.get(`#details-${r.ref}`).element)).toBe(bomDetails(r));
         expect(text(wrapper.get(`#links-${r.ref}`).element)).toBe(`${bom.columns.linked} ${r.linked}`);
       }
-      // The copper of the bottom side is decoration only, its passive parts with it.
-      const decor = wrapper.get('.back__circuit > svg.back__copper');
-      expect(decor.attributes('aria-hidden')).toBe('true');
-      expect(decor.attributes('focusable')).toBe('false');
-      expect(decor.findAll('use.back__psv').map((u) => u.attributes('href'))).toEqual(BACK_PASSIVES.map((p) => `#psv-${p.pkg}`));
-      expect(decor.findAll('text.back__psv-ref').map((t) => t.text())).toEqual(BACK_PASSIVES.map((p) => p.ref));
-      expect(wrapper.findAll('.back__psv, .back__psv-ref').every((el) => decor.element.contains(el.element))).toBe(true);
+      // The art of the bottom side is a picture, decoration only: loaded lazily, no alternative text.
+      const img = wrapper.get('.back__circuit > picture.back__art > img');
+      expect(img.attributes('alt')).toBe('');
+      expect(img.attributes('loading')).toBe('lazy');
+      expect(img.attributes('src')).toMatch(/board-back\.svg$/);
+      expect(wrapper.get('picture.back__art > source').attributes('srcset')).toMatch(/board-back-small\.svg$/);
+      const live = wrapper.get('.back__circuit > svg.back__live');
+      expect(live.attributes('aria-hidden')).toBe('true');
+      expect(live.attributes('focusable')).toBe('false');
     });
 
     it(`draws a part for each row, named « {repère}, {composant}, {compétence} » (${content.locale})`, async () => {
@@ -528,8 +515,10 @@ describe('BackFace', () => {
         expect(text(b.element)).toBe(r.ref);
         expect(b.get('.part__ref').text()).toBe(r.ref);
         expect(b.get('svg').attributes('aria-hidden')).toBe('true');
-        const pkg = BACK_PARTS.find((p) => p.ref === r.ref)?.pkg;
-        expect(b.get('svg use').attributes('href')).toBe(`#pkg-${pkg}`);
+        // Its package, drawn from the layout: its pads and its body, in the units of its box.
+        const part = (LIVE as { parts: { ref: string; pads: unknown[]; box: number[] }[] }).parts.find((p) => p.ref === r.ref);
+        expect(b.findAll('svg .pcb-pad')).toHaveLength(part?.pads.length ?? -1);
+        expect(b.get('svg').attributes('viewBox')).toBe(`0 0 ${part?.box[2]} ${part?.box[3]}`);
       }
       // One source: each part and its row carry the same links, and its name the part and the skill
       // its row prints (with a capital there), from the same row of the content.
@@ -543,51 +532,14 @@ describe('BackFace', () => {
         expect(text(tr.findAll('.bom__line')[0]?.element as Element)).toBe(row.part);
         expect(text(tr.findAll('.bom__line')[1]?.element as Element)).toBe(row.skill);
       }
-      // One path per net, its two ends named, and the signal that runs along it.
+      // One path per trace it lights, the parts that light it named, and the signal that runs along it.
       const nets = wrapper.findAll('path.back-net');
-      expect(nets.map((n) => [n.attributes('data-net'), n.attributes('data-from'), n.attributes('data-to'), n.attributes('pathLength')])).toEqual(
-        BACK_NETS.map((n) => [n.id, n.from, n.to, '100']),
+      expect(nets.map((n) => [n.attributes('d'), n.attributes('data-by'), n.attributes('data-rev'), n.attributes('pathLength')])).toEqual(
+        (LIVE as { nets: { d: string; by: string; rev: string }[] }).nets.map((n) => [n.d, n.by || undefined, n.rev || undefined, '100']),
       );
       expect(wrapper.findAll('path.back-pulse').map((n) => n.attributes('d'))).toEqual(nets.map((n) => n.attributes('d')));
     });
   }
-});
-
-describe('BackCopper', () => {
-  it('draws the packages of the passive parts in its own defs, from their footprints, their colours from the CSS', () => {
-    const wrapper = mount(BackCopper);
-    expect(mount(PartSprite).findAll('symbol[id^="psv-"]')).toHaveLength(0);
-    for (const id of PASSIVE_IDS) {
-      const pkg = PASSIVES[id];
-      const symbol = wrapper.get(`svg.back__copper > defs > symbol#psv-${id}`);
-      // One unit for one unit: the copper places each one at its size (no viewBox to scale it).
-      expect(symbol.attributes('viewBox'), id).toBeUndefined();
-      expect(symbol.findAll('.pcb-pad'), id).toHaveLength(pkg.pads.length);
-      expect(symbol.element.children, id).toHaveLength(pkg.shapes.length);
-      // Every shape in a material: the pads and tin of the skills, or a material of the passives.
-      for (const shape of symbol.element.children) expect(shape.getAttribute('class'), id).toMatch(/^(pcb-pad|pcb-tin|psv-[a-z-]+)$/);
-      expect(symbol.html(), id).not.toMatch(/fill=|stroke=|style=/);
-      // Whole units, so a part turned a quarter turn about its centre stays on whole units.
-      expect([pkg.w % 2, pkg.h % 2], id).toEqual([0, 0]);
-    }
-  });
-
-  it('is a static drawing: no input, and a part that lights up never draws it again', async () => {
-    expect(BackCopper.props).toBeUndefined();
-    const wrapper = mount(BoardBack, { props: { back: fr.back }, global: { provide: { [FLIP as symbol]: flipState() } } });
-    await nextTick();
-    const copper = wrapper.getComponent(BackCopper);
-    const drawn = copper.vm.$.subTree;
-    const section = wrapper.get('section');
-    await section.get('button.back-part[data-ref="U14"]').trigger('click');
-    await section.get('button.back-part[data-ref="U16"]').trigger('pointerenter', { pointerType: 'mouse' });
-    await section.get('[role="group"]').trigger('keydown', { key: 'ArrowRight' });
-    expect(section.attributes('data-active')).toBe('U16');
-    // The same render as before: Vue did not render it again, nor diff its 400 elements.
-    expect(copper.vm.$.subTree).toBe(drawn);
-    // The live layer of the nets is in it, from the face.
-    expect(copper.findAll('g.back__nets > path.back-net')).toHaveLength(BACK_NETS.length);
-  });
 });
 
 describe('BoardBack', () => {
@@ -598,7 +550,8 @@ describe('BoardBack', () => {
     expect(section.get('h2#back-title.silk-heading').text()).toBe(fr.back.title);
     expect(section.findAll('.board__sw2 > button.sw2')).toHaveLength(1);
     expect(section.findAll(':scope > .back__circuit + table.bom')).toHaveLength(1);
-    expect(section.findAll('img')).toHaveLength(0);
+    // One picture: the art of the circuit, decoration (alt="").
+    expect(section.findAll('img').map((i) => i.attributes('alt'))).toEqual(['']);
     // The state of the face is on the section: the part that is lit, if any.
     expect(section.attributes('data-active')).toBeUndefined();
     await nextTick();

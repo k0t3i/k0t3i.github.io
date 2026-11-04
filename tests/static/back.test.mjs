@@ -64,25 +64,36 @@ test('every rule of the back face is in back.css, in its own layer between wide 
   }
 });
 
-test('the back face ships its circuit inline: a static drawing, its eleven nets and their signals', () => {
+test('the back face ships its art as a picture, loaded lazily, and its live layer inline', () => {
+  const live = JSON.parse(read('src/circuit/live.json'));
+  const files = distFiles();
+  const art = files.filter((f) => /^assets\/board-back-(?!small-)[\w-]+\.svg$/.test(f));
+  const small = files.filter((f) => /^assets\/board-back-small-[\w-]+\.svg$/.test(f));
+  assert.equal(art.length, 1, 'one hashed copy of the art');
+  assert.equal(small.length, 1, 'one hashed copy of the small art');
+  assert.equal(readFileSync(join(DIST_ROOT, art[0]), 'utf8'), read('src/assets/img/board-back.svg'));
+  assert.equal(readFileSync(join(DIST_ROOT, small[0]), 'utf8'), read('src/assets/img/board-back-small.svg'));
   for (const page of ['index.html', 'en/index.html']) {
     const html = readFileSync(join(DIST_ROOT, page), 'utf8');
-    const copper = html.match(/<svg class="back__copper"[\s\S]*?<\/svg>/)?.[0];
-    assert.ok(copper, `${page}: no copper`);
-    assert.match(copper, /aria-hidden="true"/);
-    assert.match(copper, /focusable="false"/);
-    assert.match(copper, /viewBox="0 0 1600 900"/);
-    // Its defs hold drawings of parts (the via, the packages of the passives), as the sprite does:
-    // static too, not on the grid of whole units of the copper itself.
-    const defs = copper.match(/<defs>[\s\S]*?<\/defs>/)?.[0] ?? '';
-    assert.doesNotMatch(defs, /<script|filter|<style|\sstyle=|(href|src)="(?!#)/i, `${page}: defs`);
-    assertStaticDrawing(copper.replace(defs, ''), `${page} copper`);
-    const paths = tags(copper, 'path');
+    // The picture: never preloaded, fetched only when the back face is drawn.
+    const picture = html.match(/<picture class="back__art">[\s\S]*?<\/picture>/)?.[0] ?? '';
+    assert.ok(picture, `${page}: no picture`);
+    assert.deepEqual(tags(picture, 'source').map((t) => [t.media, t.srcset]), [['(max-width: 40rem)', `/${small[0]}`]]);
+    const [img] = tags(picture, 'img');
+    assert.deepEqual([img?.src, img?.alt, img?.loading, img?.decoding], [`/${art[0]}`, '', 'lazy', 'async']);
+    assert.ok(!tags(html, 'link').some((l) => (l.href ?? '').includes('board-back')), `${page}: the art of the back is preloaded`);
+    // The live layer: a static drawing of the traces each part lights, and their signals.
+    const layer = html.match(/<svg class="back__live"[\s\S]*?<\/svg>/)?.[0];
+    assert.ok(layer, `${page}: no live layer`);
+    assert.match(layer, /aria-hidden="true"/);
+    assert.match(layer, /focusable="false"/);
+    assert.match(layer, /viewBox="0 0 1600 900"/);
+    assertStaticDrawing(layer, `${page} live layer`);
+    const paths = tags(layer, 'path');
     const nets = paths.filter((t) => t.class === 'back-net');
-    assert.deepEqual(nets.map((t) => t['data-net']), Array.from({ length: 11 }, (_, i) => `N${i + 1}`));
-    for (const t of nets) assert.equal(t.pathLength, '100', `${t['data-net']} pathLength`);
-    const pulses = paths.filter((t) => t.class === 'back-pulse');
-    assert.deepEqual(pulses.map((t) => t.d), nets.map((t) => t.d));
+    assert.deepEqual(nets.map((t) => t.d), live.nets.map((n) => n.d));
+    for (const t of nets) assert.equal(t.pathLength, '100');
+    assert.deepEqual(paths.filter((t) => t.class === 'back-pulse').map((t) => t.d), nets.map((t) => t.d));
     assert.match(html, /<table class="bom">/);
   }
 });
@@ -118,29 +129,10 @@ test('every list that lights a part of the back face names all eleven parts', ()
   assert.ok(lists >= 4, `${lists} lists`);
 });
 
-test('passives are decorative: in the hidden copper, drawn from its own symbols, never lit, never animated', () => {
-  for (const page of ['index.html', 'en/index.html']) {
-    const html = readFileSync(join(DIST_ROOT, page), 'utf8');
-    const copper = html.match(/<svg class="back__copper"[\s\S]*?<\/svg>/)?.[0] ?? '';
-    const uses = tags(copper, 'use').filter((t) => (t.class ?? '').split(' ').includes('back__psv'));
-    assert.ok(uses.length >= 20, `${page}: ${uses.length} passives`);
-    // Each one a symbol of the copper's own <defs>, at whole units.
-    const defs = copper.match(/<defs>[\s\S]*?<\/defs>/)?.[0] ?? '';
-    const symbols = new Set(tags(defs, 'symbol').map((t) => t.id));
-    for (const u of uses) {
-      assert.match(u.href ?? '', /^#psv-/);
-      assert.ok(symbols.has((u.href ?? '').slice(1)), `${page}: no symbol for ${u.href}`);
-      for (const k of ['x', 'y']) assert.match(u[k] ?? '', /^-?\d+$/, `${page}: ${k}="${u[k]}"`);
-    }
-    // Their references: silkscreen marks of their kind, one each.
-    const refs = [...copper.matchAll(/<text class="back__psv-ref"[^>]*>([^<]*)<\/text>/g)].map(([, t]) => t);
-    assert.equal(refs.length, uses.length);
-    for (const r of refs) assert.match(r, /^[CRDYL]\d+$/);
-    // Nowhere else on the page: no part, no button, nothing in the accessibility tree.
-    assert.equal((html.match(/back__psv/g) ?? []).length, (copper.match(/back__psv/g) ?? []).length);
-  }
-  // Nothing lights them, nothing moves them: no rule of motion names them, no list of the lit state.
+test('the passives, the copper and the parts out of the table belong to the art: never lit, never animated', () => {
   const rules = (f) => read(f).replace(/\/\*[\s\S]*?\*\//g, '');
-  assert.doesNotMatch(rules('src/styles/motion.css'), /psv|passive/);
-  for (const list of isLists(rules('src/styles/back.css')).filter((l) => l.includes('data-active'))) assert.doesNotMatch(list, /psv/);
+  assert.doesNotMatch(rules('src/styles/motion.css'), /back__art|psv/);
+  for (const list of isLists(rules('src/styles/back.css')).filter((l) => l.includes('data-active'))) assert.doesNotMatch(list, /back__art|psv/);
+  // The old inline copper is gone, its tokens with it.
+  for (const f of ['src/styles/back.css', 'src/styles/tokens.css', 'src/styles/modes.css']) assert.doesNotMatch(rules(f), /psv-|back__copper|back__psv/, f);
 });

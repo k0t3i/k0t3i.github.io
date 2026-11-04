@@ -1,5 +1,6 @@
 import { computed, inject, provide, readonly, ref, type InjectionKey, type Ref } from 'vue';
-import type { BackRef } from '../content/backNets';
+/** The reference of a part of the bill of materials of the back face (U10 to U18, Y1, J6). */
+type BackRef = string;
 
 /**
  * The live state of the back face, shared by its parts and the rows of its bill of materials:

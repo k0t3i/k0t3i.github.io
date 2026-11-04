@@ -80,14 +80,21 @@
     aspect-ratio: var(--view-w) / var(--view-h);
   }
 
-  /* The copper, the whole face, seen through the window. */
-  .back__copper {
+  /* The art and the live layer, the whole face, seen through the window. */
+  .back__art,
+  .back__live {
     position: absolute;
     top: calc(var(--view-y) * -1 * var(--cu));
     left: calc(var(--view-x) * -1 * var(--cu));
     width: calc(1600 * var(--cu));
     height: calc(900 * var(--cu));
     pointer-events: none;
+  }
+
+  .back__art img {
+    display: block;
+    width: 100%;
+    height: 100%;
   }
 
   .back__parts {
@@ -159,248 +166,85 @@
   }
 
   .back-part[data-ref="U10"] {
-    --x: 360;
-    --y: 300;
-    --w: 140;
-    --h: 140;
+    --x: 430;
+    --y: 290;
+    --w: 151;
+    --h: 151;
   }
 
   .back-part[data-ref="U11"] {
-    --x: 379;
-    --y: 560;
-    --w: 77;
-    --h: 42;
+    --x: 470;
+    --y: 470;
+    --w: 65;
+    --h: 92;
   }
 
   .back-part[data-ref="U12"] {
-    --x: 180;
-    --y: 640;
-    --w: 76;
+    --x: 520;
+    --y: 700;
+    --w: 40;
     --h: 48;
   }
 
   .back-part[data-ref="U13"] {
-    --x: 170;
-    --y: 380;
-    --w: 63;
-    --h: 42;
-  }
-
-  .back-part[data-ref="U14"] {
-    --x: 665;
-    --y: 620;
-    --w: 68;
-    --h: 68;
-  }
-
-  .back-part[data-ref="U15"] {
-    --x: 290;
-    --y: 240;
-    --w: 40;
+    --x: 416;
+    --y: 752;
+    --w: 48;
     --h: 40;
   }
 
+  .back-part[data-ref="U14"] {
+    --x: 190;
+    --y: 420;
+    --w: 62;
+    --h: 77;
+  }
+
+  .back-part[data-ref="U15"] {
+    --x: 700;
+    --y: 520;
+    --w: 43;
+    --h: 52;
+  }
+
   .back-part[data-ref="U16"] {
-    --x: 600;
-    --y: 300;
-    --w: 86;
-    --h: 48;
+    --x: 620;
+    --y: 450;
+    --w: 60;
+    --h: 68;
   }
 
   .back-part[data-ref="U17"] {
-    --x: 480;
-    --y: 700;
-    --w: 56;
-    --h: 42;
-  }
-
-  .back-part[data-ref="U18"] {
-    --x: 560;
+    --x: 440;
     --y: 150;
-    --w: 32;
-    --h: 34;
-  }
-
-  .back-part[data-ref="Y1"] {
-    --x: 700;
-    --y: 430;
-    --w: 48;
+    --w: 36;
     --h: 48;
   }
 
+  .back-part[data-ref="U18"] {
+    --x: 650;
+    --y: 690;
+    --w: 36;
+    --h: 38;
+  }
+
+  .back-part[data-ref="Y1"] {
+    --x: 622;
+    --y: 300;
+    --w: 40;
+    --h: 52;
+  }
+
   .back-part[data-ref="J6"] {
-    --x: 700;
-    --y: 140;
-    --w: 64;
-    --h: 64;
+    --x: 380;
+    --y: 96;
+    --w: 236;
+    --h: 40;
   }
 
-  /*
-   * The copper, in the materials of the art of the front: copper under the mask is a white veil, so
-   * it reads on both masks; the pour is cut back to the bare mask round what it does not connect.
-   */
-  .back__veil {
-    fill: none;
-    stroke: #fff;
-    stroke-opacity: 0.055;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-  }
-
-  .back__outline {
-    stroke-opacity: 0.05;
-    stroke-width: 2;
-  }
-
-  .back__spokes {
-    stroke-width: 3;
-    stroke-linecap: butt;
-  }
-
-  /* The traces of the nets carry the meaning of the circuit: a little brighter than the rest. */
-  .back__trace {
-    stroke-opacity: 0.12;
-  }
-
-  .back__pour {
-    fill: #fff;
-    fill-opacity: 0.035;
-  }
-
-  .back__clear {
-    fill: var(--mask);
-    stroke: none;
-  }
-
-  path.back__clear {
-    fill: none;
-    stroke: var(--mask);
-    stroke-linecap: round;
-    stroke-linejoin: round;
-  }
-
-  .back__via {
-    fill: #fff;
-    fill-opacity: 0.07;
-  }
-
-  /*
-   * The passive parts (BackCopper.vue, which draws their packages from lib/passives.ts): decoration in
-   * the colours of their materials (tokens.css), on the gold pads and the tin of the skills. In forced
-   * colours they are drawn in outline (--psv-line, modes.css).
-   */
-  .psv-ceramic {
-    fill: var(--ceramic);
-  }
-
-  .psv-resistor {
-    fill: var(--psv-resistor);
-    stroke: var(--psv-line, var(--psv-resistor-edge));
-  }
-
-  .psv-marking {
-    fill: var(--psv-marking);
-  }
-
-  .psv-tantalum {
-    fill: var(--psv-tantalum);
-  }
-
-  .psv-band {
-    fill: var(--psv-band);
-  }
-
-  .psv-led {
-    fill: var(--psv-led);
-  }
-
-  .psv-lens {
-    fill: var(--psv-lens);
-  }
-
-  .psv-cathode {
-    fill: var(--psv-cathode);
-  }
-
-  .psv-glint {
-    fill: var(--psv-glint);
-  }
-
-  .psv-ceramic-base {
-    fill: var(--psv-ceramic-base);
-  }
-
-  .psv-lid {
-    fill: var(--psv-lid);
-    stroke: var(--psv-line, var(--psv-lid-edge));
-  }
-
-  .psv-base {
-    fill: var(--psv-base);
-  }
-
-  .psv-can {
-    fill: var(--psv-can);
-    stroke: var(--psv-line, var(--psv-can-edge));
-  }
-
-  .psv-can-mark {
-    fill: var(--psv-can-mark);
-  }
-
-  .psv-ferrite {
-    fill: var(--psv-ferrite);
-  }
-
-  .psv-core {
-    fill: var(--psv-core);
-  }
-
-  .psv-ceramic,
-  .psv-tantalum,
-  .psv-led,
-  .psv-ceramic-base,
-  .psv-base,
-  .psv-ferrite {
-    stroke: var(--psv-line, none);
-  }
-
-  :is(.psv-ceramic, .psv-resistor, .psv-tantalum, .psv-led, .psv-ceramic-base, .psv-lid, .psv-base, .psv-can, .psv-ferrite) {
-    stroke-width: 1px;
-    vector-effect: non-scaling-stroke;
-  }
-
-  /* The lens of an LED, unlit: its colour. */
-  .back__psv--red {
-    --psv-lens: var(--psv-red);
-  }
-
-  .back__psv--green {
-    --psv-lens: var(--psv-green);
-  }
-
-  .back__psv--amber {
-    --psv-lens: var(--psv-amber);
-  }
-
-  .back__psv--blue {
-    --psv-lens: var(--psv-blue);
-  }
-
-  /*
-   * Their references: smaller and quieter than those of the skills, in the units of the circuit; on a
-   * small circuit, where they would be too small to read, they are left out.
-   */
-  .back__psv-ref {
-    fill: color-mix(in srgb, var(--silk-dim) 80%, var(--mask));
-    font: 500 8px / 1 var(--font-mono);
-    letter-spacing: 0.04em;
-  }
-
-  @container (width < 34rem) {
-    .back__psv-ref {
-      display: none;
-    }
+  /* The pads and the body of a part: those of the parts of the front (parts.css); the debug header shows its gold pads over a dark strip. */
+  .back-part[data-look="header"] .pcb-body {
+    fill-opacity: 0.55;
   }
 
   /*
@@ -453,17 +297,17 @@
   }
 
   .back-net:is(
-      [data-active="U10"] :is([data-from="U10"], [data-to="U10"]),
-      [data-active="U11"] :is([data-from="U11"], [data-to="U11"]),
-      [data-active="U12"] :is([data-from="U12"], [data-to="U12"]),
-      [data-active="U13"] :is([data-from="U13"], [data-to="U13"]),
-      [data-active="U14"] :is([data-from="U14"], [data-to="U14"]),
-      [data-active="U15"] :is([data-from="U15"], [data-to="U15"]),
-      [data-active="U16"] :is([data-from="U16"], [data-to="U16"]),
-      [data-active="U17"] :is([data-from="U17"], [data-to="U17"]),
-      [data-active="U18"] :is([data-from="U18"], [data-to="U18"]),
-      [data-active="Y1"] :is([data-from="Y1"], [data-to="Y1"]),
-      [data-active="J6"] :is([data-from="J6"], [data-to="J6"])
+      [data-active="U10"] :is([data-by~="U10"], [data-rev~="U10"]),
+      [data-active="U11"] :is([data-by~="U11"], [data-rev~="U11"]),
+      [data-active="U12"] :is([data-by~="U12"], [data-rev~="U12"]),
+      [data-active="U13"] :is([data-by~="U13"], [data-rev~="U13"]),
+      [data-active="U14"] :is([data-by~="U14"], [data-rev~="U14"]),
+      [data-active="U15"] :is([data-by~="U15"], [data-rev~="U15"]),
+      [data-active="U16"] :is([data-by~="U16"], [data-rev~="U16"]),
+      [data-active="U17"] :is([data-by~="U17"], [data-rev~="U17"]),
+      [data-active="U18"] :is([data-by~="U18"], [data-rev~="U18"]),
+      [data-active="Y1"] :is([data-by~="Y1"], [data-rev~="Y1"]),
+      [data-active="J6"] :is([data-by~="J6"], [data-rev~="J6"])
     ) {
     opacity: 1;
   }
@@ -488,7 +332,7 @@
   }
 
   /* The parts linked to the lit one, on the circuit and in the table: the second colour, a finer rule. */
-  :is(.back-part, .bom tr):is(
+  :is(
       [data-active="U10"] [data-links~="U10"],
       [data-active="U11"] [data-links~="U11"],
       [data-active="U12"] [data-links~="U12"],
@@ -508,6 +352,30 @@
     --row-ref: var(--linked);
     --row-rule: var(--linked);
     --rule-w: 1px;
+  }
+
+  /* The pads and vias of a part linked to the lit one that is not in the table: in the second colour. */
+  .back-mark {
+    fill: none;
+    stroke: var(--linked);
+    stroke-width: 2;
+    opacity: 0;
+  }
+
+  .back-mark:is(
+      [data-active="U10"] [data-by~="U10"],
+      [data-active="U11"] [data-by~="U11"],
+      [data-active="U12"] [data-by~="U12"],
+      [data-active="U13"] [data-by~="U13"],
+      [data-active="U14"] [data-by~="U14"],
+      [data-active="U15"] [data-by~="U15"],
+      [data-active="U16"] [data-by~="U16"],
+      [data-active="U17"] [data-by~="U17"],
+      [data-active="U18"] [data-by~="U18"],
+      [data-active="Y1"] [data-by~="Y1"],
+      [data-active="J6"] [data-by~="J6"]
+    ) {
+    opacity: 1;
   }
 
   .bom tbody tr > * {

@@ -9,11 +9,6 @@
       --pos-off: color-mix(in srgb, var(--silk) 72%, var(--mask));
     }
 
-    /* The traces of the back face carry its meaning: drawn clearly. */
-    .back__trace {
-      stroke-opacity: 0.32;
-    }
-
     /* The second colour of the back face, lighter: its text further above AA. */
     :root {
       --linked: #a9d9ee;
@@ -59,7 +54,7 @@
     .jp1__body,
     .sw2__body,
     .back-part__body,
-    .back__copper {
+    .back__live {
       forced-color-adjust: none;
     }
 
@@ -86,53 +81,39 @@
     }
 
     /*
-     * The back face: its pour, its cuts, its stitching and its signals go; its traces stay, in grey,
+     * The back face: its art (a drawing in colours) and its signals go; its traces stay, in grey,
      * and the pads in the text colour. A lit part, its traces and its row are in Highlight; the parts
-     * linked to it keep the text colour, their rows a dashed outline.
+     * linked to it keep the text colour, their rows a dashed outline, their pads and vias outlined.
      */
-    .back__pour,
-    .back__clear,
-    .back__veil:not(.back__trace),
-    .back__copper use:not(.back__psv),
+    .back__art,
     .back-pulse {
       display: none;
     }
 
-    /* The passives: outlines in grey, no colour. */
-    .back__psv {
-      --pad: GrayText;
-      --tin: GrayText;
-      --ceramic: Canvas;
-      --psv-resistor: Canvas;
-      --psv-marking: Canvas;
-      --psv-tantalum: Canvas;
-      --psv-band: Canvas;
-      --psv-led: Canvas;
-      --psv-lens: Canvas;
-      --psv-cathode: Canvas;
-      --psv-glint: Canvas;
-      --psv-ceramic-base: Canvas;
-      --psv-lid: Canvas;
-      --psv-base: Canvas;
-      --psv-can: Canvas;
-      --psv-can-mark: GrayText;
-      --psv-ferrite: Canvas;
-      --psv-core: Canvas;
-      --psv-line: GrayText;
-    }
-
-    .back__psv-ref {
-      fill: GrayText;
-    }
-
-    .back__trace {
-      stroke: GrayText;
-      stroke-opacity: 1;
-    }
-
     .back-net {
+      stroke: GrayText;
+      opacity: 1;
+    }
+
+    .back-mark {
+      stroke: CanvasText;
+    }
+
+    .back-net:is(
+        [data-active="U10"] :is([data-by~="U10"], [data-rev~="U10"]),
+        [data-active="U11"] :is([data-by~="U11"], [data-rev~="U11"]),
+        [data-active="U12"] :is([data-by~="U12"], [data-rev~="U12"]),
+        [data-active="U13"] :is([data-by~="U13"], [data-rev~="U13"]),
+        [data-active="U14"] :is([data-by~="U14"], [data-rev~="U14"]),
+        [data-active="U15"] :is([data-by~="U15"], [data-rev~="U15"]),
+        [data-active="U16"] :is([data-by~="U16"], [data-rev~="U16"]),
+        [data-active="U17"] :is([data-by~="U17"], [data-rev~="U17"]),
+        [data-active="U18"] :is([data-by~="U18"], [data-rev~="U18"]),
+        [data-active="Y1"] :is([data-by~="Y1"], [data-rev~="Y1"]),
+        [data-active="J6"] :is([data-by~="J6"], [data-rev~="J6"])
+      ) {
       stroke: Highlight;
-      stroke-opacity: 1;
+      stroke-width: 3;
     }
 
     .back-part:is(
