@@ -97,6 +97,19 @@ export function renderBackArt({ refs = true }: { refs?: boolean } = {}): string 
     for (const [dx, dy] of [[28, 0], [20, 20], [0, 28], [-20, 20], [-28, 0], [-20, -20], [0, -28], [20, -20]] as Point[]) push(`<use href="#sv" x="${x + dx}" y="${y + dy}"/>`);
   }
   for (const [x, y] of [[56, 150], [56, 750], [1544, 750]] as Point[]) push(`<circle cx="${x}" cy="${y}" r="13" fill="#fff" fill-opacity=".03"/><circle cx="${x}" cy="${y}" r="5" fill="${GOLD}"/>`);
+  // The silkscreen outline of each package (the live parts too), clear of its pads, and the dot of pin 1.
+  push(`<g fill="none" stroke="${SILK}" stroke-opacity=".45">`);
+  for (const q of BACK_PLACED.filter((x) => ['qfn', 'gull', 'can', 'ufl', 'header', 'xtal'].includes(x.fp.look))) {
+    const m = 3;
+    push(`<rect x="${q.box.x - m}" y="${q.box.y - m}" width="${q.box.w + 2 * m}" height="${q.box.h + 2 * m}" rx="1.5"/>`);
+  }
+  push('</g>');
+  push(`<g fill="${SILK}" fill-opacity=".7">`);
+  for (const q of BACK_PLACED.filter((x) => x.fp.look === 'qfn' || x.fp.look === 'gull')) {
+    const pin1 = placedPads(q).find((p0) => p0.pin === '1');
+    if (pin1) push(`<circle cx="${r1(pin1.x + (pin1.x < q.box.x + q.box.w / 2 ? -1 : 1) * (pin1.w / 2 + 6))}" cy="${r1(pin1.y + (pin1.y < q.box.y + q.box.h / 2 ? -1 : 1) * (pin1.h / 2 + 3))}" r="1.5"/>`);
+  }
+  push('</g>');
   // The parts that are not of the bill of materials: pads, then their bodies in their materials.
   const drawn = BACK_PLACED.filter((q) => !LIVE.includes(q.part.ref));
   push(`<g fill="${GOLD}">`);

@@ -1210,6 +1210,32 @@
 <circle cx="56" cy="150" r="13" fill="#fff" fill-opacity=".03"/><circle cx="56" cy="150" r="5" fill="#c9a45c"/>
 <circle cx="56" cy="750" r="13" fill="#fff" fill-opacity=".03"/><circle cx="56" cy="750" r="5" fill="#c9a45c"/>
 <circle cx="1544" cy="750" r="13" fill="#fff" fill-opacity=".03"/><circle cx="1544" cy="750" r="5" fill="#c9a45c"/>
+<g fill="none" stroke="#a29e95" stroke-opacity=".45">
+<rect x="427" y="287" width="157" height="157" rx="1.5"/>
+<rect x="467" y="467" width="71" height="98" rx="1.5"/>
+<rect x="517" y="697" width="46" height="54" rx="1.5"/>
+<rect x="413" y="749" width="54" height="46" rx="1.5"/>
+<rect x="187" y="417" width="68" height="83" rx="1.5"/>
+<rect x="697" y="517" width="49" height="58" rx="1.5"/>
+<rect x="617" y="447" width="66" height="74" rx="1.5"/>
+<rect x="437" y="147" width="42" height="54" rx="1.5"/>
+<rect x="647" y="687" width="42" height="44" rx="1.5"/>
+<rect x="619" y="297" width="46" height="58" rx="1.5"/>
+<rect x="377" y="93" width="242" height="46" rx="1.5"/>
+<rect x="607" y="193" width="46" height="44" rx="1.5"/>
+<rect x="623" y="527" width="50" height="24" rx="1.5"/>
+</g>
+<g fill="#a29e95" fill-opacity=".7">
+<circle cx="572.5" cy="287" r="1.5"/>
+<circle cx="469.5" cy="565" r="1.5"/>
+<circle cx="517" cy="751" r="1.5"/>
+<circle cx="410" cy="752" r="1.5"/>
+<circle cx="184" cy="421.5" r="1.5"/>
+<circle cx="699.5" cy="575" r="1.5"/>
+<circle cx="619" cy="521" r="1.5"/>
+<circle cx="437" cy="201" r="1.5"/>
+<circle cx="649.5" cy="731" r="1.5"/>
+</g>
 <g fill="#c9a45c">
 <rect x="625" y="221" width="10" height="12" rx=".5"/>
 <rect x="610" y="198" width="12" height="24" rx=".5"/>
