@@ -22,6 +22,8 @@ export interface Device {
   bridges?: [string, string][];
   /** The supply voltage it runs at, when it matters to the rules (the flash). */
   supply?: number;
+  /** The load capacitance of a crystal, in pF (CL): its load capacitors are 2 (CL − Cstray). */
+  load?: number;
   /** Passive parts are looked through by « Relié à » (spec 4.10): resistors, capacitors, inductors, clamps, test points. */
   transparent?: true;
 }
@@ -121,6 +123,7 @@ export const DEVICES = {
   // ECS ECX-32B crystal, 3.2 x 2.5 mm: the crystal between pads 1 and 3, the lid on 2 and 4 (ground).
   xtal40m: {
     mpn: 'ECS-400-10-37B2-CKM-TR (ECS, 40 MHz, CL 10 pF, ±10 ppm, 3225)',
+    load: 10,
     datasheet: 'ECX-32B datasheet, Pad connections',
     pins: pinout('1 X1 passive, 2 GND ground, 3 X2 passive, 4 GND ground'),
   },

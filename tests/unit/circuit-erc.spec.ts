@@ -107,8 +107,10 @@ describe('the netlist of the board', () => {
     expect(net('VBUS').pins).toEqual(expect.arrayContaining(['J5.A4', 'J5.B4', 'J5.A9', 'J5.B9', 'U12.1']));
     expect(net('+3V3').pins).toContain('U12.5');
     expect(net('VDD_SPI').pins).toEqual(expect.arrayContaining(['U10.29', 'U11.8']));
-    // The flash runs at 3.3 V: GPIO45 (VDD_SPI voltage) left to its weak pull-down, VDD_SPI from VDD3P3_RTC.
-    expect(DEVICES.w25q128.supply).toBe(3.3);
+    // The flash runs at 3.3 V: VDD_SPI comes from VDD3P3_RTC while GPIO45 (VDD_SPI voltage) reads low,
+    // so GPIO45 is on no net, left to its weak pull-down (below, with the other strapping pins).
+    expect(nameOf('U10.51')).toBe('GPIO45');
+    expect(netOf('U10.51')).toBeUndefined();
   });
 
   it('every power pin of a chip has its decoupling capacitor to ground', () => {
@@ -123,12 +125,17 @@ describe('the netlist of the board', () => {
     }
   });
 
-  it('no input floats: every input is driven, pulled or tied', () => {
-    const drivers: PinType[] = ['out', 'od', 'io', 'power', 'ground', 'supply', 'passive'];
+  it('no input floats: every input is tied to a rail, driven by an output or a supply, or pulled by a resistor to a rail', () => {
+    // A capacitor alone is no driver: it holds a level it never sets.
+    const drivers: PinType[] = ['out', 'od', 'io', 'supply'];
+    const rails = NETS.filter((n) => n.kind !== 'signal').map((n) => n.name);
     for (const n of NETS) {
       const inputs = n.pins.filter((p) => typeOf(p) === 'in');
       if (!inputs.length) continue;
-      expect(n.pins.some((p) => drivers.includes(typeOf(p))), `${n.name}: ${inputs.join(', ')} undriven`).toBe(true);
+      const tied = n.kind !== 'signal';
+      const driven = n.pins.some((p) => drivers.includes(typeOf(p)));
+      const pulled = rails.some((rail) => between(/^R\d/, n.name, rail).length > 0);
+      expect(tied || driven || pulled, `${n.name}: ${inputs.join(', ')} undriven`).toBe(true);
     }
   });
 
@@ -154,10 +161,20 @@ describe('the netlist of the board', () => {
     }
   });
 
-  it('the 40 MHz crystal has its two load capacitors, on XTAL_P and XTAL_N of the chip', () => {
+  it('the 40 MHz crystal has its two load capacitors, on XTAL_P and XTAL_N of the chip, of 2 (CL − Cstray)', () => {
     expect(net('XTAL_P').pins).toEqual(expect.arrayContaining(['U10.54', 'Y1.1']));
     expect(net('XTAL_N').pins).toEqual(expect.arrayContaining(['U10.53', 'Y1.3']));
-    for (const name of ['XTAL_P', 'XTAL_N']) expect(between(/^C\d/, name, 'GND'), name).toHaveLength(1);
+    // Each load capacitor C = 2 (CL − Cstray): the CL of the crystal, a stray capacitance of the pins and
+    // the traces of 2 to 5 pF; the nearest value of the E12 series, the same on both sides.
+    const cl = DEVICES.xtal40m.load ?? 0;
+    expect(cl).toBeGreaterThan(0);
+    const pf = (ref: string) => Number.parseFloat(PARTS.find((p) => p.ref === ref)?.value ?? '');
+    const caps = ['XTAL_P', 'XTAL_N'].map((name) => between(/^C\d/, name, 'GND'));
+    for (const c of caps) expect(c).toHaveLength(1);
+    const [a, b] = caps.map((c) => pf(c[0] ?? ''));
+    expect(a).toBe(b);
+    expect(a).toBeGreaterThanOrEqual(2 * (cl - 5));
+    expect(a).toBeLessThanOrEqual(2 * (cl - 2));
     expect(netOf('Y1.2')?.name).toBe('GND');
     expect(netOf('Y1.4')?.name).toBe('GND');
     // The RTC keeps its own 32.768 kHz crystal (its oscillator capacitors are integrated).
@@ -197,8 +214,13 @@ describe('the netlist of the board', () => {
     expect(net('IO0').pins).toEqual(expect.arrayContaining(['U10.5', 'J6.3']));
     expect(between(/^R\d/, 'IO0', '+3V3')).toHaveLength(1);
     expect(between(/^R\d/, 'IO0', 'GND')).toHaveLength(0);
-    // GPIO3, GPIO45 and GPIO46 left to their defaults (floating, weak pull-down, weak pull-down).
-    for (const p of ['U10.8', 'U10.51', 'U10.52']) expect(NC[p], p).toMatch(/strap/i);
+    // GPIO3, GPIO45 and GPIO46 left to their defaults (floating, weak pull-down, weak pull-down): on no
+    // net, and in the list of the pins left open, nothing pulling them.
+    for (const [p, gpio] of [['U10.8', 'GPIO3'], ['U10.51', 'GPIO45'], ['U10.52', 'GPIO46']] as const) {
+      expect(nameOf(p), p).toBe(gpio);
+      expect(netOf(p), p).toBeUndefined();
+      expect(Object.keys(NC), p).toContain(p);
+    }
     // The UART0 of the boot ROM on J6.
     expect(netOf('J6.4')?.pins).toContain('U10.49');
     expect(netOf('J6.5')?.pins).toContain('U10.50');
