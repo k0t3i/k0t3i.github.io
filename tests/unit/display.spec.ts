@@ -56,7 +56,8 @@ function onBoard(child: () => ReturnType<typeof h>, opts: { booting?: boolean } 
   const flipped = ref(false);
   let board: BoardState | undefined;
   const Board = component(() => {
-    board = provideBoardState(readonly(booting));
+    // The power-on, ended by the visitor acting (BoardPage gives useBoot's end()).
+    board = provideBoardState(readonly(booting), () => (booting.value = false));
     provide(FLIP, { flipped: readonly(flipped), ready: readonly(ref(true)), toggle: () => (flipped.value = !flipped.value) });
     return () => h('div', { class: 'board' }, [child()]);
   });
@@ -115,6 +116,15 @@ describe('useDisplay', () => {
     booting.value = false;
     await nextTick();
     expect(d.screen.value).toBe('avatar');
+  });
+
+  it('SW1 ends the boot: the screen is the one the caption names', async () => {
+    const { d, booting } = mountDisplay({ booting: true });
+    expect(d.screen.value).toBe('boot');
+    d.cycle();
+    expect(booting.value).toBe(false);
+    expect(d.screen.value).toBe('uptime');
+    expect(d.chosen.value).toBe('uptime');
   });
 
   it('display: readout while a part is active, back to previous 400ms after', async () => {
@@ -300,6 +310,32 @@ describe('useDisplay', () => {
       atRest(d);
     });
 
+    it('Escape leaves a still screen as it is (it also closes the sheets)', () => {
+      const { d } = mountDisplay();
+      d.cycle();
+      expect(d.screen.value).toBe('uptime');
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+      expect(d.chosen.value).toBe('uptime');
+      expect(d.screen.value).toBe('uptime');
+      // The Morse code once sent is still too.
+      d.cycle();
+      vi.advanceTimersByTime(60_000);
+      expect(d.sending.value).toBeNull();
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+      expect(d.chosen.value).toBe('morse');
+    });
+
+    it('Escape while only the hold of a readout runs: back on the avatar', async () => {
+      const { d, board } = mountDisplay();
+      d.cycle();
+      board.setActive('r1');
+      await nextTick();
+      board.setActive(null);
+      await nextTick();
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+      atRest(d);
+    });
+
     it('a part still pointed at keeps its readout', async () => {
       const { d, board } = mountDisplay();
       board.setActive('c1', 'focus');
@@ -374,6 +410,16 @@ describe('DisplayModule', () => {
     expect(svg.attributes('aria-hidden')).toBe('true');
     // The avatar is the image: no pixels drawn over it.
     expect(svg.element.children).toHaveLength(0);
+    // Every pixel drawn falls on the 64 x 64 grid, on every screen.
+    const inGrid = () => {
+      for (const path of svg.findAll('path')) {
+        for (const [, x, y, w] of (path.attributes('d') ?? '').matchAll(/M(\d+) (\d+)h(\d+)/g)) {
+          expect(Number(x)).toBeGreaterThanOrEqual(0);
+          expect(Number(x) + Number(w)).toBeLessThanOrEqual(64);
+          expect(Number(y)).toBeLessThan(64);
+        }
+      }
+    };
 
     // The readout: the reference of the part, large, its value under it, and a trace that scrolls.
     board.setActive('r1');
@@ -384,6 +430,10 @@ describe('DisplayModule', () => {
     board.setActive('j1');
     await nextTick();
     expect(pixelsOf(svg.get('.px--value').attributes('d') ?? '')).toEqual(textPixels(READOUTS.j1, 1));
+    inGrid();
+    board.setActive('led1');
+    await nextTick();
+    inGrid();
     board.setActive(null);
     await nextTick();
     vi.advanceTimersByTime(READOUT_HOLD_MS);
@@ -394,9 +444,11 @@ describe('DisplayModule', () => {
     const digits = pixelsOf(svg.get('.px--digits').attributes('d') ?? '');
     expect(digits.length).toBeGreaterThan(100);
     expect(pixelsOf(svg.get('.px--unit').attributes('d') ?? '')).toEqual(textPixels('H', 1));
+    inGrid();
 
     // The Morse code: each letter of HELLO and its signals; the one being sent is lit.
     await get.sw1().trigger('click');
+    inGrid();
     expect(pixelsOf(svg.get('.px--letters').attributes('d') ?? '').length).toBe(
       ['H', 'E', 'L', 'L', 'O'].reduce((n, c) => n + layoutText(c, 1).length, 0),
     );

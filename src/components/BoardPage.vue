@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, provide, ref } from 'vue';
 import { provideBoardState } from '../composables/useBoardState';
 import { useBoot } from '../composables/useBoot';
 import { FLIP, useFlip } from '../composables/useFlip';
@@ -30,14 +30,10 @@ useTilt(board);
  * The live state of the board, for the parts and DISP1: the part the current runs to, and the
  * power-on of the first visit. Both are reflected on the board for the CSS (data-active,
  * data-booting); neither is in the prerender, which renders the board at rest.
- * The first part pointed at ends the power-on: the visitor acts, the board is on, and the current
- * runs to that part (its trace never plays the sweep, so nothing is cut when the boot would end).
+ * The visitor acting ends the power-on (useBoardState: a part pointed at, SW1 pressed).
  */
 const { booting, end: endBoot } = useBoot();
-const { activePart } = provideBoardState(booting);
-watch(activePart, (id) => {
-  if (id) endBoot();
-});
+const { activePart } = provideBoardState(booting, endBoot);
 
 /** The reference of each part, for its readout on DISP1. */
 const refs = computed(

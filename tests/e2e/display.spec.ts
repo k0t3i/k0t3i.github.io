@@ -48,30 +48,60 @@ const running = (page: Page): Promise<string[]> =>
     }),
   );
 
+/** One change of the key of LED1, and what LED1 showed a little later: its glow and the fill of its lens. */
+interface LedEntry {
+  led: string | null;
+  at: number;
+  glow?: number;
+  lens?: string;
+  /** The lens colours of the board, for reference: lit (at rest, or on) and dimmed (off). */
+  lit?: string;
+  dim?: string;
+}
+
 /**
  * Records, from before the first script of the page, every change of the key of LED1 (data-led on
- * DISP1: on, off, or gone once the code has been sent), and the glow of LED1 a little later, once
- * its short fade is over: what the visitor sees.
+ * DISP1: on, off, or gone once the code has been sent), and 100 ms later what the visitor sees: the
+ * glow of LED1, and the fill its lens gets. The lens is drawn in the shadow tree of a <use>: a probe
+ * filled with var(--lens) next to it, in the same SVG, gets the same fill.
  */
 const recordLed = (page: Page): Promise<unknown> =>
   page.addInitScript(() => {
-    const w = window as unknown as { ledLog: { led: string | null; at: number; glow?: number }[] };
+    const w = window as unknown as { ledLog: LedEntry[] };
     w.ledLog = [];
+    const fillIn = (svg: Element | null, fill: string): string | undefined => {
+      if (!svg) return undefined;
+      const probe = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      probe.style.fill = fill;
+      svg.append(probe);
+      const got = getComputedStyle(probe).fill;
+      probe.remove();
+      return got;
+    };
     new MutationObserver((records) => {
       for (const r of records) {
         const el = r.target as HTMLElement;
         if (!el.matches('figure.disp')) continue;
-        const entry: { led: string | null; at: number; glow?: number } = { led: el.getAttribute('data-led'), at: performance.now() };
+        const entry: LedEntry = { led: el.getAttribute('data-led'), at: performance.now() };
         w.ledLog.push(entry);
         setTimeout(() => {
           const led = document.querySelector('#part-led1 .part__trigger');
           if (led) entry.glow = Number(getComputedStyle(led, '::after').opacity);
+          entry.lens = fillIn(document.querySelector('#part-led1 svg.part__body'), 'var(--lens)');
+          entry.lit = fillIn(document.querySelector('svg.sprite'), 'var(--lens)');
+          entry.dim = fillIn(document.querySelector('svg.sprite'), 'var(--lens-off)');
         }, 100);
       }
     }).observe(document, { subtree: true, attributes: true, attributeFilter: ['data-led'] });
   });
 
-const ledLog = (page: Page) => page.evaluate(() => (window as unknown as { ledLog: { led: string | null; at: number; glow?: number }[] }).ledLog);
+const ledLog = (page: Page) => page.evaluate(() => (window as unknown as { ledLog: LedEntry[] }).ledLog);
+
+/** A computed colour as 0-255 channels, whether the engine writes rgb() or color(srgb ...). */
+function channels(colour = ''): number[] {
+  const n = (colour.match(/-?[\d.]+/g) ?? []).map(Number).slice(0, 3);
+  return colour.startsWith('color(srgb') ? n.map((v) => v * 255) : n;
+}
 
 /** SW1 pressed twice, from the avatar: the Morse screen, and LED1 starts sending. */
 async function startMorse(page: Page): Promise<void> {
@@ -199,11 +229,29 @@ test.describe('DISP1 and SW1', () => {
     expect(log[0]?.led).toBe('off');
     expect(end - first).toBeGreaterThanOrEqual(SEQUENCE_UNITS * UNIT - 20);
     expect(end - first).toBeLessThan(SEQUENCE_UNITS * UNIT + 2000);
-    // What LED1 shows: its glow on for a signal, off between them.
+    // What LED1 shows: its glow on for a signal, off between them; its lens lit, or dimmed to a warm
+    // grey (the lens colour mixed 30 % into the body), never black.
     for (const e of log) {
-      if (e.led === 'on') expect(e.glow).toBeGreaterThan(0.9);
-      if (e.led === 'off') expect(e.glow).toBeLessThan(0.1);
+      if (e.led === 'on') {
+        expect(e.glow).toBeGreaterThan(0.9);
+        expect(e.lens).toBe(e.lit);
+        expect(channels(e.lens)).toEqual([255, 220, 176]);
+      }
+      if (e.led === 'off') {
+        expect(e.glow).toBeLessThan(0.1);
+        expect(e.lens).toBe(e.dim);
+        const [r = 0, g = 0, b = 0] = channels(e.lens);
+        for (const [got, want] of [
+          [r, 0.3 * 255 + 0.7 * 20],
+          [g, 0.3 * 220 + 0.7 * 21],
+          [b, 0.3 * 176 + 0.7 * 24],
+        ] as const)
+          expect(Math.abs(got - want)).toBeLessThan(2);
+      }
     }
+    // Back at rest: the lens is lit again.
+    expect(log.at(-1)?.led).toBeNull();
+    expect(log.at(-1)?.lens).toBe(log.at(-1)?.lit);
     // Once only: the code stays on the screen, LED1 breathes again.
     await expect(caption(page)).toHaveText(FR.captions.morse);
     await page.waitForTimeout(1000);
@@ -245,6 +293,59 @@ test.describe('DISP1 and SW1', () => {
     await expect(caption(page)).toHaveText(FR.captions.avatar);
     await expect(pixels(page)).toHaveAttribute('data-screen', 'avatar');
     expect(await ledLog(page)).toHaveLength(count);
+  });
+
+  test('in forced colours the lens of LED1 shows Highlight for a signal and Canvas between them', async ({ page, browserName }) => {
+    test.skip(browserName !== 'chromium', 'forced colours are emulated in Chromium only');
+    await page.emulateMedia({ forcedColors: 'active' });
+    await booted(page);
+    await recordLed(page);
+    await open(page);
+    await startMorse(page);
+    // The first dot and the gap after it, and 100 ms more for the sample of the gap.
+    await expect.poll(async () => (await ledLog(page)).filter((e) => e.lens !== undefined).length, { timeout: 3000 }).toBeGreaterThanOrEqual(3);
+    const system = await page.evaluate(() =>
+      ['Highlight', 'Canvas'].map((fill) => {
+        const probe = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        probe.style.fill = fill;
+        (document.querySelector('#part-led1 svg.part__body') as Element).append(probe);
+        const got = getComputedStyle(probe).fill;
+        probe.remove();
+        return got;
+      }),
+    );
+    const [highlight, canvas] = system;
+    const sampled = (await ledLog(page)).filter((e) => e.lens !== undefined);
+    expect(sampled.map((e) => e.led)).toEqual(['off', 'on', 'off', ...sampled.slice(3).map((e) => e.led)]);
+    for (const e of sampled) expect(e.lens).toBe(e.led === 'on' ? highlight : canvas);
+    expect(canvas).not.toBe(highlight);
+  });
+
+  test('SW1 pressed during the boot ends it: the screen is the one the caption names', async ({ page }) => {
+    await page.goto('/');
+    await expect(board(page)).toHaveAttribute('data-booting', '');
+    await sw1(page).click();
+    await expect(caption(page)).toHaveText(FR.captions.uptime);
+    // As soon as the caption names the uptime, the screen shows it: the boot did not run on.
+    expect(
+      await page.evaluate(() => ({
+        screen: document.querySelector('svg.disp__pixels')?.getAttribute('data-screen'),
+        booting: document.querySelector('div.board')?.hasAttribute('data-booting'),
+      })),
+    ).toEqual({ screen: 'uptime', booting: false });
+    expect(await page.evaluate(() => sessionStorage.getItem('k0t3i.booted'))).toBe('1');
+  });
+
+  test('Escape on a still screen leaves it (Escape also closes the sheets)', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'a keyboard');
+    await booted(page);
+    await open(page);
+    await sw1(page).click();
+    await expect(caption(page)).toHaveText(FR.captions.uptime);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(200);
+    await expect(caption(page)).toHaveText(FR.captions.uptime);
+    await expect(pixels(page)).toHaveAttribute('data-screen', 'uptime');
   });
 
   test('Escape during the morse stops it and puts DISP1 back on the avatar', async ({ page, isMobile }) => {

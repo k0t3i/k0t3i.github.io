@@ -201,6 +201,29 @@ describe('BoardPage reflects the state on the board', () => {
     }
   });
 
+  it('SW1 pressed during the boot ends it: DISP1 shows the screen its caption names', async () => {
+    stubMotion(false);
+    vi.useFakeTimers();
+    sessionStorage.clear();
+    document.documentElement.dataset.boot = '';
+    try {
+      const wrapper = mount(BoardPage, { props: { content: fr }, global: { stubs: { RouterLink: true } }, attachTo: document.body });
+      await nextTick();
+      const board = wrapper.get('div.board').element as HTMLElement;
+      expect(wrapper.get('svg.disp__pixels').attributes('data-screen')).toBe('boot');
+      await wrapper.get('button.sw1').trigger('click');
+      expect(board.hasAttribute('data-booting')).toBe(false);
+      expect(wrapper.get('svg.disp__pixels').attributes('data-screen')).toBe('uptime');
+      expect(wrapper.get('#disp1-caption').text()).toBe(fr.display.captions.uptime);
+      expect(sessionStorage.getItem('k0t3i.booted')).toBe('1');
+      wrapper.unmount();
+    } finally {
+      vi.useRealTimers();
+      sessionStorage.clear();
+      delete document.documentElement.dataset.boot;
+    }
+  });
+
   it('data-booting is on the board while it powers on', async () => {
     stubMotion(false);
     vi.useFakeTimers();

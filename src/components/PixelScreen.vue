@@ -95,11 +95,14 @@ const uptime = computed(() => {
 
 /*
  * The Morse code: one row per letter, the letter then its dots and dashes, drawn to the scale of
- * their timing (a dot 3 pixels long, a dash 9, 3 between them).
+ * their timing (a dot 3 pixels long, a dash 9, 3 between them). Each row is encoded from its own
+ * letter, so a space between words (' / ' in the code) never shifts a row; the screen holds five
+ * rows of 12 pixels, a word the length of HELLO (the signals are counted in the same order as
+ * useDisplay sends them).
  */
 const MORSE_ROWS = (() => {
-  const codes = encodeMorse(MORSE_MESSAGE).split(' ');
-  const letters = [...MORSE_MESSAGE.replace(/\s/g, '')];
+  const letters = [...MORSE_MESSAGE].filter((ch) => encodeMorse(ch) !== '');
+  const codes = letters.map((ch) => encodeMorse(ch));
   const width = Math.max(...codes.map((c) => [...c].reduce((w, s) => w + (s === '-' ? 9 : 3) + 3, -3)));
   const x0 = Math.floor((64 - (5 + 5 + width)) / 2);
   const y0 = Math.floor((64 - (letters.length * 12 - 5)) / 2);

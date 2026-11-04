@@ -43,13 +43,15 @@ export interface Display {
  * - SW1 runs through the avatar, the uptime and the Morse code: HELLO sent once on LED1 along its
  *   timeline (lib/morse.ts), never in a loop, never more than three flashes a second.
  * - Escape, a language switch, a turn of the board (the front face is then not drawn: nothing may run
- *   unseen) and the unmount clear every timer: LED1 back at rest, DISP1 back on the avatar.
+ *   unseen) and the unmount clear every timer: LED1 back at rest, DISP1 back on the avatar. Escape
+ *   leaves a still screen as it is (it is also what closes a sheet).
+ * - SW1 ends the power-on, as a part pointed at does (useBoardState).
  * - Reduced motion: nothing blinks, the Morse code is shown still (and the trace of a readout does not
  *   scroll: motion.css).
  * Client only: nothing changes before a visitor acts, so the prerender and the hydration show the avatar.
  */
 export function useDisplay(locale: () => Locale): Display {
-  const { activePart, booting } = useBoardState();
+  const { activePart, booting, endBoot } = useBoardState();
   const reduced = useReducedMotion();
   const flip = inject(FLIP, null);
 
@@ -104,22 +106,31 @@ export function useDisplay(locale: () => Locale): Display {
   }
 
   function cycle(): void {
+    // The visitor acts: the power-on ends, so the screen shows what the caption now names.
+    endBoot();
     chosen.value = NEXT[chosen.value];
     if (chosen.value === 'morse') sendMorse();
     else stopMorse();
   }
 
-  /** Every timer cleared: LED1 at rest, DISP1 on the avatar, or on the readout of a part still pointed at. */
-  function rest(): void {
+  /**
+   * Every timer cleared: LED1 at rest, the readout of a part left gone. DISP1 goes back on the avatar
+   * (or on the readout of a part still pointed at), unless `keepStill`: then a screen that ran nothing,
+   * the uptime say, stays.
+   */
+  function rest(keepStill = false): void {
+    const running = sending.value !== null || hold !== undefined;
     stopMorse();
     clearTimeout(hold);
     hold = undefined;
     part.value = activePart.value;
-    chosen.value = 'avatar';
+    if (running || !keepStill) chosen.value = 'avatar';
   }
 
+  // Escape stops what DISP1 runs; it also closes sheets, which should not change a still screen
+  // (nor have the caption announce it).
   const onKey = (event: KeyboardEvent): void => {
-    if (event.key === 'Escape') rest();
+    if (event.key === 'Escape') rest(true);
   };
   onMounted(() => document.addEventListener('keydown', onKey));
   onBeforeUnmount(() => {
@@ -129,7 +140,7 @@ export function useDisplay(locale: () => Locale): Display {
     hold = undefined;
   });
 
-  watch(locale, rest);
+  watch(locale, () => rest());
   watch(reduced, (now) => {
     if (now) stopMorse();
   });

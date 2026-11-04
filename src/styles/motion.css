@@ -473,7 +473,7 @@
     }
 
     .disp[data-led="off"] ~ .parts #part-led1 {
-      --lens: color-mix(in srgb, var(--lens) 30%, var(--body));
+      --lens: var(--lens-off);
     }
 
     /*

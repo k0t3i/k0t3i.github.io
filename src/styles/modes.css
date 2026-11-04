@@ -33,6 +33,7 @@
       --cap-edge: CanvasText;
       --ceramic: Canvas;
       --lens: Canvas;
+      --lens-off: Canvas;
       --mark: CanvasText;
       --silk-line: CanvasText;
       --line: CanvasText;
