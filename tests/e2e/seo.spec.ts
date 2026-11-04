@@ -159,6 +159,8 @@ test.describe('the open-circuit page', () => {
       await expect(links.nth(1)).toHaveAttribute('href', '/en/');
       await expect(links.nth(1)).toHaveAttribute('lang', 'en');
       await expect(links.nth(1)).toHaveAttribute('hreflang', 'en');
+      // Both stay in the tab (revision 8: only the projects and GitHub open a new one).
+      await expect(page.locator('a[target]')).toHaveCount(0);
 
       // The stylesheet applies here too: the board is drawn.
       expect(await page.locator('.board__face').evaluate((el) => getComputedStyle(el).backgroundColor)).not.toBe('rgba(0, 0, 0, 0)');

@@ -158,6 +158,7 @@ export const en: SiteContent = {
     },
   ],
   close: 'Close',
+  newTab: '(new tab)',
   uptime: {
     before: 'uptime: ',
     after: ' h designing, coding, debugging, training, managing, learning',

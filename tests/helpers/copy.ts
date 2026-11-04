@@ -22,7 +22,7 @@ export const absolute = (href: string): string => new URL(href, SITE.baseUrl).hr
 
 const { kitUrgence: KIT, splitr: SPLITR, mycard: MYCARD, monscoreimmo: SCORE } = SITE.projects;
 /** The GitHub profile as its link text shows it: the address without its scheme. */
-const GITHUB_TEXT = SITE.github.replace(/^https?:\/\//, '');
+export const GITHUB_TEXT = SITE.github.replace(/^https?:\/\//, '');
 
 const NB = ' ';
 const NN = ' ';
@@ -73,6 +73,8 @@ export interface Copy {
   marks: { visible: string; hidden: string }[];
   sections: { principles: { id: string; title: string }; connectors: { id: string; title: string } };
   close: string;
+  /** Read after the text of a link that opens in a new tab (revision 8), visually hidden. */
+  newTab: string;
   uptime: string;
   notFound: { title: string; text: string; back: string };
   principles: CopyPart[];
@@ -174,6 +176,7 @@ export const FR: Copy = {
     connectors: { id: 'connecteurs', title: 'Projets et contact' },
   },
   close: 'Fermer',
+  newTab: '(nouvel onglet)',
   uptime: `uptime${NB}: 46${NN}000${NB}h à concevoir, coder, débugger, former, manager, apprendre`,
   notFound: {
     title: 'Circuit ouvert',
@@ -313,6 +316,7 @@ export const EN: Copy = {
     connectors: { id: 'connectors', title: 'Projects and contact' },
   },
   close: 'Close',
+  newTab: '(new tab)',
   uptime: 'uptime: 46,000 h designing, coding, debugging, training, managing, learning',
   notFound: {
     title: 'Open circuit',

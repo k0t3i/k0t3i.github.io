@@ -2,7 +2,18 @@
 import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import type { PartContent } from '../content/types';
 
-const props = defineProps<{ part: PartContent; close: string }>();
+const props = defineProps<{
+  part: PartContent;
+  close: string;
+  /** Read after a link that opens in a new tab. */
+  newTab: string;
+}>();
+
+/**
+ * The links of the projects and of GitHub open in a new tab (Anthony's own sites: the referrer
+ * stays, noopener only); the e-mail stays in the tab, where a mail app takes it over.
+ */
+const tab = (href: string): boolean => !href.startsWith('mailto:');
 
 /**
  * The picture of a sheet is rendered on its first opening only, so nothing is fetched before
@@ -105,7 +116,9 @@ const srcset = (ext: string): string => `/img/kit-urgence-380.${ext} 380w, /img/
       v-if="props.part.link"
       class="sheet__link"
       :href="props.part.link.href"
-    >{{ props.part.link.text }}<span aria-hidden="true"> ↗</span></a>
+      target="_blank"
+      rel="noopener"
+    >{{ props.part.link.text }}<span aria-hidden="true"> ↗</span><span class="vh">{{ ` ${props.newTab}` }}</span></a>
     <picture
       v-if="props.part.media && mediaReady"
       class="sheet__media"
@@ -137,7 +150,14 @@ const srcset = (ext: string): string => `/img/kit-urgence-380.${ext} 380w, /img/
         v-for="c in props.part.contacts"
         :key="c.href"
       >
-        {{ c.label }} <a :href="c.href">{{ c.text }}<span aria-hidden="true"> ↗</span></a>
+        {{ c.label }} <a
+          :href="c.href"
+          :target="tab(c.href) ? '_blank' : undefined"
+          :rel="tab(c.href) ? 'noopener' : undefined"
+        >{{ c.text }}<span aria-hidden="true"> ↗</span><span
+          v-if="tab(c.href)"
+          class="vh"
+        >{{ ` ${props.newTab}` }}</span></a>
       </li>
     </ul>
     <button

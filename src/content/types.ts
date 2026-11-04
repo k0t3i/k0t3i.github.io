@@ -61,6 +61,8 @@ export interface SiteContent {
   principles: PartContent[];
   connectors: PartContent[];
   close: string;
+  /** Read after a link that opens in a new tab (the projects, GitHub): it is visually hidden. */
+  newTab: string;
   /** The number of hours goes between the two. */
   uptime: { before: string; after: string };
   notFound: { title: string; text: string; back: string };

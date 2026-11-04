@@ -157,6 +157,7 @@ export const fr: SiteContent = {
     },
   ],
   close: 'Fermer',
+  newTab: '(nouvel onglet)',
   uptime: {
     before: `uptime${NB}: `,
     after: `${NB}h à concevoir, coder, débugger, former, manager, apprendre`,

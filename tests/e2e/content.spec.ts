@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
-import { EN, FR, LANG_LINKS, SITE, absolute, type Copy } from '../helpers/copy';
+import { EN, FR, GITHUB_TEXT, LANG_LINKS, SITE, absolute, type Copy } from '../helpers/copy';
 
 // The private project names are never written in this public repository: they are read from the
 // untracked local list (tests/static/repo.test.mjs checks the sources against the same list).
@@ -94,7 +94,8 @@ for (const copy of [FR, EN] as Copy[]) {
       const contacts = page.locator('#sheet-j5 ul.sheet__links > li');
       await expect(contacts).toHaveCount(2);
       for (const [i, text] of (contact?.contacts ?? []).entries()) {
-        expect(await contacts.nth(i).evaluate((el) => el.textContent?.replace(/ ↗$/, '')), text).toBe(text);
+        // Its text as seen: without the arrow, and without the hint of a new tab read after the GitHub link.
+        expect(await contacts.nth(i).evaluate((el) => [...el.childNodes].map((n) => (n instanceof Element ? (n.firstChild?.textContent ?? '') : n.textContent)).join('')), text).toBe(text);
       }
       await expect(page.locator('#sheet-j5 a[href^="mailto:"]')).toHaveAttribute('href', `mailto:${SITE.email}`);
       await expect(page.locator(`#sheet-j5 a[href="${SITE.github}"]`)).toHaveCount(1);
@@ -196,8 +197,36 @@ for (const copy of [FR, EN] as Copy[]) {
       );
       expect(hrefs.length).toBeGreaterThan(0);
       expect(hrefs.filter((h) => !allowed.has(h))).toEqual([]);
-      // Links open in the same tab.
-      expect(await page.locator('a[target]').count()).toBe(0);
+    });
+
+    test('the links of the projects and GitHub open in a new tab, and say so; the others stay in the tab', async ({ page }) => {
+      // Revision 8: J1 to J4 and GitHub, with their ↗ seen and « (nouvel onglet) » read.
+      const projects = copy.connectors.filter((p) => p.link);
+      const tabbed = [
+        ...projects.map((p) => ({ id: p.id, href: p.link?.href ?? '', name: `${p.link?.text} ${copy.newTab}` })),
+        { id: 'j5', href: SITE.github, name: `${GITHUB_TEXT} ${copy.newTab}` },
+      ];
+      expect(tabbed).toHaveLength(5);
+      for (const { id, href, name } of tabbed) {
+        const link = page.locator(`a[href="${href}"]`);
+        await expect(link, href).toHaveCount(1);
+        // Its name is read in its open sheet.
+        await page.locator(`.part__trigger[popovertarget="sheet-${id}"]`).click();
+        await expect(page.locator(`#sheet-${id}`)).toBeVisible();
+        await expect(link, href).toHaveAttribute('target', '_blank');
+        await expect(link, href).toHaveAttribute('rel', 'noopener');
+        await expect(link, href).toHaveAccessibleName(name);
+        await expect(link.locator('span[aria-hidden="true"]'), href).toHaveText('↗');
+        await page.locator(`#sheet-${id} .sheet__close`).click();
+        await expect(page.locator(`#sheet-${id}`)).toBeHidden();
+      }
+      // Everything else in the tab: the e-mail, FR/EN, the skip link.
+      const others = await page.evaluate(
+        (hrefs) => [...document.querySelectorAll('a')].filter((a) => !hrefs.includes(a.getAttribute('href') ?? '')).map((a) => [a.getAttribute('href'), a.getAttribute('target'), a.querySelector('.vh')?.textContent ?? null]),
+        tabbed.map((t) => t.href),
+      );
+      expect(others.map(([href]) => href).sort()).toEqual(['#contenu', '/', '/en/', `mailto:${SITE.email}`].sort());
+      for (const [href, target, hint] of others) expect([href, target, hint]).toEqual([href, null, null]);
     });
 
     test('no inline style', async ({ page }) => {

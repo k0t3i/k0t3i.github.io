@@ -4,7 +4,7 @@ import type { PartContent } from '../content/types';
 import PartSheet from './PartSheet.vue';
 import PartTrigger from './PartTrigger.vue';
 
-const props = defineProps<{ section: { id: string; title: string }; parts: PartContent[]; close: string }>();
+const props = defineProps<{ section: { id: string; title: string }; parts: PartContent[]; close: string; newTab: string }>();
 
 // The active part of the board is lit (data-lit: parts.css lights its trace to the bus). Client only.
 const { activePart } = useBoardState();
@@ -38,6 +38,7 @@ const { activePart } = useBoardState();
         <PartSheet
           :part="part"
           :close="props.close"
+          :new-tab="props.newTab"
         />
       </li>
     </ul>

@@ -72,7 +72,7 @@ describe('PartTrigger', () => {
 
 describe('PartSheet', () => {
   it('is a named dialog popover', () => {
-    const wrapper = mount(PartSheet, { props: { part: part(fr, 'r1'), close: fr.close } });
+    const wrapper = mount(PartSheet, { props: { part: part(fr, 'r1'), close: fr.close, newTab: fr.newTab } });
     const sheet = wrapper.get('div.sheet');
     expect(sheet.attributes('id')).toBe('sheet-r1');
     expect(sheet.attributes()).toHaveProperty('popover');
@@ -91,7 +91,7 @@ describe('PartSheet', () => {
   });
 
   it('J1 sheet renders its image only once the sheet has opened', async () => {
-    const wrapper = mount(PartSheet, { props: { part: part(fr, 'j1'), close: fr.close } });
+    const wrapper = mount(PartSheet, { props: { part: part(fr, 'j1'), close: fr.close, newTab: fr.newTab } });
     const toggle = async (newState: 'open' | 'closed') => {
       await wrapper.get('div.sheet').trigger('toggle', { newState, oldState: newState === 'open' ? 'closed' : 'open' });
     };
@@ -119,7 +119,7 @@ describe('PartSheet', () => {
 
   it('J1 sheet gives the link to the project before its picture', async () => {
     // The call to action stays in view when a short window makes the sheet scroll: the picture comes last.
-    const wrapper = mount(PartSheet, { props: { part: part(fr, 'j1'), close: fr.close } });
+    const wrapper = mount(PartSheet, { props: { part: part(fr, 'j1'), close: fr.close, newTab: fr.newTab } });
     const sheet = wrapper.get('div.sheet');
     await sheet.trigger('toggle', { newState: 'open', oldState: 'closed' });
     expect([...sheet.element.children].map((c) => c.className)).toEqual([
@@ -133,15 +133,44 @@ describe('PartSheet', () => {
   });
 
   it('J5 uses SITE.email and SITE.github', () => {
-    const wrapper = mount(PartSheet, { props: { part: part(fr, 'j5'), close: fr.close } });
+    const wrapper = mount(PartSheet, { props: { part: part(fr, 'j5'), close: fr.close, newTab: fr.newTab } });
     const hrefs = wrapper.findAll('ul.sheet__links a').map((a) => a.attributes('href'));
     expect(hrefs).toEqual([`mailto:${SITE.email}`, SITE.github]);
     // VoiceOver drops the list role of an unstyled list: it is restated.
     expect(wrapper.get('ul.sheet__links').attributes('role')).toBe('list');
   });
 
+  it('the links of the projects and GitHub open in a new tab, and say so; the e-mail stays in the tab', () => {
+    for (const [content, oracle] of [
+      [fr, ORACLE_FR],
+      [en, ORACLE_EN],
+    ] as const) {
+      for (const c of oracle.connectors) {
+        const wrapper = mount(PartSheet, { props: { part: part(content, c.id), close: content.close, newTab: content.newTab } });
+        const links = wrapper.findAll('a');
+        const tabbed = links.filter((a) => !a.attributes('href')?.startsWith('mailto:'));
+        for (const a of tabbed) {
+          expect(a.attributes('target'), c.id).toBe('_blank');
+          // noopener only: the referrer stays, these are Anthony's own sites.
+          expect(a.attributes('rel'), c.id).toBe('noopener');
+          // The arrow is seen, the hint is read after the text of the link.
+          expect(a.get('span[aria-hidden="true"]').text(), c.id).toBe('↗');
+          expect(a.get('span.vh').text(), c.id).toBe(oracle.newTab);
+          expect(a.element.textContent, c.id).toBe(`${a.element.firstChild?.textContent} ↗ ${oracle.newTab}`);
+        }
+        for (const a of links.filter((l) => l.attributes('href')?.startsWith('mailto:'))) {
+          expect(a.attributes('target'), c.id).toBeUndefined();
+          expect(a.attributes('rel'), c.id).toBeUndefined();
+          expect(a.find('span.vh').exists(), c.id).toBe(false);
+        }
+        // The four projects (their link) and the contact (GitHub, and the e-mail in the tab).
+        expect(tabbed.length, c.id).toBe(c.link || c.contacts ? 1 : 0);
+      }
+    }
+  });
+
   it('puts the language of the title on the heading', () => {
-    const wrapper = mount(PartSheet, { props: { part: part(en, 'j1'), close: en.close } });
+    const wrapper = mount(PartSheet, { props: { part: part(en, 'j1'), close: en.close, newTab: en.newTab } });
     expect(wrapper.get('h3.sheet__title').attributes('lang')).toBe('fr');
   });
 
@@ -154,13 +183,13 @@ describe('PartSheet', () => {
       const rendered = content.connectors
         .filter((p) => p.link)
         .map((p) => {
-          const sheet = mount(PartSheet, { props: { part: p, close: content.close } });
+          const sheet = mount(PartSheet, { props: { part: p, close: content.close, newTab: content.newTab } });
           return [sheet.get('h3.sheet__title').text(), sheet.get('a.sheet__link').attributes('href')];
         });
       expect(rendered).toEqual(Object.values(ORACLE_SITE.projects).map((p) => [p.name, absolute(p.href)]));
       const projects = oracle.connectors.filter((c) => c.link);
       for (const c of projects) {
-        const wrapper = mount(PartSheet, { props: { part: part(content, c.id), close: content.close } });
+        const wrapper = mount(PartSheet, { props: { part: part(content, c.id), close: content.close, newTab: content.newTab } });
         expect(wrapper.get('h3.sheet__title').text(), c.id).toBe(c.label);
         expect(wrapper.get('.sheet__ref').text(), c.id).toBe(`${c.ref} · ${c.kind}`);
         expect(wrapper.get('.sheet__body').text(), c.id).toBe(c.body);
@@ -210,7 +239,7 @@ describe('TactileSwitch', () => {
 
 describe('PartList', () => {
   it('keeps the list role on its unstyled list', () => {
-    const wrapper = mount(PartList, { props: { section: fr.sections.principles, parts: fr.principles, close: fr.close } });
+    const wrapper = mount(PartList, { props: { section: fr.sections.principles, parts: fr.principles, close: fr.close, newTab: fr.newTab } });
     expect(wrapper.get('ul.parts__list').attributes('role')).toBe('list');
     expect(wrapper.findAll('ul.parts__list > li')).toHaveLength(5);
   });

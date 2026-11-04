@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { EN, FR, type Copy } from '../helpers/copy';
+import { EN, FR, SITE, type Copy } from '../helpers/copy';
 
 test.use({ javaScriptEnabled: false });
 
@@ -31,6 +31,10 @@ for (const copy of [FR, EN] as Copy[]) {
       await page.locator('.part__trigger[popovertarget="sheet-j1"]').click();
       await expect(page.locator('#sheet-j1 .sheet__body')).toHaveText(j1?.body ?? '');
       await expect(page.locator('#sheet-j1 a.sheet__link')).toHaveAttribute('href', j1?.link?.href ?? '');
+      // Its new tab is in the prerendered page, its hint too.
+      await expect(page.locator('#sheet-j1 a.sheet__link')).toHaveAttribute('target', '_blank');
+      await expect(page.locator('#sheet-j1 a.sheet__link')).toHaveAttribute('rel', 'noopener');
+      await expect(page.locator('#sheet-j1 a.sheet__link')).toHaveAccessibleName(`${j1?.link?.text} ${copy.newTab}`);
       // The picture is rendered by the script on the first opening: none without JavaScript.
       await expect(page.locator('#sheet-j1 picture')).toHaveCount(0);
     });
@@ -58,6 +62,13 @@ for (const copy of [FR, EN] as Copy[]) {
       await expect(page.locator('button.back-part')).toHaveCount(11);
       await expect(page.locator('button.back-part:not([disabled])')).toHaveCount(0);
       await expect(page.locator('.back__parts')).toHaveAttribute('aria-hidden', 'true');
+    });
+
+    test('the prerendered page opens the four projects and GitHub in a new tab, and nothing else', async ({ page }) => {
+      const tabbed = await page.locator('a[target]').evaluateAll((links) => links.map((a) => [a.getAttribute('href'), a.getAttribute('target'), a.getAttribute('rel'), a.querySelector('.vh')?.textContent?.trim()]));
+      expect(tabbed).toEqual(
+        [...copy.connectors.flatMap((p) => (p.link ? [p.link.href] : [])), SITE.github].map((href) => [href, '_blank', 'noopener', copy.newTab]),
+      );
     });
 
     test('the uptime has its static value', async ({ page }) => {

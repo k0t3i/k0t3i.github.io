@@ -83,11 +83,13 @@ onBeforeUnmount(() => document.removeEventListener('touchstart', touchActive));
             :section="props.content.sections.principles"
             :parts="props.content.principles"
             :close="props.content.close"
+            :new-tab="props.content.newTab"
           />
           <PartList
             :section="props.content.sections.connectors"
             :parts="props.content.connectors"
             :close="props.content.close"
+            :new-tab="props.content.newTab"
           />
         </main>
         <footer class="board__footer">
