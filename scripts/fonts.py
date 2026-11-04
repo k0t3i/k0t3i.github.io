@@ -138,13 +138,16 @@ def cmd_check(files):
     # Neither font has these two spaces. The CSS stack falls back to the metric-matched
     # "Hanken Fallback" face (local Arial, which contains them), so they keep Hanken metrics.
     fallback_ok = {0x2009, 0x202F}
+    # The word joiner (round the slash of « E/S » and « I/O » in the table) is a default-ignorable
+    # format character: it is never drawn, so no font needs a glyph for it.
+    invisible = {0x2060}
     failed = False
     for name in files:
         parser = TextCollector()
         parser.feed(Path(name).read_text(encoding="utf-8"))
         missing = sorted(
             c for c in parser.chars
-            if ord(c) >= 0x20 and ord(c) not in cover["hanken"] and ord(c) not in fallback_ok
+            if ord(c) >= 0x20 and ord(c) not in cover["hanken"] and ord(c) not in fallback_ok and ord(c) not in invisible
             and not (c in mono_only and ord(c) in cover["mono"])
         )
         if missing:
