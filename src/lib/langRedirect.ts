@@ -26,9 +26,12 @@ export function decideRedirect(input: RedirectInput): '/en/' | null {
   return first !== undefined && first.startsWith('fr') ? null : '/en/';
 }
 
-/** Self-contained inline script: reads the saved choice and the browser, then replaces the location. */
-export const REDIRECT_SNIPPET: string =
+/**
+ * Self-contained inline script: reads the saved choice and the browser, then replaces the location.
+ * Built in a call marked pure, as the theme script (lib/theme.ts): the client bundle drops it.
+ */
+export const REDIRECT_SNIPPET: string = /* @__PURE__ */ (() =>
   '(function(){try{var d=(' +
   decideRedirect.toString() +
   `);var r=d({languages:navigator.languages||[],saved:localStorage.getItem(${JSON.stringify(LANG_KEY)}),userAgent:navigator.userAgent});` +
-  'if(r)location.replace(r+location.search+location.hash)}catch(e){}})()';
+  'if(r)location.replace(r+location.search+location.hash)}catch(e){}})()')();

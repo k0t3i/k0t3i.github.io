@@ -11,7 +11,8 @@ export default defineConfig({
     __VUE_OPTIONS_API__: false,
   },
   // DIST_DIR builds into another folder than dist/ (scripts/postbuild.mjs and scripts/serve.mjs read it too).
-  build: { assetsInlineLimit: 0, outDir: process.env.DIST_DIR || 'dist' },
+  // No modulepreload polyfill (about 270 B gzip): every browser the site supports has modulepreload.
+  build: { assetsInlineLimit: 0, modulePreload: { polyfill: false }, outDir: process.env.DIST_DIR || 'dist' },
   ssgOptions: {
     dirStyle: 'nested',
     // 404 is moved to dist/404.html by scripts/postbuild.mjs.

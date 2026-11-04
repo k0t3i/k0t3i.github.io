@@ -66,6 +66,25 @@ for (const copy of [FR, EN] as Copy[]) {
   });
 }
 
+// The link preview and the structured data are prerendered only (usePageHead): a switch of language
+// in the page keeps those of the address loaded, once each, while the rest of the head follows.
+test('a switch of language in the page: the head follows, the link preview stays as served', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.locator('button.jp1')).toBeVisible();
+  const served = await socialMetas(page);
+  expect(served).toContainEqual(['og:url', SITE.baseUrl]);
+  const jsonLd = await page.locator('script[type="application/ld+json"]').textContent();
+  await page.locator('.lang__link[hreflang="en"]').click();
+  await expect(page).toHaveURL(/\/en\/$/);
+  await expect(page).toHaveTitle(EN.title);
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+  await expect(page.locator('meta[name="description"]')).toHaveAttribute('content', EN.description);
+  await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', `${SITE.baseUrl}en/`);
+  expect(await socialMetas(page)).toEqual(served);
+  await expect(page.locator('script[type="application/ld+json"]')).toHaveCount(1);
+  expect(await page.locator('script[type="application/ld+json"]').textContent()).toBe(jsonLd);
+});
+
 test('robots and sitemap', async ({ page, request }) => {
   const robots = await request.get('/robots.txt');
   expect(robots.status()).toBe(200);

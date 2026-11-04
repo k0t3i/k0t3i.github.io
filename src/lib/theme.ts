@@ -22,8 +22,10 @@ export function resolveTheme(input: { saved: string | null; prefersDark: boolean
  * Then it sets data-theme only when a choice is saved (resolveTheme then returns that choice):
  * without one, the CSS follows the device scheme by itself, which also holds without JavaScript.
  * Last, in a try of its own, the standby of the power-on (lib/boot.ts).
+ * Built in a call marked pure: only the prerender writes the script, and the client bundle drops the
+ * call (toString() would otherwise keep it, and the snippet, for nothing).
  */
-export const THEME_SNIPPET: string =
+export const THEME_SNIPPET: string = /* @__PURE__ */ (() =>
   '(function(){try{document.documentElement.dataset.js="";var r=(' +
   resolveTheme.toString() +
   ');var s=localStorage.getItem("' +
@@ -31,4 +33,4 @@ export const THEME_SNIPPET: string =
   '");if(r({saved:s,prefersDark:matchMedia("(prefers-color-scheme: dark)").matches})===s)' +
   'document.documentElement.dataset.theme=s}catch(e){}' +
   STANDBY_SNIPPET +
-  '})()';
+  '})()')();
