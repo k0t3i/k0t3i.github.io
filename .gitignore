@@ -7,3 +7,7 @@ playwright-report/
 lighthouse/
 fonts-src/
 private-names.local.txt
+
+# Local outputs of scripts/deploy.mjs (worktree of master) and scripts/captures.mjs.
+.deploy/
+captures/

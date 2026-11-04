@@ -5,7 +5,7 @@ import pluginVue from 'eslint-plugin-vue';
 import vueA11y from 'eslint-plugin-vuejs-accessibility';
 
 export default tseslint.config(
-  { ignores: ['dist/', 'node_modules/', 'test-results/', 'playwright-report/', 'lighthouse/', 'fonts-src/'] },
+  { ignores: ['dist/', 'node_modules/', 'test-results/', 'playwright-report/', 'lighthouse/', 'fonts-src/', '.deploy/', 'captures/'] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   ...pluginVue.configs['flat/recommended'],
