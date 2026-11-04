@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { EN, FR } from '../helpers/copy';
+import { boxStill, tiltStill } from '../helpers/still';
 
 // The flowing board (portrait), below 79rem, then the wide board (79rem and up).
 
@@ -824,14 +825,16 @@ test.describe('wide board', () => {
     if (!box) throw new Error('no box for R1');
     await page.mouse.move(box.x + box.width / 4, box.y + box.height / 2, { steps: 4 });
     await expect(page.locator('.board')).toHaveAttribute('data-tilting', '');
-    await page.waitForTimeout(300);
+    await tiltStill(page);
     // Pressed where the pointer is (a click() would first scroll the leaning part into view).
     await page.mouse.down();
     await page.mouse.up();
     const sheet = page.locator('#sheet-r1');
     await expect(sheet).toBeVisible();
     await settled(sheet);
-    await page.waitForTimeout(300);
+    // The sheet open, the board is flat at once: the sheet has found its place by its part as laid out.
+    await expect(page.locator('.board')).not.toHaveAttribute('data-tilting', /.*/);
+    await boxStill(page, '#sheet-r1');
     const [s, p] = await Promise.all([sheet.boundingBox(), page.locator('#part-r1').boundingBox()]);
     if (!s || !p) throw new Error('no box for r1');
     expect(s.y).toBeGreaterThanOrEqual(p.y + p.height);

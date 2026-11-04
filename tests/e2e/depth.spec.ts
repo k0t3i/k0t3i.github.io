@@ -1,5 +1,6 @@
 import { chromium, expect, test, type Locator, type Page } from '@playwright/test';
 import { EN, FR, type Copy } from '../helpers/copy';
+import { armFlatTiming, flatAfter, tiltStill } from '../helpers/still';
 
 /*
  * The board as an object: its edge (thickness), the tilt that follows a mouse at every width, and
@@ -100,7 +101,7 @@ test.describe('the tilt', () => {
     const body = page.locator('.board__body');
     expect(await isFlat(body)).toBe(true);
     await pointAt(page, 0.85, 0.2);
-    await expect.poll(() => isFlat(body), { timeout: 1000 }).toBe(false);
+    await expect.poll(() => isFlat(body)).toBe(false);
     // A few degrees at most; the edge leans with the face.
     // The angles are on the body and the edge (registered, not inherited), never on the board.
     const tilt = await tiltOf(page);
@@ -113,10 +114,12 @@ test.describe('the tilt', () => {
       [body, page.locator('.board__edge')].map((l) => l.evaluate((el) => getComputedStyle(el).transform)),
     );
     expect(e).toBe(b);
-    // Out of the board, it comes back flat in under a second (a second or so at the 10 fps of a
-    // headless Firefox), and leaves nothing behind.
+    // Out of the board, it comes back flat within a second, measured in the page from the pointer
+    // leaving the board to the end of data-tilting, and leaves nothing behind.
+    await armFlatTiming(page);
     await page.mouse.move(4, 4);
-    await expect.poll(() => isFlat(body), { timeout: 2000 }).toBe(true);
+    expect(await flatAfter(page)).toBeLessThan(1000);
+    await expect.poll(() => isFlat(body)).toBe(true);
     expect(await noTiltLeft(page)).toBe(true);
     await expect(board(page)).not.toHaveAttribute('data-tilting', /.*/);
   });
@@ -149,7 +152,7 @@ test.describe('the tilt', () => {
         });
         expect(viewport.height * 0.15).toBeGreaterThan(middle.board);
         await page.mouse.move(viewport.width / 2, viewport.height * 0.15, { steps: 4 });
-        await expect.poll(async () => (await tiltOf(page))[0], { timeout: 2000 }).toBeGreaterThan(2);
+        await expect.poll(async () => (await tiltOf(page))[0]).toBeGreaterThan(2);
         // It turns about the middle of the part in view, and is seen from there.
         const origin = () => page.locator('.board__body').evaluate((el) => parseFloat(getComputedStyle(el).transformOrigin.split(' ')[1] ?? '0'));
         await expect.poll(async () => Math.abs((await origin()) - middle.view)).toBeLessThanOrEqual(2);
@@ -175,15 +178,7 @@ test.describe('the tilt', () => {
       await page.mouse.move(FLOWING.width * fx, FLOWING.height * fy, { steps: 4 });
       await expect(board(page)).toHaveAttribute('data-tilting', '');
       // Once the board has come to its angle.
-      let last = '';
-      await expect
-        .poll(async () => {
-          const now = (await tiltOf(page)).join();
-          const still = now === last;
-          last = now;
-          return still;
-        }, { intervals: [150] })
-        .toBe(true);
+      await tiltStill(page);
       expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), `${fx},${fy}`).toBe(0);
     }
   });
@@ -199,7 +194,7 @@ test.describe('the tilt', () => {
       if (!box) throw new Error(`no box for ${ref}`);
       await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 4 });
       await expect(board(page)).toHaveAttribute('data-tilting', '');
-      await page.waitForTimeout(1200);
+      await tiltStill(page);
       // A grid of points inside the part, as it is drawn now: each one lands on it, none on the body.
       const misses = await part.evaluate((el) => {
         const b = el.getBoundingClientRect();
