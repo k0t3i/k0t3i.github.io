@@ -117,14 +117,15 @@ test('every list that lights a part of the back face names all eleven parts', ()
   assert.ok(lists >= 4, `${lists} lists`);
 });
 
-test('passives are decorative: in the hidden copper, drawn by the sprite, never lit, never animated', () => {
+test('passives are decorative: in the hidden copper, drawn from its own symbols, never lit, never animated', () => {
   for (const page of ['index.html', 'en/index.html']) {
     const html = readFileSync(join(DIST_ROOT, page), 'utf8');
     const copper = html.match(/<svg class="back__copper"[\s\S]*?<\/svg>/)?.[0] ?? '';
     const uses = tags(copper, 'use').filter((t) => (t.class ?? '').split(' ').includes('back__psv'));
     assert.ok(uses.length >= 20, `${page}: ${uses.length} passives`);
-    // Each one a symbol of the sprite of the page, at whole units.
-    const symbols = new Set(tags(html, 'symbol').map((t) => t.id));
+    // Each one a symbol of the copper's own <defs>, at whole units.
+    const defs = copper.match(/<defs>[\s\S]*?<\/defs>/)?.[0] ?? '';
+    const symbols = new Set(tags(defs, 'symbol').map((t) => t.id));
     for (const u of uses) {
       assert.match(u.href ?? '', /^#psv-/);
       assert.ok(symbols.has((u.href ?? '').slice(1)), `${page}: no symbol for ${u.href}`);
