@@ -7,5 +7,6 @@ export default defineConfig({
   define: { __BUILD_DATE__: JSON.stringify('2026-11-03T00:00:00.000Z') },
   // As in the build: an asset imported with ?url is a URL, never inlined.
   build: { assetsInlineLimit: 0 },
-  test: { environment: 'happy-dom', include: ['tests/unit/**/*.spec.ts'], passWithNoTests: true },
+  // Four workers at most: on Anthony's machine a worker of Node crashed at its start under the load of more.
+  test: { environment: 'happy-dom', include: ['tests/unit/**/*.spec.ts'], passWithNoTests: true, maxWorkers: 4 },
 });
