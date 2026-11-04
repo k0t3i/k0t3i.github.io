@@ -644,6 +644,54 @@ test.describe('reduced motion', () => {
   });
 });
 
+test.describe('the lines of the table', () => {
+  for (const viewport of [WIDE, { width: 1440, height: 900 }, { width: 1264, height: 800 }, { width: 768, height: 1024 }, { width: 390, height: 844 }]) {
+    test(`break between words, or inside one with at least two letters on each side, at ${viewport.width}px`, async ({ page, isMobile }) => {
+      test.skip(isMobile && viewport.width > 600, 'a desktop width');
+      await page.setViewportSize(viewport);
+      await showBack(page);
+      const cut = await page.locator('table.bom').evaluate((table) => {
+        const out: string[] = [];
+        const walker = table.ownerDocument.createTreeWalker(table, NodeFilter.SHOW_TEXT);
+        for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+          const el = n.parentElement;
+          if (!el || el.closest('.vh') || !el.checkVisibility()) continue;
+          const text = n.nodeValue ?? '';
+          for (const m of text.matchAll(/[^\s·]+/g)) {
+            // The line of each letter of the word, by the top of its box.
+            const tops: number[] = [];
+            for (let k = 0; k < m[0].length; k++) {
+              const r = table.ownerDocument.createRange();
+              r.setStart(n, (m.index ?? 0) + k);
+              r.setEnd(n, (m.index ?? 0) + k + 1);
+              tops.push(Math.round(r.getBoundingClientRect().top));
+            }
+            const runs: number[] = [];
+            for (const [k, t] of tops.entries()) {
+              if (k && t === tops[k - 1]) runs[runs.length - 1] = (runs.at(-1) ?? 0) + 1;
+              else runs.push(1);
+            }
+            if (runs.length > 1 && runs.some((len) => len < 2)) out.push(`${m[0]} (${runs.join('|')})`);
+          }
+        }
+        return out;
+      });
+      expect(cut).toEqual([]);
+      if (viewport.width >= 1440) {
+        // On the wide board « Composant » holds its names unbroken.
+        for (const ref of ['U17', 'J6']) {
+          const lines = await row(page, ref).locator('.bom__line').first().evaluate((el) => {
+            const r = el.ownerDocument.createRange();
+            r.selectNodeContents(el);
+            return new Set([...r.getClientRects()].map((q) => Math.round(q.top))).size;
+          });
+          expect(lines, ref).toBe(1);
+        }
+      }
+    });
+  }
+});
+
 test.describe('the circuit', () => {
   for (const viewport of [WIDE, { width: 1264, height: 800 }, { width: 390, height: 844 }]) {
     test(`the parts, the live layer and the art lie on one another at ${viewport.width}px`, async ({ page }) => {

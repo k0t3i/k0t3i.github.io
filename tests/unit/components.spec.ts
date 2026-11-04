@@ -445,8 +445,8 @@ describe('PartSprite', () => {
 describe('BackFace', () => {
   for (const content of [fr, en]) {
     const oracle = (content.locale === 'fr' ? ORACLE_FR : ORACLE_EN).back;
-    // The text of an element, its runs of white space as one space.
-    const text = (el: Element): string => (el.textContent ?? '').replace(/\s+/g, ' ').trim();
+    // The text of an element, its runs of white space as one space (a no-break space kept: it is the typography).
+    const text = (el: Element): string => (el.textContent ?? '').replace(/[ \t\n\r]+/g, ' ').trim();
 
     it(`is a real table, one row per part, its value cell on two lines, with the parts it is linked to (${content.locale})`, () => {
       const { bom } = content.back;

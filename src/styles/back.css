@@ -488,10 +488,14 @@
     display: block;
   }
 
-  /* On a narrow face a long name may break inside a word (« Microcontrôleur »), hyphenated where it can. */
+  /*
+   * On a narrow face a long name may break inside a word (« Microcontrôleur »), only where it can be
+   * hyphenated (the cell has the language of the page), or else as a last resort: never a letter
+   * alone on a line without its hyphen.
+   */
   .bom td:nth-child(2) {
     hyphens: auto;
-    overflow-wrap: anywhere;
+    overflow-wrap: break-word;
   }
 
   /* Printed under the value on a narrow face only (below), in place of the last column. */
@@ -632,8 +636,9 @@
     }
 
     /*
-     * « Relié à » wide enough for the row of U10 on four lines at most, « Composant » held at its
-     * width: the room they take comes from the two lines of the value.
+     * « Relié à » wide enough for the row of U10 on four lines at most, « Composant » for its longest
+     * names on one line (« Superviseur de reset », « Connecteur de debug »): the room they take comes
+     * from the two lines of the value.
      */
     .board--home .bom .bom__linked {
       width: 11rem;
@@ -641,7 +646,7 @@
 
     .board--home .bom tbody td:first-of-type,
     .board--home .bom thead th:nth-child(2) {
-      width: 9.5rem;
+      width: 11rem;
     }
 
     /*
