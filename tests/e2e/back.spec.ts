@@ -495,6 +495,41 @@ test.describe('the circuit on a flowing board', () => {
   }
 });
 
+/*
+ * The details of a skill (the text after it on line 2): Anthony's decision of 04/11/2026. The wide
+ * board shows them only where the table keeps to its 16:9 face (a face of 92rem and more, from 1536
+ * px); below, line 2 is the skill alone, the details visually hidden but still in the description of
+ * the part. The flowing board and the phone show them.
+ */
+test.describe('the details of a skill', () => {
+  for (const [viewport, shown] of [
+    [{ width: 1440, height: 900 }, false],
+    [{ width: 1264, height: 800 }, false],
+    [{ width: 1536, height: 900 }, true],
+    [WIDE, true],
+    [{ width: 1024, height: 768 }, true],
+    [{ width: 390, height: 844 }, true],
+  ] as const) {
+    test(`details ${shown ? 'shown' : 'hidden, still described,'} at ${viewport.width}px`, async ({ page, isMobile }) => {
+      test.skip(isMobile, 'the desktop sizes');
+      await booted(page);
+      await page.setViewportSize(viewport);
+      await showBack(page);
+      for (const r of FR.back.rows) {
+        const details = page.locator(`#details-${r.ref}`);
+        await expect(details).toHaveText(bomDetails(r));
+        const box = await details.evaluate((el) => {
+          const b = el.getBoundingClientRect();
+          return { w: b.width, h: b.height };
+        });
+        if (shown) expect(box.w, r.ref).toBeGreaterThan(20);
+        else expect(box.w * box.h, r.ref).toBeLessThanOrEqual(1);
+        await expect(part(page, r.ref)).toHaveAccessibleDescription(`${r.value} ${bomDetails(r)} ${FR.back.columns[3]} ${r.linked}`);
+      }
+    });
+  }
+});
+
 test.describe('the description of a part', () => {
   for (const copy of [FR, EN] as Copy[]) {
     for (const viewport of [WIDE, { width: 390, height: 844 }]) {

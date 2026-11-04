@@ -747,6 +747,23 @@
       width: 8rem;
     }
 
+    /*
+     * The details of each skill only where the table keeps to the 16:9 face (Anthony, 04/11/2026):
+     * measured, it fits from a face of about 89rem, so from 92rem. Below, line 2 is the skill alone;
+     * the details are visually hidden, still read in the description of the part (aria-describedby).
+     */
+    @container face (width < 92rem) {
+      .board--home .bom__details {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+    }
+
     .board--home .bom tbody {
       box-shadow: 0 0 0 1px var(--line);
     }

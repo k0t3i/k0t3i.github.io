@@ -231,7 +231,7 @@ function onClick(ref: BackRef): void {
             >{{ item.glued }}</span>
           </template></span>{{ ' ' }}<span
             :id="`details-${row.ref}`"
-            class="bom__line"
+            class="bom__line bom__details"
           ><template
             v-for="(item, i) in items(row.details)"
             :key="i"
