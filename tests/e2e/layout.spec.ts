@@ -53,8 +53,7 @@ function layoutProblems(page: Page): Promise<string[]> {
       r.left >= box.left - 0.5 && r.right <= box.right + 0.5 && r.top >= box.top - 0.5 && r.bottom <= box.bottom + 0.5;
     for (const b of blocks) {
       if (!inside(b.r, board)) problems.push(`${b.name} is out of the board`);
-      // DISP1 draws its trace to the principles in its ::after, outside its box on purpose.
-      if (!b.el.matches('.disp') && b.el.scrollWidth > b.el.clientWidth + 1) problems.push(`${b.name} overflows horizontally`);
+      if (b.el.scrollWidth > b.el.clientWidth + 1) problems.push(`${b.name} overflows horizontally`);
     }
     for (const [i, label] of [...document.querySelectorAll<HTMLElement>('.part__label')].entries()) {
       const owner = label.closest('.part__trigger')?.getBoundingClientRect();
@@ -372,38 +371,19 @@ test.describe('flowing board', () => {
 
   for (const scheme of ['light', 'dark'] as const) {
     for (const width of [768, 1024]) {
-      test(`at ${width}px a trace runs from the DISP1 header into the top via of the principles bus (${scheme})`, async ({ page }) => {
+      test(`at ${width}px DISP1 sits beside the principles, and no trace leaves its header: it is wired from the back (${scheme})`, async ({ page }) => {
         await page.emulateMedia({ colorScheme: scheme });
         await page.setViewportSize({ width, height: 1024 });
         await page.goto('/');
         const geometry = await page.evaluate(() => {
-          const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
           const disp = document.querySelector('.disp') as Element;
-          const d = disp.getBoundingClientRect();
-          const s = getComputedStyle(disp, '::after');
-          const trace = { left: d.left + parseFloat(s.left), top: d.top + parseFloat(s.top), width: parseFloat(s.width), height: parseFloat(s.height) };
-          // It starts on the line through the pads (1px under the top of its box), and ends at the bottom
-          // of its right edge, the 2px vertical line.
-          const start = { x: trace.left, y: trace.top + 1 };
-          const end = { x: trace.left + trace.width - 1, y: trace.top + trace.height };
-          const pins = (disp.querySelector('.disp__pins') as Element).getBoundingClientRect();
-          const list = (document.querySelector('.disp + .parts .parts__list') as Element).getBoundingClientRect();
-          // The top via of the bus: centred 1px left of the bus edge (0.5rem in), radius 0.25rem + 1px.
-          const r = 0.25 * rem + 1;
-          const via = { x: list.left + 0.5 * rem - 1, y: list.top + r };
-          const inside = (p: { x: number; y: number }, b: { left: number; right: number; top: number; bottom: number }) =>
-            p.x >= b.left - 0.5 && p.x <= b.right + 0.5 && p.y >= b.top - 0.5 && p.y <= b.bottom + 0.5;
           return {
-            content: s.content,
-            startInPins: inside(start, pins),
-            endInVia: inside(end, { left: via.x - r, right: via.x + r, top: via.y - r, bottom: via.y + r }),
+            trace: getComputedStyle(disp, '::after').content,
             // DISP1 and the principles share the top of their row: no void between the subtitle and them.
-            sameTop: Math.abs(d.top - (document.querySelector('.disp + .parts') as Element).getBoundingClientRect().top),
+            sameTop: Math.abs(disp.getBoundingClientRect().top - (document.querySelector('.disp + .parts') as Element).getBoundingClientRect().top),
           };
         });
-        expect(geometry.content).toBe('""');
-        expect(geometry.startInPins).toBe(true);
-        expect(geometry.endInVia).toBe(true);
+        expect(geometry.trace).toBe('none');
         expect(geometry.sameTop).toBeLessThanOrEqual(0.5);
         expect(await layoutProblems(page)).toEqual([]);
       });
@@ -627,29 +607,33 @@ function wideProblems(page: Page): Promise<string[]> {
   );
 }
 
-/** Where each live trace of the wide board starts and ends: `<part> <on a pad of DISP1> <on a pad of its part>`. */
+/**
+ * Where each live trace of the wide board starts and ends: `<part> <from a via of the art, or from
+ * another part> <into the drawing of its part>`. A route runs the way its current flows: from the via
+ * where its signal comes up from the back (from R1 for LED1) to the part, and out of J5 for its power.
+ */
 function traceEnds(page: Page): Promise<string[]> {
-  return page.evaluate(() => {
+  return page.evaluate(async () => {
     type Box = { left: number; right: number; top: number; bottom: number };
-    const within = (p: DOMPoint, b: Box) => p.x >= b.left - 0.5 && p.x <= b.right + 0.5 && p.y >= b.top - 0.5 && p.y <= b.bottom + 0.5;
-    // The pads of DISP1: the ::before of each pin label, centred above it.
-    const dispPads: Box[] = [...document.querySelectorAll('.disp__pin')].map((pin) => {
-      const r = pin.getBoundingClientRect();
-      const s = getComputedStyle(pin, '::before');
-      const [w, h] = [parseFloat(s.width), parseFloat(s.height)];
-      return { left: r.left + (r.width - w) / 2, right: r.left + (r.width + w) / 2, top: r.top, bottom: r.top + h };
-    });
-    // The pads of a part: the rects of its symbol (64 x 32 units), over the drawing of the part.
-    const partPads = (id: string): Box[] => {
-      const body = document.querySelector(`#part-${id} .part__body`) as SVGSVGElement;
-      const symbol = document.querySelector((body.querySelector('use') as SVGUseElement).getAttribute('href') ?? '') as Element;
-      const b = body.getBoundingClientRect();
-      const k = b.width / 64;
-      return [...symbol.querySelectorAll('rect.pcb-pad')].map((p) => {
-        const [x = 0, y = 0, w = 0, h = 0] = ['x', 'y', 'width', 'height'].map((a) => parseFloat(p.getAttribute(a) ?? '0'));
-        return { left: b.left + x * k, right: b.left + (x + w) * k, top: b.top + y * k, bottom: b.top + (y + h) * k };
-      });
+    const boardEl = document.querySelector('.board') as HTMLElement;
+    const board = boardEl.getBoundingClientRect();
+    const u = board.width / 1600;
+    // The drawing of a part, give or take half a pad (3 units): the contacts of J3 and J5 are under their shell.
+    const drawn = (id: string): Box => {
+      const r = (document.querySelector(`#part-${id} .part__body`) as Element).getBoundingClientRect();
+      return { left: r.left - 3 * u, right: r.right + 3 * u, top: r.top - 3 * u, bottom: r.bottom + 3 * u };
     };
+    const within = (p: DOMPoint, b: Box) => p.x >= b.left && p.x <= b.right && p.y >= b.top && p.y <= b.bottom;
+    // The vias of the art (board-wide.svg), in page pixels, with their radius.
+    const url = getComputedStyle(boardEl.querySelector('.board__face--front') as Element).backgroundImage.match(/url\("?([^")]*board-wide[^")]*)"?\)/)?.[1] ?? '';
+    const art = new DOMParser().parseFromString(await (await fetch(url)).text(), 'image/svg+xml');
+    const radius = (id: string) => parseFloat(art.querySelector(`${id} circle`)?.getAttribute('r') ?? '0');
+    const vias = [...art.querySelectorAll('use[href="#v"], use[href="#b"]')].map((v) => ({
+      x: board.left + parseFloat(v.getAttribute('x') ?? '0') * u,
+      y: board.top + parseFloat(v.getAttribute('y') ?? '0') * u,
+      r: radius(v.getAttribute('href') ?? '') * u + 0.5,
+    }));
+    const ids = [...document.querySelectorAll<SVGPathElement>('path.trace-live')].map((p) => p.dataset.part ?? '');
     return [...document.querySelectorAll<SVGPathElement>('path.trace-live')].map((path) => {
       const points: number[][] = [];
       for (const [, cmd, args = ''] of (path.getAttribute('d') ?? '').matchAll(/([MHVL])([^MHVL]*)/g)) {
@@ -660,7 +644,11 @@ function traceEnds(page: Page): Promise<string[]> {
       const m = path.getScreenCTM() as DOMMatrix;
       const [start, end] = [points[0], points.at(-1)].map((p) => new DOMPoint(p?.[0], p?.[1]).matrixTransform(m)) as [DOMPoint, DOMPoint];
       const id = path.dataset.part ?? '';
-      return `${id} ${dispPads.some((b) => within(start, b))} ${partPads(id).some((b) => within(end, b))}`;
+      // J5 is the source of its route: the power flows out of it.
+      const [source, part] = id === 'j5' ? [end, start] : [start, end];
+      const fromVia = vias.some((v) => Math.hypot(source.x - v.x, source.y - v.y) <= v.r);
+      const fromPart = ids.some((other) => other !== id && within(source, drawn(other)));
+      return `${id} ${fromVia || fromPart} ${within(part, drawn(id))}`;
     });
   });
 }
@@ -745,7 +733,7 @@ test.describe('wide board', () => {
     });
   }
 
-  test('the flowing buses, their glints, the stubs and the tablet trace are off', async ({ page }) => {
+  test('the flowing buses, their glints and the stubs are off', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await page.setViewportSize({ width: 1600, height: 900 });
     await page.goto('/');
@@ -755,15 +743,14 @@ test.describe('wide board', () => {
         buses: lists.map((l) => getComputedStyle(l).backgroundImage),
         glints: lists.flatMap((l) => ['::before', '::after'].map((p) => getComputedStyle(l, p).display)),
         stubs: [...new Set([...document.querySelectorAll('.part__body')].map((b) => getComputedStyle(b).backgroundImage))],
-        trace: getComputedStyle(document.querySelector('.disp') as Element, '::after').display,
         layer: getComputedStyle(document.querySelector('.board__signal') as Element).display,
       };
     });
-    expect(drawn).toEqual({ buses: ['none', 'none'], glints: ['none', 'none', 'none', 'none'], stubs: ['none'], trace: 'none', layer: 'block' });
+    expect(drawn).toEqual({ buses: ['none', 'none'], glints: ['none', 'none', 'none', 'none'], stubs: ['none'], layer: 'block' });
   });
 
   for (const width of [1264, 1600]) {
-    test(`every live trace runs from a DISP1 pad to a pad of its part at ${width}px`, async ({ page }) => {
+    test(`every live trace runs from its via to its part at ${width}px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
       await page.goto('/');
       expect(await traceEnds(page)).toEqual(IDS.map((id) => `${id} true true`));

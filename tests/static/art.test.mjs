@@ -102,11 +102,11 @@ for (const file of ['index.html', 'en/index.html']) {
       assert.equal(s.pathLength, '100');
       assert.ok(artDs.has(s.d), `signal ${s.d} is not a trace of the art`);
     }
-    // They run to R1, LED1, U2 and the contact, J5: the routes of their live traces.
+    // They run down the routes of R1, then LED1 (lit through R1), D1, and the power out of J5.
     const route = Object.fromEntries(paths.filter((p) => p.class === 'trace-live').map((p) => [p['data-part'], p.d]));
     assert.deepEqual(
       signals.map((s) => s.d),
-      ['r1', 'led1', 'u2', 'j5'].map((id) => route[id]),
+      ['r1', 'led1', 'd1', 'j5'].map((id) => route[id]),
     );
   });
 

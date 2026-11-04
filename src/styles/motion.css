@@ -254,7 +254,7 @@
 
     /*
      * The current that follows the pointer and the focus (wide board, wide.css): the trace of the
-     * active part draws itself from DISP1 to the part in 540ms, its signal running just ahead of it
+     * active part draws itself along its route in 540ms, its signal running just ahead of it
      * on the same course. Left, the trace fades out, and goes back to the start of its route once
      * dark: a part lit again meanwhile simply brightens. Each path follows only its own part (data-lit),
      * so a fast sweep across the parts ends on the last one. The power-on never meets it: the first
@@ -277,7 +277,7 @@
      * The power-on, once per session (useBoot.ts, BOOT_MS = 1200ms). Before the first paint the head
      * script puts the board in standby (data-boot on <html>, lib/boot.ts): the screen of DISP1 is
      * dark, LED1 is off and the ambient signals wait. Once the app has mounted, the board powers on
-     * (data-booting): a gold sweep runs from DISP1 along every trace, LED1 comes on as its current
+     * (data-booting): a gold sweep runs along every route, LED1 comes on as its current
      * arrives, then the screen lights up. Every effect ends at the state of the board at rest, so the
      * end of data-booting changes nothing on screen. Only decor moves: no text, no layout.
      */
@@ -395,10 +395,10 @@
     }
 
     /*
-     * The wide board: each trace lights up from DISP1, its signal at the head, and the light runs on
-     * into the part (the dash offset goes from 100 to -100, wide.css), in a cascade that sweeps from
-     * DISP1 across the board: the connectors under it first, from J5 up to J1 a little closer
-     * together (their rows are), then the principles from U2 to R1.
+     * The wide board: each route lights up from its start, its signal at the head, and the light runs
+     * on to its end (the dash offset goes from 100 to -100, wide.css), in a cascade that sweeps across
+     * the board: the connectors first, from J5 (the power) up to J1 a little closer together (their
+     * rows are), then the principles from U2 to R1.
      */
     .board--home[data-booting] .trace-live {
       animation: boot-trace 760ms both;
@@ -543,7 +543,7 @@
 
     /*
      * The wide board: a short gold dash runs down four of its traces, one after the other. Each one
-     * leaves DISP1, reaches its part in 2.7s and is seen less than 30% of its 9s cycle; then nothing,
+     * runs its route in 2.7s and is seen less than 30% of its 9s cycle; then nothing,
      * so nothing draws the eye for long.
      */
     .signal {

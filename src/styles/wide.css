@@ -26,9 +26,9 @@
   }
 
   /*
-   * A trace is lit from DISP1 to its part: one dash as long as the route, then a longer gap, so the
-   * offset draws it from the start of the route (100: nothing yet, 0: all of it, -100: all of it gone
-   * on into the part), a little softer than the pads. Its signal is a short dash of the lit gold, a
+   * A trace is lit along its route, the way its current flows: one dash as long as the route, then
+   * a longer gap, so the offset draws it from the start of the route (100: nothing yet, 0: all of
+   * it, -100: all of it gone on past its end), a little softer than the pads. Its signal is a short dash of the lit gold, a
    * little wider, waiting just before the start of the route (5), or gone past its end (-101):
    * nothing of it is drawn at rest.
    */
@@ -185,10 +185,6 @@
       border-radius: calc(6 * var(--u));
     }
 
-    .board--home .disp::after {
-      display: none;
-    }
-
     .board--home .disp__pins {
       position: absolute;
       top: 0;
@@ -236,7 +232,7 @@
       margin: 0;
     }
 
-    /* SW1, with its body at --x, --y: its two top pads take the traces of the art up under DISP1. */
+    /* SW1, with its body at --x, --y: its pads go through the board, wired from the back. */
     .board--home .sw1 {
       --x: 1404;
       --y: 518;
@@ -340,7 +336,7 @@
 
     /*
      * The connectors, down the right side under DISP1, each fed from the left by its trace of the
-     * art: one row each, 36 units apart, the first on the line of the principles. The part, its
+     * art, from its via: one row each, 36 units apart, the first on the line of the principles. The part, its
      * reference and its name on one line, centred on the row; a row grows with its text (root font
      * at 125 %, WCAG text spacing), the part stays at the top, on its copper.
      */

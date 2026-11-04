@@ -300,7 +300,7 @@
   /*
    * The active part (data-lit, PartList.vue: under the pointer, or with the keyboard focus): its own
    * trace to the bus is lit in gold, the fan-out of U2 drawn in its symbol with it. The wide board
-   * draws no stubs: its live layer lights the whole route from DISP1 instead (wide.css).
+   * draws no stubs: its live layer lights the whole route of the part instead (wide.css).
    */
   .part[data-lit] {
     --wire: var(--gold);
