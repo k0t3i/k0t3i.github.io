@@ -109,8 +109,8 @@ export function passiveUse(p: BackPassive): { x: number; y: number; transform?: 
 }
 
 /** The silkscreen of a reference: its size in units (back.css), the advance of one character, its gap from the part. */
-export const PASSIVE_REF = { size: 8, advance: 5, gap: 3 };
-const [SIZE, ADVANCE, GAP] = [8, 5, 3];
+export const PASSIVE_REF = { size: 8, advance: 5, gap: 3 } as const;
+const { size: SIZE, advance: ADVANCE, gap: GAP } = PASSIVE_REF;
 
 /** Where its reference is printed: its baseline, whether it ends there (on the west side), and the room it takes. */
 export function passiveRef(p: BackPassive): { x: number; y: number; end: boolean; room: Rect } {
