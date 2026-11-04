@@ -661,7 +661,8 @@ function traceEnds(page: Page): Promise<string[]> {
 /**
  * Problems of the right column of the wide board: the connectors, under their heading, in DOM order,
  * each on one row (its reference, then its name on the same line), within the width of DISP1 above
- * them, one row clear of the next, and all of them above the footer. Empty when it holds.
+ * them, one row clear of the next, each a target of 24 x 24 px at least (WCAG 2.5.8: a row is
+ * exactly 24px high at 1264px), and all of them above the footer. Empty when it holds.
  */
 function connectorColumn(page: Page): Promise<string[]> {
   return page.evaluate(() => {
@@ -680,6 +681,7 @@ function connectorColumn(page: Page): Promise<string[]> {
       const label = part.querySelector('.part__label') as Element;
       const name = box(label);
       if (t.left < disp.left - 0.5 || t.right > disp.right + 0.5) problems.push(`${part.id} leaves the column of DISP1`);
+      if (t.width < 24 || t.height < 24) problems.push(`${part.id}: a target of ${t.width} x ${t.height} px, under 24 x 24`);
       if (t.top < above - 0.5) problems.push(`${part.id} runs into what is above it (${t.top} < ${above})`);
       above = t.bottom;
       const range = document.createRange();
@@ -901,12 +903,14 @@ test.describe('wide board', () => {
     expect(s.y + s.height).toBeLessThanOrEqual(330);
   });
 
-  test('on a short window every link of a sheet is in view when it opens, clear of the Close bar', async ({ page }) => {
+  test('on a short window every link of a sheet is in view when it opens, clear of the Close bar', async ({ page, browserName, isMobile }) => {
     await page.setViewportSize({ width: 1264, height: 800 });
+    // WebKit with the settings of a phone gets a fresh page for each sheet (the fixme below); the
+    // other engines open them one after the other on one page.
+    const fresh = browserName === 'webkit' && isMobile;
+    await page.goto('/');
     for (const id of IDS) {
-      // A fresh page for each sheet: Playwright's WebKit with the settings of a phone stops responding
-      // after about nine sheets opened in a row on the wide board with motion on (seen before J4 and J5 too).
-      await page.goto('/');
+      if (fresh) await page.goto('/');
       await trigger(page, id).click();
       const sheet = page.locator(`#sheet-${id}`);
       await expect(sheet).toBeVisible();
@@ -926,36 +930,40 @@ test.describe('wide board', () => {
       await expect(sheet).toBeHidden();
     }
   });
+
+  /*
+   * Playwright's WebKit with the settings of a phone stops responding after about nine sheets opened
+   * in a row on the wide board, with motion on: seen on the build before J4 and J5 too, never with
+   * reduced motion, never in the other engines. To check on a real iPad in landscape (Safari, 1264px
+   * wide or more): open ten sheets in a row. If it holds there, this is Playwright's WebKit only.
+   */
+  test('ten sheets in a row on the wide board, motion on, with WebKit on a phone', async ({ page, browserName, isMobile }) => {
+    const phone = browserName === 'webkit' && isMobile;
+    test.skip(!phone, 'the test above opens the sheets in a row on one page in the other projects');
+    test.fixme(phone, 'Playwright WebKit with the settings of a phone hangs after about nine sheets: check on a real iPad');
+    await page.emulateMedia({ reducedMotion: 'no-preference' });
+    await page.setViewportSize({ width: 1264, height: 800 });
+    await page.goto('/');
+    for (const id of IDS) {
+      await trigger(page, id).click();
+      const sheet = page.locator(`#sheet-${id}`);
+      await expect(sheet).toBeVisible();
+      await settled(sheet);
+      await page.keyboard.press('Escape');
+      await expect(sheet).toBeHidden();
+    }
+  });
 });
 
 test.describe('wide board with user text settings', () => {
   // These tests inject a stylesheet: the CSP of the page is bypassed for them only.
   test.use({ bypassCSP: true });
 
-  test('no overlap or clipping on the wide board at 1600x900 with the root font at 125%', async ({ page }) => {
-    await page.setViewportSize({ width: 1600, height: 900 });
-    for (const path of [FR.path, EN.path]) {
-      await page.goto(path);
-      await page.addStyleTag({ content: 'html { font-size: 125% !important; }' });
-      await expect(page.locator('.board__signal')).toBeVisible();
-      expect(await wideProblems(page), path).toEqual([]);
-    }
-  });
-
-  test('no overlap or clipping on the wide board at 1264x800 with text spacing', async ({ page }) => {
-    await page.setViewportSize({ width: 1264, height: 800 });
-    for (const path of [FR.path, EN.path]) {
-      await page.goto(path);
-      await page.addStyleTag({ content: TEXT_SPACING });
-      await expect(page.locator('.board__signal')).toBeVisible();
-      expect(await wideProblems(page), path).toEqual([]);
-    }
-  });
-
   /*
-   * The right column holds five connectors: it holds with either setting at both sizes, its parts on
-   * their copper. The whole board is checked as a visitor can see it: a root font at 125 % moves the
-   * wide board to 1580px (79rem), so at 1264px it is a stress case of the column only.
+   * Either setting at both sizes: the right column holds its five connectors, their parts on their
+   * copper, and the whole board has no overlap or clipping, once for each case a visitor can see: a
+   * root font at 125 % moves the wide board to 1580px (79rem), so at 1264px that one is a stress case
+   * of the column only.
    */
   for (const viewport of [
     { width: 1264, height: 800 },
@@ -965,14 +973,15 @@ test.describe('wide board with user text settings', () => {
       ['the root font at 125%', 'html { font-size: 125% !important; }'],
       ['text spacing', TEXT_SPACING],
     ] as const) {
-      test(`the right column holds at ${viewport.width}x${viewport.height} with ${setting}`, async ({ page }) => {
+      const whole = viewport.width >= 1580 || css === TEXT_SPACING;
+      test(`the wide board at ${viewport.width}x${viewport.height} with ${setting}: the right column holds${whole ? ', no overlap or clipping' : ''}`, async ({ page }) => {
         await page.setViewportSize(viewport);
         for (const path of [FR.path, EN.path]) {
           await page.goto(path);
           await page.addStyleTag({ content: css });
           await expect(page.locator('.board__signal')).toBeVisible();
           expect(await connectorColumn(page), path).toEqual([]);
-          if (viewport.width >= 1580 || css === TEXT_SPACING) expect(await wideProblems(page), path).toEqual([]);
+          if (whole) expect(await wideProblems(page), path).toEqual([]);
           expect(await traceEnds(page), path).toEqual(IDS.map((id) => `${id} true true`));
         }
       });
