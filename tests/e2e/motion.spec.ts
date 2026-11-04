@@ -49,6 +49,29 @@ test.describe('reduced motion', () => {
 test.describe('no preference', () => {
   test.use({ reducedMotion: 'no-preference' });
 
+  for (const path of ['/', '/en/', '/nope']) {
+    test(`nothing transitions at the first paint, even after a slow stylesheet (${path})`, async ({ page }) => {
+      // A slow network: Chrome styles the page before its stylesheet arrives, and the change to the
+      // styles of the sheet would then run as transitions (the silkscreen fading in from black, the
+      // live traces flashing). The first frame is the first paint.
+      await page.route('**/assets/*.css', async (route) => {
+        await new Promise((r) => setTimeout(r, 600));
+        await route.continue();
+      });
+      await page.addInitScript(() => {
+        requestAnimationFrame(() => {
+          (window as unknown as { firstFrame: string[] }).firstFrame = document
+            .getAnimations()
+            .filter((a) => 'transitionProperty' in a)
+            .map((a) => `${(a as CSSTransition).transitionProperty} ${((a.effect as KeyframeEffect | null)?.target as Element | null)?.className}`);
+        });
+      });
+      await page.goto(path);
+      const first = await page.waitForFunction(() => (window as unknown as { firstFrame?: string[] }).firstFrame);
+      expect(await first.jsonValue()).toEqual([]);
+    });
+  }
+
   test('no-preference ambient set on the wide board', async ({ page }) => {
     // At rest: the power-on sequence has already played in this session.
     await page.addInitScript(() => sessionStorage.setItem('k0t3i.booted', '1'));

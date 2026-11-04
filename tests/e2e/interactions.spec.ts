@@ -397,13 +397,15 @@ test.describe('the power-on', () => {
         ),
       );
     await page.goto('/', { waitUntil: 'commit' });
-    // 100 ms into the visit, with the page and its stylesheet there (the tokens of the board are set).
+    // 100 ms into the visit, with the page and its stylesheet there. The wait reads no style before the
+    // stylesheet is there (motion.css: a page styled before it must not fade its silkscreen in).
     await page.waitForFunction(
       () =>
         performance.now() >= 100 &&
         document.querySelector('.uptime') !== null &&
-        getComputedStyle(document.documentElement).getPropertyValue('--gold').trim() !== '',
+        [...document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"]')].some((l) => l.sheet !== null),
     );
+    expect(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--gold').trim())).not.toBe('');
     const early = await texts();
     await expect(board(page)).toHaveAttribute('data-booting', '');
     const during = await texts();

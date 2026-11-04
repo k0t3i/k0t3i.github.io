@@ -5,6 +5,16 @@
  */
 @layer motion {
   @media (prefers-reduced-motion: no-preference) {
+    /*
+     * No transition before the page is live (App.vue marks #app with data-live two frames after the
+     * mount). On a slow network Chrome styles the page once before its stylesheet arrives: the change
+     * to the styles of the sheet would run as transitions at the first paint, the silkscreen fading in
+     * from black and the live traces flashing. Without JavaScript, hover and focus change at once.
+     */
+    #app:not([data-live]) * {
+      transition: none !important;
+    }
+
     /* LED1 breathes slowly. */
     #part-led1 .part__trigger::after {
       animation: led-breathe 3.2s ease-in-out infinite;
