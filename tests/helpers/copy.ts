@@ -28,6 +28,8 @@ const NB = ' ';
 const NN = ' ';
 /** A soft hyphen (U+00AD): where a long name of the table may break. */
 const SH = '­';
+/** A word joiner (U+2060), round the slash of « E/S » and « I/O »: no line breaks inside them. */
+const WJ = '⁠';
 
 export interface CopyPart {
   id: string;
@@ -214,7 +216,7 @@ export const FR: Copy = {
       ['U11', 'Mémoire flash', 'W25Q128 · 16 Mo QSPI', 'TypeScript / JavaScript · strict · ES modules', 'U10', 'U11, mémoire flash, TypeScript / JavaScript'],
       ['U12', `Régu${SH}lateur 3,3${NB}V`, 'AP2112K · LDO 600 mA', `Perfor${SH}mance web · audits · Core Web Vitals`, 'J5', `U12, régu${SH}lateur 3,3${NB}V, perfor${SH}mance web`],
       ['U13', `Protec${SH}tion USB`, 'USBLC6-2 · ESD', `Acces${SH}sibilité · WCAG 2.2 AA · guidelines produit`, 'U10 · J5', `U13, protec${SH}tion USB, acces${SH}sibilité`],
-      ['U14', `Exten${SH}seur d’E/S`, 'TCA9554 · 8 E/S I²C', `HTML séman${SH}tique · landmarks · ARIA juste`, 'U10 · SW1 · SW2 · JP1', `U14, exten${SH}seur d’E/S, HTML séman${SH}tique`],
+      ['U14', `Exten${SH}seur d’E${WJ}/${WJ}S`, `TCA9554 · 8 E${WJ}/${WJ}S I²C`, `HTML séman${SH}tique · landmarks · ARIA juste`, 'U10 · SW1 · SW2 · JP1', `U14, exten${SH}seur d’E${WJ}/${WJ}S, HTML séman${SH}tique`],
       ['U15', 'Pilote de LED', 'PCA9633 · 4 canaux PWM', 'CSS · layers · container queries · motion', 'U10 · D2–D5', 'U15, pilote de LED, CSS'],
       ['U16', 'Horloge temps réel', 'PCF8563 · uptime', `Archi${SH}tecture front · composants · migrations`, 'U10 · Y2', `U16, horloge temps réel, archi${SH}tecture front`],
       ['U17', `Super${SH}viseur de reset`, `APX803 · 2,93${NB}V`, 'Tests · unitaires · e2e · a11y', 'U10 · J6', `U17, super${SH}viseur de reset, tests`],
@@ -358,7 +360,7 @@ export const EN: Copy = {
       ['U11', 'Flash memory', 'W25Q128 · 16 MB QSPI', 'TypeScript / JavaScript · strict · ES modules', 'U10', 'U11, flash memory, TypeScript / JavaScript'],
       ['U12', `3.3 V regu${SH}lator`, 'AP2112K · LDO 600 mA', `Web perfor${SH}mance · audits · Core Web Vitals`, 'J5', `U12, 3.3 V regu${SH}lator, web perfor${SH}mance`],
       ['U13', `USB protec${SH}tion`, 'USBLC6-2 · ESD', `Acces${SH}sibility · WCAG 2.2 AA · product guidelines`, 'U10 · J5', `U13, USB protec${SH}tion, acces${SH}sibility`],
-      ['U14', `I/O expan${SH}der`, 'TCA9554 · 8 I/O I²C', `Seman${SH}tic HTML · landmarks · ARIA done right`, 'U10 · SW1 · SW2 · JP1', `U14, I/O expan${SH}der, seman${SH}tic HTML`],
+      ['U14', `I${WJ}/${WJ}O expan${SH}der`, `TCA9554 · 8 I${WJ}/${WJ}O I²C`, `Seman${SH}tic HTML · landmarks · ARIA done right`, 'U10 · SW1 · SW2 · JP1', `U14, I${WJ}/${WJ}O expan${SH}der, seman${SH}tic HTML`],
       ['U15', 'LED driver', 'PCA9633 · 4 PWM channels', 'CSS · layers · container queries · motion', 'U10 · D2–D5', 'U15, LED driver, CSS'],
       ['U16', 'Real-time clock', 'PCF8563 · uptime', `Front-end archi${SH}tecture · components · migrations`, 'U10 · Y2', `U16, real-time clock, front-end archi${SH}tecture`],
       ['U17', `Reset super${SH}visor`, 'APX803 · 2.93 V', 'Testing · unit · e2e · a11y', 'U10 · J6', `U17, reset super${SH}visor, testing`],

@@ -5,6 +5,8 @@ import type { SiteContent } from './types';
 const NB = ' ';
 /** A soft hyphen: where a long name of the table may break, with its hyphen (no dictionary needed). */
 const SH = '­';
+/** A word joiner (U+2060), round the slash of « E/S » and « I/O »: no line breaks inside them. */
+const WJ = '⁠';
 // The names and links of the projects: site.json.
 const KIT = project('kitUrgence');
 const SPLITR = project('splitr');
@@ -60,7 +62,7 @@ export const fr: SiteContent = {
         { ref: 'U11', part: 'mémoire flash', value: 'W25Q128 · 16 Mo QSPI', skill: 'TypeScript / JavaScript', details: 'strict · ES modules' },
         { ref: 'U12', part: `régu${SH}lateur 3,3${NB}V`, value: 'AP2112K · LDO 600 mA', skill: `perfor${SH}mance web`, details: 'audits · Core Web Vitals' },
         { ref: 'U13', part: `protec${SH}tion USB`, value: 'USBLC6-2 · ESD', skill: `acces${SH}sibilité`, details: 'WCAG 2.2 AA · guidelines produit' },
-        { ref: 'U14', part: `exten${SH}seur d’E/S`, value: 'TCA9554 · 8 E/S I²C', skill: `HTML séman${SH}tique`, details: 'landmarks · ARIA juste' },
+        { ref: 'U14', part: `exten${SH}seur d’E${WJ}/${WJ}S`, value: `TCA9554 · 8 E${WJ}/${WJ}S I²C`, skill: `HTML séman${SH}tique`, details: 'landmarks · ARIA juste' },
         { ref: 'U15', part: 'pilote de LED', value: 'PCA9633 · 4 canaux PWM', skill: 'CSS', details: 'layers · container queries · motion' },
         { ref: 'U16', part: 'horloge temps réel', value: 'PCF8563 · uptime', skill: `archi${SH}tecture front`, details: 'composants · migrations' },
         { ref: 'U17', part: `super${SH}viseur de reset`, value: `APX803 · 2,93${NB}V`, skill: 'tests', details: 'unitaires · e2e · a11y' },
