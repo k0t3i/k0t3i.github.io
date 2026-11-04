@@ -34,6 +34,20 @@ test('no hydration warning', async ({ page }) => {
   expect(messages.filter((m) => /content security policy/i.test(m))).toEqual([]);
 });
 
+for (const path of ['/', '/en/', '/nope']) {
+  test(`the app hydrates the prerendered page, it does not draw it again (${path})`, async ({ page }) => {
+    // The main of the prerender, kept once the HTML is parsed, before any module runs.
+    await page.addInitScript(() => {
+      document.addEventListener('readystatechange', () => {
+        if (document.readyState === 'interactive') (window as Window & { prerendered?: Element | null }).prerendered = document.querySelector('main');
+      });
+    });
+    await page.goto(path);
+    await page.waitForFunction(() => Boolean((document.querySelector('#app') as { __vue_app__?: unknown } | null)?.__vue_app__));
+    expect(await page.evaluate(() => document.querySelector('main') === (window as Window & { prerendered?: Element | null }).prerendered)).toBe(true);
+  });
+}
+
 test('directory without trailing slash redirects like Pages', async ({ request }) => {
   const response = await request.get('/en', { maxRedirects: 0 });
   expect(response.status()).toBe(301);

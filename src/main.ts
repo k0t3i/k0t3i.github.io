@@ -15,4 +15,9 @@ import './styles/depth.css';
 import './styles/motion.css';
 import './styles/modes.css';
 
-export const createApp = ViteSSG(App, { routes, base: import.meta.env.BASE_URL });
+/*
+ * hydration: the client takes over the prerendered page as it is, nodes and all. Without it vite-ssg
+ * mounts a new app over it: the whole page is drawn a second time, and what the visitor did before
+ * (a sheet open, the focus) is lost.
+ */
+export const createApp = ViteSSG(App, { routes, base: import.meta.env.BASE_URL }, undefined, { hydration: true });
