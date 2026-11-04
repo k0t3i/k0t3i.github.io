@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import BoardSignal from '../../src/components/BoardSignal.vue';
 import { FRONT_NET_PADS, VIA, frontVias, type NetPad } from '../../src/circuit/copper';
-import { CIRCUIT, FRONT_ROUTES, FRONT_TRACES, pointsPath, type Point } from '../../src/circuit/layout';
+import { CIRCUIT, FRONT_ROUTES, FRONT_TRACES, pointsPath, type Point, type Trace, type Via } from '../../src/circuit/layout';
 
 /*
  * The copper of the front face (spec 4.10, the decisions after the review): its traces are the real
@@ -22,8 +22,8 @@ const END = '<!-- End of the generated copper -->';
 
 /** The copper of the front as the art draws it: every trace (a veil under the mask), then every via, tented. */
 function frontArt(): string {
-  const traces = FRONT_TRACES.map((t) => `<path stroke-width="${t.w}" d="${pointsPath(t.pts)}"/>`);
-  const vias = frontVias().map((v) => `<use href="#${v.kind === 'through' ? 'v' : 'b'}" x="${v.x}" y="${v.y}"/>`);
+  const traces = DRAWN.map((t) => `<path stroke-width="${t.w}" d="${pointsPath(t.pts)}"/>`);
+  const vias = DRAWN_VIAS.map((v) => `<use href="#${v.kind === 'through' ? 'v' : 'b'}" x="${v.x}" y="${v.y}"/>`);
   return [
     BEGIN,
     '<defs>',
@@ -48,6 +48,18 @@ const REF: Record<Id, string> = { r1: 'R1', c1: 'C1', led1: 'LED1', d1: 'D1', u2
 const inPad = ([x, y]: Point, p: NetPad) => (p.round ? Math.hypot(x - p.x, y - p.y) <= p.w / 2 + 0.01 : Math.abs(x - p.x) <= p.w / 2 + 0.01 && Math.abs(y - p.y) <= p.h / 2 + 0.01);
 const padsAt = (pt: Point, net: string) => FRONT_NET_PADS.filter((p) => p.net === net && inPad(pt, p));
 const viaAt = ([x, y]: Point, net: string) => frontVias().find((v) => v.net === net && Math.hypot(x - v.x, y - v.y) <= (v.kind === 'through' ? VIA.through : VIA.blind));
+
+/*
+ * The switches of the header, JP1 and SW2, are laid out by the header in rem: they move with the
+ * root font and the text spacing, up to some 60 units, so no copper drawn in the units of the art
+ * stays on them (it would run under their labels). Their copper is in the data, checked with the
+ * rest, but the art does not draw it, nor the vias only it reaches.
+ */
+const HEADER = ['JP1', 'SW2'];
+const onHeader = (t: Trace) => [t.pts[0], t.pts.at(-1)].some((end) => FRONT_NET_PADS.some((p) => HEADER.includes(p.ref) && p.net === t.net && inPad(end as Point, p)));
+const DRAWN = FRONT_TRACES.filter((t) => !onHeader(t));
+const touches = (t: Trace, v: Via) => t.net === v.net && t.pts.some(([x, y]) => Math.hypot(x - v.x, y - v.y) <= VIA.through);
+const DRAWN_VIAS = frontVias().filter((v) => DRAWN.some((t) => touches(t, v)) || !FRONT_TRACES.some((t) => touches(t, v)));
 
 describe('the routes of the front', () => {
   it('each part has its route, from where its current comes to the part', () => {
@@ -134,6 +146,9 @@ describe('the art of the front (board-wide.svg)', () => {
     }
     expect(begin, 'the art has a generated copper block').toBeGreaterThan(0);
     expect(art.slice(begin, end + END.length)).toBe(want);
+    // The copper of the header switches is all it leaves out: THEME from JP1, FLIP and the supply of SW2.
+    expect(FRONT_TRACES.filter(onHeader).map((t) => t.net).sort()).toEqual(['+3V3', 'FLIP', 'GND', 'THEME']);
+    expect(frontVias().filter((v) => !DRAWN_VIAS.some((w) => w.x === v.x && w.y === v.y)).map((v) => v.net).sort()).toEqual(['+3V3', 'FLIP', 'GND', 'THEME']);
     // No other copper drawn by hand: the only traces of the art are in the block.
     expect((art.slice(0, begin) + art.slice(end)).match(/<path [^>]*stroke-width/g)).toBeNull();
   });

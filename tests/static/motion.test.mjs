@@ -51,7 +51,7 @@ test('no transition: all', () => {
 
 /**
  * stroke-dashoffset repaints a stroke, as fill and stroke do: the trace of the active part on the wide
- * board draws itself from DISP1 by its dash offset, and keeps it while it fades out (motion.css).
+ * board draws itself along its route by its dash offset, and keeps it while it fades out (motion.css).
  */
 test('transitions only on cheap properties', () => {
   const CHEAP = ['opacity', 'transform', 'translate', 'scale', 'color', 'background-color', 'border-color', 'outline-color', 'fill', 'stroke', 'stroke-dashoffset', 'display', 'overlay'];

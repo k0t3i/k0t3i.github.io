@@ -3,7 +3,7 @@ import { FR } from '../helpers/copy';
 
 /*
  * Interactions 1 and 2: the power-on of the board (once per session) and the current that follows
- * the pointer and the keyboard focus, from DISP1 to the part. Both only add to the page: the content
+ * the pointer and the keyboard focus, along the real route of the part. Both only add to the page: the content
  * is there and readable from the first paint, nothing moves, and reduced motion keeps everything still.
  */
 
@@ -93,7 +93,7 @@ test.describe('the current follows the pointer', () => {
     await expect.poll(() => litTraces(page)).toEqual(onlyLit('r1'));
     const r1 = page.locator('path.trace-live[data-part="r1"]');
     expect(await r1.evaluate((p) => getComputedStyle(p).stroke)).toBe(GOLD);
-    // Drawn all the way, from DISP1 to the part.
+    // Drawn all the way, from its via to the part.
     await expect.poll(() => r1.evaluate((p) => parseFloat(getComputedStyle(p).strokeDashoffset))).toBe(0);
 
     // Away from the part: dark again, and nothing left running but the ambient set.
@@ -106,12 +106,12 @@ test.describe('the current follows the pointer', () => {
 
   // The connectors of revision 7 (J3, J4) and the contact, now J5, as the others.
   for (const id of ['j3', 'j4', 'j5']) {
-    test(`a signal leaves DISP1 and runs along the trace to the part (${id})`, async ({ page }) => {
+    test(`a signal runs along the route of the part (${id})`, async ({ page }) => {
       await booted(page);
       await page.setViewportSize(WIDE);
       await open(page);
       const pulse = page.locator(`path.trace-pulse[data-part="${id}"]`);
-      // At rest the signal waits before the start of its route (at DISP1): nothing of it is drawn.
+      // At rest the signal waits before the start of its route: nothing of it is drawn.
       expect(await pulse.evaluate((p) => [p.getAttribute('d'), p.getAttribute('pathLength')])).toEqual(
         await page.locator(`path.trace-live[data-part="${id}"]`).evaluate((p) => [p.getAttribute('d'), p.getAttribute('pathLength')]),
       );
@@ -298,10 +298,10 @@ test.describe('the power-on', () => {
       // The flowing board: a glint runs down each bus.
       expect(names.filter((n) => n === 'boot-glint').length).toBeGreaterThanOrEqual(2);
     } else {
-      // The wide board: the trace of each part lights up from DISP1, a signal running ahead.
+      // The wide board: the route of each part lights up, a signal running ahead.
       expect(names.filter((n) => n === 'boot-trace')).toHaveLength(IDS.length);
       expect(names.filter((n) => n === 'boot-pulse')).toHaveLength(IDS.length);
-      // A cascade from DISP1 across the board: the connectors from J5 up to J1, then U2 to R1, all within the 1.2 s of the boot.
+      // A cascade across the board: the connectors from J5 (the power) up to J1, then U2 to R1, all within the 1.2 s of the boot.
       const timing = await page.locator('path.trace-live').evaluateAll((paths) =>
         paths.map((p) => {
           const t = p.getAnimations()[0]?.effect?.getTiming();

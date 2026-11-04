@@ -56,7 +56,8 @@ function front(net: string, d: string, w = 2): Trace {
 export const FRONT_ROUTES = {
   r1: front('LED_DRV', 'M1046 522H108L96 534V618L112 634H119'),
   c1: front('+3V3', 'M300 634H326'),
-  led1: front('LED_A', 'M158 634V614L174 598H510L535 623V634'),
+  // Low over C1, under the heading of the principles (its text grows down with the root font).
+  led1: front('LED_A', 'M158 634V618L164 612H519L535 628V634'),
   d1: front('ONEWIRE', 'M1100 600L1034 534H732L720 546V618L736 634H742'),
   u2: front('SDA', 'M1020 570L1012 562H950L936 576V633L950 647H962'),
   j1: front('EXT1', 'M1174 572V622L1186 634H1194'),
@@ -66,7 +67,11 @@ export const FRONT_ROUTES = {
   j5: front('VBUS', 'M1222 794L1210 806H1112L1100 794V760', 3),
 } as const satisfies Record<string, Trace>;
 
-/** The other traces of the front: U2, the ground and +3V3 stubs of its parts, SW2, TP1. */
+/**
+ * The other traces of the front: U2, the ground and +3V3 stubs of its parts, SW2, TP1. The copper of
+ * the header switches (JP1, SW2) is here, but the art does not draw it: the header lays them out in
+ * rem, so they move with the root font (tests/unit/front-copper.spec.ts).
+ */
 export const FRONT_TRACES: readonly Trace[] = [
   .../* @__PURE__ */ Object.values(FRONT_ROUTES),
   // U2: SCL beside SDA, then under the package into pin 2; its address pins (A0 to A2) and pin 4 to ground, VCC by pin 8.

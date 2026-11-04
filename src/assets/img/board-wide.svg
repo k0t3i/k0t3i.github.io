@@ -13,7 +13,7 @@
 <g fill="none" stroke="#fff" stroke-opacity=".055" stroke-linecap="round" stroke-linejoin="round">
 <path stroke-width="2" d="M1046 522H108L96 534V618L112 634H119"/>
 <path stroke-width="2" d="M300 634H326"/>
-<path stroke-width="2" d="M158 634V614L174 598H510L535 623V634"/>
+<path stroke-width="2" d="M158 634V618L164 612H519L535 628V634"/>
 <path stroke-width="2" d="M1100 600L1034 534H732L720 546V618L736 634H742"/>
 <path stroke-width="2" d="M1020 570L1012 562H950L936 576V633L950 647H962"/>
 <path stroke-width="2" d="M1174 572V622L1186 634H1194"/>
@@ -28,11 +28,7 @@
 <path stroke-width="2" d="M356 634H372"/>
 <path stroke-width="2" d="M567 634H584"/>
 <path stroke-width="2" d="M778 634H794"/>
-<path stroke-width="2" d="M1437 70V104L1470 137V430"/>
-<path stroke-width="2" d="M1428 70V86L1422 92"/>
-<path stroke-width="2" d="M1446 70V86L1452 92"/>
 <path stroke-width="2" d="M1066 252H1046"/>
-<path stroke-width="2" d="M1308 64V80L1388 160H1426V446H1462"/>
 </g>
 <g>
 <use href="#v" x="1046" y="522"/>
@@ -44,8 +40,6 @@
 <use href="#v" x="1158" y="670"/>
 <use href="#v" x="1150" y="700"/>
 <use href="#v" x="1100" y="760"/>
-<use href="#v" x="1470" y="430"/>
-<use href="#v" x="1462" y="446"/>
 <use href="#v" x="1203" y="722"/>
 <use href="#v" x="1211" y="712"/>
 <use href="#v" x="1219" y="722"/>
@@ -62,8 +56,6 @@
 <use href="#b" x="372" y="634"/>
 <use href="#b" x="584" y="634"/>
 <use href="#b" x="794" y="634"/>
-<use href="#b" x="1422" y="92"/>
-<use href="#b" x="1452" y="92"/>
 <use href="#b" x="1066" y="252"/>
 <use href="#b" x="1214" y="698"/>
 <use href="#b" x="1230" y="698"/>
