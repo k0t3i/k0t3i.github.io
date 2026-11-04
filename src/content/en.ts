@@ -1,6 +1,9 @@
 import { GITHUB_TEXT, SITE, project } from './site';
 import type { SiteContent } from './types';
 
+/** A soft hyphen: where a long name of the table may break, with its hyphen (no dictionary needed). */
+const SH = '­';
+
 // The names and links of the projects: site.json.
 const KIT = project('kitUrgence');
 const SPLITR = project('splitr');
@@ -53,17 +56,17 @@ export const en: SiteContent = {
       columns: { ref: 'Ref', part: 'Part', value: 'Value / skill', linked: 'Linked to' },
       // The part and the skill as they read in a sentence: the table capitalizes them (circuit/bom.ts).
       rows: [
-        { ref: 'U10', part: 'microcontroller', value: 'ESP32-S3 · 240 MHz · USB', skill: 'Vue.js', details: '2 → 3 · Composition API · SSR' },
+        { ref: 'U10', part: `micro${SH}controller`, value: 'ESP32-S3 · 240 MHz · USB', skill: 'Vue.js', details: '2 → 3 · Composition API · SSR' },
         { ref: 'U11', part: 'flash memory', value: 'W25Q128 · 16 MB QSPI', skill: 'TypeScript / JavaScript', details: 'strict · ES modules' },
-        { ref: 'U12', part: '3.3 V regulator', value: 'AP2112K · LDO 600 mA', skill: 'web performance', details: 'audits · Core Web Vitals' },
-        { ref: 'U13', part: 'USB protection', value: 'USBLC6-2 · ESD', skill: 'accessibility', details: 'WCAG 2.2 AA · product guidelines' },
-        { ref: 'U14', part: 'I/O expander', value: 'TCA9554 · 8 I/O I²C', skill: 'semantic HTML', details: 'landmarks · ARIA done right' },
+        { ref: 'U12', part: `3.3 V regu${SH}lator`, value: 'AP2112K · LDO 600 mA', skill: `web perfor${SH}mance`, details: 'audits · Core Web Vitals' },
+        { ref: 'U13', part: `USB protec${SH}tion`, value: 'USBLC6-2 · ESD', skill: `acces${SH}sibility`, details: 'WCAG 2.2 AA · product guidelines' },
+        { ref: 'U14', part: `I/O expan${SH}der`, value: 'TCA9554 · 8 I/O I²C', skill: `seman${SH}tic HTML`, details: 'landmarks · ARIA done right' },
         { ref: 'U15', part: 'LED driver', value: 'PCA9633 · 4 PWM channels', skill: 'CSS', details: 'layers · container queries · motion' },
-        { ref: 'U16', part: 'real-time clock', value: 'PCF8563 · uptime', skill: 'front-end architecture', details: 'components · migrations' },
-        { ref: 'U17', part: 'reset supervisor', value: 'APX803 · 2.93 V', skill: 'testing', details: 'unit · e2e · a11y' },
-        { ref: 'U18', part: 'light sensor', value: 'BH1750 · I²C', skill: 'electronics', details: 'Arduino · Raspberry Pi · IoT' },
+        { ref: 'U16', part: 'real-time clock', value: 'PCF8563 · uptime', skill: `front-end archi${SH}tecture`, details: 'components · migrations' },
+        { ref: 'U17', part: `reset super${SH}visor`, value: 'APX803 · 2.93 V', skill: 'testing', details: 'unit · e2e · a11y' },
+        { ref: 'U18', part: 'light sensor', value: 'BH1750 · I²C', skill: `electro${SH}nics`, details: 'Arduino · Raspberry Pi · IoT' },
         { ref: 'Y1', part: 'crystal', value: '40 MHz · ±10 ppm', skill: 'team', details: 'hiring · training · coaching' },
-        { ref: 'J6', part: 'debug header', value: 'UART + boot · 6 pins', skill: 'debugging', details: 'browsers · network · memory' },
+        { ref: 'J6', part: 'debug header', value: 'UART + boot · 6 pins', skill: `debug${SH}ging`, details: 'browsers · network · memory' },
       ],
       // « Relié à » of a part with no signal link (U12: power only).
       none: '—',
