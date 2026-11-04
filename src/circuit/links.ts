@@ -1,62 +1,70 @@
-import { DEVICES } from './devices';
-import { PARTS, netOf, pinsOf, type Net, type Part } from './netlist';
+import { NETS, PARTS, deviceOf, type Net } from './netlist';
 
 /**
- * The column « Relié à » of the bill of materials (spec 4.10), computed from the netlist. It runs at
- * test time only: tests/unit/circuit-bom.spec.ts writes its result for the eleven parts of the table
- * into bomLinks.ts, so that the page ships the links and not the whole netlist (the budget of JS).
+ * What a part is linked to (spec 4.10, « Relié à »), from the netlist: the real signal links.
+ * - Power and ground are not links; a series resistor, a pull-up, an RC filter, a clamp diode or a
+ *   test point is looked through, to the part on the other side (a passive of the front face, R1 or
+ *   D1, is named as well: its pads are on the page).
+ * - On a shared bus (I²C, SPI), a device is linked to the chip that masters it (U10) and to what it
+ *   serves, never to the other devices of the bus; the chip is linked to all of them.
+ * - A part with no signal at all (the regulator) is linked to the connector that feeds it.
+ * Also the nets each link runs on, for the light of the back face (live.ts).
  */
 
-/** The chip that is the master of the shared buses (Net.bus). */
-const MCU = 'U10';
+export const MASTER = 'U10';
 
-const partOf = (ref: string): Part => {
-  const p = PARTS.find((x) => x.ref === ref);
-  if (!p) throw new Error(`no part ${ref}`);
-  return p;
-};
-const refOf = (pin: string): string => pin.slice(0, pin.indexOf('.'));
-const pinNo = (pin: string): string => pin.slice(pin.indexOf('.') + 1);
+const partOf = (pin: string): string => pin.split('.')[0] ?? '';
+const transparent = (ref: string): boolean => Boolean((deviceOf(ref) as { transparent?: true }).transparent);
+const netsOfPart = (ref: string): Net[] => NETS.filter((n) => n.pins.some((p) => partOf(p) === ref));
 
-/**
- * The parts `ref` is linked to by a signal, in the order of the netlist (PARTS):
- * - signal nets only: power and ground are left out;
- * - resistors, capacitors, inductors, clamps and test points are looked through (a series resistor,
- *   a pull-up, an RC), to the part on their other side; a passive of the front face (R1, D1) is named
- *   all the same, as the spec asks for the parts of the front;
- * - a part with pins joined inside (the flow-through ESD array U13) is named, and looked through too;
- * - on a shared bus (I²C, SPI) a device is linked to the chip only, not to the other devices of the
- *   bus; the chip is linked to all of them.
- */
-export function linkedTo(ref: string): string[] {
-  const found = new Set<string>();
-  const seen = new Set<Net>();
-  const queue: Net[] = [];
-  const reach = (pin: string): void => {
-    const net = netOf(pin);
-    if (net && net.kind === 'signal' && !seen.has(net)) {
-      seen.add(net);
-      queue.push(net);
+export interface Link {
+  /** The part at the other end. */
+  to: string;
+  /** The nets the link runs on, from the part to it. */
+  nets: string[];
+}
+
+/** The links of a part: the parts it reaches through its signal nets, and the nets on the way. */
+export function linksOf(ref: string): Link[] {
+  const found = new Map<string, Set<string>>();
+  const reach = (to: string, nets: string[]) => {
+    const s = found.get(to) ?? new Set<string>();
+    for (const n of nets) s.add(n);
+    found.set(to, s);
+  };
+  // Walk the signal nets from the pins of the part; through a transparent part, on to its other pins.
+  const walk = (net: Net, path: string[], seen: Set<string>) => {
+    if (net.kind !== 'signal' || seen.has(net.name)) return;
+    seen.add(net.name);
+    const here = [...path, net.name];
+    for (const pin of net.pins) {
+      const other = partOf(pin);
+      if (other === ref) continue;
+      if (transparent(other)) {
+        // A passive of the front face is named too (its pads show on the page, spec 4.10), and looked through.
+        if (PARTS.find((p) => p.ref === other)?.face === 'front' && !(net.bus && ref !== MASTER)) reach(other, here);
+        for (const next of netsOfPart(other)) if (next !== net) walk(next, here, seen);
+        continue;
+      }
+      // A device of a bus reaches only its master on that bus.
+      if (net.bus && ref !== MASTER && other !== MASTER) continue;
+      reach(other, here);
     }
   };
-  for (const pin of pinsOf(ref)) reach(pin);
-  while (queue.length) {
-    const net = queue.shift() as Net;
-    const pins = net.bus && ref !== MCU ? net.pins.filter((p) => refOf(p) === MCU) : net.pins;
-    for (const pin of pins) {
-      const to = refOf(pin);
-      if (to === ref) continue;
-      const part = partOf(to);
-      const device = DEVICES[part.dev];
-      const transparent = 'transparent' in device;
-      if (!transparent || part.face === 'front') found.add(to);
-      if (transparent) for (const other of pinsOf(to)) reach(other);
-      const bridges: readonly (readonly [string, string])[] = 'bridges' in device ? device.bridges : [];
-      for (const [a, b] of bridges) {
-        if (pinNo(pin) === a) reach(`${to}.${b}`);
-        if (pinNo(pin) === b) reach(`${to}.${a}`);
-      }
+  for (const net of netsOfPart(ref)) walk(net, [], new Set());
+  if (!found.size) {
+    // No signal: the connectors that feed it (the regulator and J5).
+    const inputs = Object.entries(deviceOf(ref).pins).filter(([, [, type]]) => type === 'power').map(([pin]) => `${ref}.${pin}`);
+    for (const net of NETS.filter((n) => n.kind === 'power' && n.pins.some((p) => inputs.includes(p)))) {
+      for (const pin of net.pins) if (/^J\d/.test(partOf(pin)) && PARTS.find((p) => p.ref === partOf(pin))) reach(partOf(pin), [net.name]);
     }
   }
-  return PARTS.map((p) => p.ref).filter((r) => found.has(r));
+  return [...found].map(([to, nets]) => ({ to, nets: [...nets] })).sort((a, b) => order(a.to) - order(b.to));
 }
+
+/** The order of references: the order of the parts in the netlist (the table first, then the back, then the front). */
+export const order = (ref: string): number => PARTS.findIndex((p) => p.ref === ref);
+
+/** The parts a part is linked to, in order. */
+export const linkedTo = (ref: string): string[] => linksOf(ref).map((l) => l.to);
+

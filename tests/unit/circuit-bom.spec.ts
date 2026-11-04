@@ -21,12 +21,13 @@ describe('the parts a part is linked to', () => {
     for (const ref of BOM_REFS) expect(PARTS.find((p) => p.ref === ref)?.face, ref).toBe('back');
   });
 
-  it('follows the signals of the netlist, power and ground left out', () => {
+  it('follows the signals of the netlist, power and ground left out (links.ts)', () => {
     expect(Object.fromEntries(BOM_REFS.map((ref) => [ref, linkedTo(ref)]))).toEqual({
-      U10: ['U11', 'U13', 'U14', 'U15', 'U16', 'U17', 'U18', 'Y1', 'J6', 'J7', 'R1', 'LED1', 'D1', 'U2', 'J1', 'J2', 'J3', 'J4', 'J5', 'DISP1'],
+      // J5 is reached through U13, a part of its own: the chip is linked to U13.
+      U10: ['U11', 'U13', 'U14', 'U15', 'U16', 'U17', 'U18', 'Y1', 'J6', 'J7', 'R1', 'LED1', 'D1', 'U2', 'J1', 'J2', 'J3', 'J4', 'DISP1'],
       U11: ['U10'],
-      // The regulator has only power pins: no signal link.
-      U12: [],
+      // The regulator has only power pins: it is linked to the connector that feeds it.
+      U12: ['J5'],
       // Through the flow-through ESD array to the receptacle.
       U13: ['U10', 'J5'],
       // The spec's own example: the chip, then the three inputs it reads.

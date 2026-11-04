@@ -208,9 +208,9 @@ export const FR: Copy = {
     caption: `Nomenclature${NB}: les composants de la carte`,
     columns: ['Repère', 'Composant', 'Valeur / compétence', 'Relié à'],
     rows: bom([
-      ['U10', 'Microcontrôleur', 'ESP32-S3 · 240 MHz · USB', 'Vue.js · 2 → 3 · Composition API · SSR', 'U11 · U13–U18 · Y1 · J6 · J7 · R1 · LED1 · D1 · U2 · J1–J5 · DISP1', 'U10, microcontrôleur, Vue.js'],
+      ['U10', 'Microcontrôleur', 'ESP32-S3 · 240 MHz · USB', 'Vue.js · 2 → 3 · Composition API · SSR', 'U11 · U13–U18 · Y1 · J6 · J7 · R1 · LED1 · D1 · U2 · J1–J4 · DISP1', 'U10, microcontrôleur, Vue.js'],
       ['U11', 'Mémoire flash', 'W25Q128 · 16 Mo QSPI', 'TypeScript / JavaScript · strict · ES modules', 'U10', 'U11, mémoire flash, TypeScript / JavaScript'],
-      ['U12', 'Régulateur 3,3 V', 'AP2112K · LDO 600 mA', 'Performance web · audits · Core Web Vitals', '—', 'U12, régulateur 3,3 V, performance web'],
+      ['U12', 'Régulateur 3,3 V', 'AP2112K · LDO 600 mA', 'Performance web · audits · Core Web Vitals', 'J5', 'U12, régulateur 3,3 V, performance web'],
       ['U13', 'Protection USB', 'USBLC6-2 · ESD', 'Accessibilité · WCAG 2.2 AA · guidelines produit', 'U10 · J5', 'U13, protection USB, accessibilité'],
       ['U14', 'Extenseur d’E/S', 'TCA9554 · 8 E/S I²C', 'HTML sémantique · landmarks · ARIA juste', 'U10 · SW1 · SW2 · JP1', 'U14, extenseur d’E/S, HTML sémantique'],
       ['U15', 'Pilote de LED', 'PCA9633 · 4 canaux PWM', 'CSS · layers · container queries · motion', 'U10 · D2–D5', 'U15, pilote de LED, CSS'],
@@ -352,9 +352,9 @@ export const EN: Copy = {
     caption: 'Bill of materials: the parts on this board',
     columns: ['Ref', 'Part', 'Value / skill', 'Linked to'],
     rows: bom([
-      ['U10', 'Microcontroller', 'ESP32-S3 · 240 MHz · USB', 'Vue.js · 2 → 3 · Composition API · SSR', 'U11 · U13–U18 · Y1 · J6 · J7 · R1 · LED1 · D1 · U2 · J1–J5 · DISP1', 'U10, microcontroller, Vue.js'],
+      ['U10', 'Microcontroller', 'ESP32-S3 · 240 MHz · USB', 'Vue.js · 2 → 3 · Composition API · SSR', 'U11 · U13–U18 · Y1 · J6 · J7 · R1 · LED1 · D1 · U2 · J1–J4 · DISP1', 'U10, microcontroller, Vue.js'],
       ['U11', 'Flash memory', 'W25Q128 · 16 MB QSPI', 'TypeScript / JavaScript · strict · ES modules', 'U10', 'U11, flash memory, TypeScript / JavaScript'],
-      ['U12', '3.3 V regulator', 'AP2112K · LDO 600 mA', 'Web performance · audits · Core Web Vitals', '—', 'U12, 3.3 V regulator, web performance'],
+      ['U12', '3.3 V regulator', 'AP2112K · LDO 600 mA', 'Web performance · audits · Core Web Vitals', 'J5', 'U12, 3.3 V regulator, web performance'],
       ['U13', 'USB protection', 'USBLC6-2 · ESD', 'Accessibility · WCAG 2.2 AA · product guidelines', 'U10 · J5', 'U13, USB protection, accessibility'],
       ['U14', 'I/O expander', 'TCA9554 · 8 I/O I²C', 'Semantic HTML · landmarks · ARIA done right', 'U10 · SW1 · SW2 · JP1', 'U14, I/O expander, semantic HTML'],
       ['U15', 'LED driver', 'PCA9633 · 4 PWM channels', 'CSS · layers · container queries · motion', 'U10 · D2–D5', 'U15, LED driver, CSS'],
