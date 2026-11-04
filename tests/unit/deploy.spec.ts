@@ -141,6 +141,8 @@ describe('a deploy in a throwaway repository (no remote)', () => {
     git(root, 'init', '--quiet', '--initial-branch=master');
     git(root, 'config', 'user.name', 'Builder');
     git(root, 'config', 'user.email', 'builder@example.invalid');
+    // Files as written, whatever the machine's own setting (no line-ending warning in the output).
+    git(root, 'config', 'core.autocrlf', 'false');
     // The old build: a page the new one changes, a page it keeps byte for byte, a file it drops.
     write(root, { 'index.html': 'old', '404.html': GOOD['404.html'] ?? '', 'assets/old.js': 'old' });
     git(root, 'add', '--all');
