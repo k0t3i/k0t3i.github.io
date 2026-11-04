@@ -1,15 +1,15 @@
-// Validates the built pages of dist/: html-validate, the Nu HTML checker (vnu, --Werror)
-// and the font glyph coverage (scripts/fonts.py check).
+// Validates the built pages of dist/ (DIST_DIR, as for the build): html-validate, the Nu HTML checker
+// (vnu, --Werror) and the font glyph coverage (scripts/fonts.py check).
 import { spawnSync } from 'node:child_process';
 import { existsSync, readdirSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const dist = join(root, 'dist');
+const dist = resolve(root, process.env.DIST_DIR || 'dist');
 
 if (!existsSync(dist)) {
-  console.error('validate: dist/ does not exist, run `npm run build` first.');
+  console.error(`validate: ${dist} does not exist, run \`npm run build\` first.`);
   process.exit(1);
 }
 
@@ -20,7 +20,7 @@ const htmlOf = (dir) =>
 const pages = htmlOf(dist);
 
 if (pages.length === 0) {
-  console.error('validate: dist/ contains no HTML page.');
+  console.error(`validate: ${dist} contains no HTML page.`);
   process.exit(1);
 }
 
