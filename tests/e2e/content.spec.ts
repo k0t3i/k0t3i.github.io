@@ -68,10 +68,14 @@ for (const copy of [FR, EN] as Copy[]) {
     });
 
     test('the project and contact sheets', async ({ page }) => {
-      // Four projects, each with the name and the link of site.json, then the contact.
-      expect(copy.connectors.filter((p) => p.link).map((p) => [p.label, p.link?.href])).toEqual(
-        Object.values(SITE.projects).map((p) => [p.name, absolute(p.href)]),
+      // The sheets with a project link, as the page renders them, in their order: the four projects, with
+      // the name and the link of site.json.
+      const rendered = await page.locator('.sheet').evaluateAll((sheets) =>
+        sheets
+          .filter((s) => s.querySelector('a.sheet__link'))
+          .map((s) => [s.querySelector('.sheet__title')?.textContent?.trim(), s.querySelector('a.sheet__link')?.getAttribute('href')]),
       );
+      expect(rendered).toEqual(Object.values(SITE.projects).map((p) => [p.name, absolute(p.href)]));
       for (const part of copy.connectors) {
         if (part.link) {
           const link = page.locator(`#sheet-${part.id} a.sheet__link`);

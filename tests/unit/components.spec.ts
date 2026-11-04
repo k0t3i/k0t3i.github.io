@@ -146,13 +146,19 @@ describe('PartSheet', () => {
   });
 
   it('every project sheet gives the name and the link of site.json, with the text of annex A', () => {
-    const names = Object.values(ORACLE_SITE.projects).map((p) => p.name);
     for (const [content, oracle] of [
       [fr, ORACLE_FR],
       [en, ORACLE_EN],
     ] as const) {
+      // The sheets of the projects as they render, in their order: the name and the link of site.json.
+      const rendered = content.connectors
+        .filter((p) => p.link)
+        .map((p) => {
+          const sheet = mount(PartSheet, { props: { part: p, close: content.close } });
+          return [sheet.get('h3.sheet__title').text(), sheet.get('a.sheet__link').attributes('href')];
+        });
+      expect(rendered).toEqual(Object.values(ORACLE_SITE.projects).map((p) => [p.name, absolute(p.href)]));
       const projects = oracle.connectors.filter((c) => c.link);
-      expect(projects.map((c) => c.label)).toEqual(names);
       for (const c of projects) {
         const wrapper = mount(PartSheet, { props: { part: part(content, c.id), close: content.close } });
         expect(wrapper.get('h3.sheet__title').text(), c.id).toBe(c.label);
