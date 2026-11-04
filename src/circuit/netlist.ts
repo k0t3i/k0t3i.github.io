@@ -113,6 +113,16 @@ export const PARTS: readonly Part[] = [
   part('TP3', 'tp', 'GND'),
   part('TP4', 'tp', 'EN'),
   // The front face: its principles, its connectors, its switches, its display, its test point.
+  // The values of the four principles are printed on the front (DISP1's readouts, content/readouts.ts),
+  // so they stay what the page says:
+  // - R1, 10 kΩ: LED1 as a dim status indicator, (3.3 V − 2.0 V) / 10 kΩ ≈ 0.13 mA, the brightness of a
+  //   standby light; its readout « 20mA » is the rated current of the LED, not what it draws here.
+  // - C1, 100 nF: a high-frequency bypass of the 3.3 V rail at the far end of its run on the front (the
+  //   row of the principles, where no chip decouples it); the bulk capacitance of the rail is C3
+  //   (10 µF) at the output of the regulator.
+  // - D1, 1N4148: the clamp of the 1-Wire line to 3.3 V; at about 0.7 V it lets a fault lift the line
+  //   to about 4 V, above the 3.6 V the ESP32-S3 allows: a Schottky (BAT54 class) would hold it under,
+  //   but the readout names the 1N4148 (left to Anthony, task 17 report).
   front('R1', 'r0805', '10 kΩ'),
   front('C1', 'c0805', '100 nF'),
   front('LED1', 'led0805', 'amber'),
