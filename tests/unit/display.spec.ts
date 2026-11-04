@@ -162,6 +162,32 @@ describe('useDisplay', () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 
+  it('SW1 pressed while the readout of a part just left lingers shows the screen it chose at once', async () => {
+    const { d, board } = mountDisplay();
+    // From J3 to SW1 (Tab, or the mouse): J3's readout would stay READOUT_HOLD_MS.
+    board.setActive('j3');
+    await nextTick();
+    board.setActive(null);
+    await nextTick();
+    expect(d.screen.value).toBe('readout');
+    d.cycle();
+    // The screen is the one the caption now names.
+    expect(d.chosen.value).toBe('uptime');
+    expect(d.screen.value).toBe('uptime');
+    expect(d.part.value).toBeNull();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('a part still pointed at keeps its readout over the screen SW1 chose', async () => {
+    const { d, board } = mountDisplay();
+    board.setActive('r1');
+    await nextTick();
+    d.cycle();
+    expect(d.chosen.value).toBe('uptime');
+    expect(d.screen.value).toBe('readout');
+    expect(d.part.value).toBe('r1');
+  });
+
   it('cycle avatar → uptime → morse → avatar', () => {
     const { d } = mountDisplay();
     const seen = [d.screen.value];

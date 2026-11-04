@@ -106,8 +106,14 @@ export function useDisplay(locale: () => Locale): Display {
   }
 
   function cycle(): void {
-    // The visitor acts: the power-on ends, so the screen shows what the caption now names.
+    // The visitor acts: the power-on ends, and the readout of a part left a moment ago goes, so the
+    // screen shows what the caption now names (a part still pointed at keeps its readout).
     endBoot();
+    if (!activePart.value) {
+      clearTimeout(hold);
+      hold = undefined;
+      part.value = null;
+    }
     chosen.value = NEXT[chosen.value];
     if (chosen.value === 'morse') sendMorse();
     else stopMorse();
