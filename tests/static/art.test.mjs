@@ -43,6 +43,49 @@ test('art is a static decorative SVG', () => {
   for (const d of artDs) assert.match(d, /^(M\d+ \d+([HV]\d+|L\d+ \d+)+)+$/, `path "${d}" is not integer M/H/V/L`);
 });
 
+/** The points of a path of the art (M, H, V and L only), in art units. */
+function points(d) {
+  const out = [];
+  let at = [0, 0];
+  for (const [, cmd, args] of d.matchAll(/([MHVL])([^MHVL]*)/g)) {
+    const n = args.trim().split(/\s+/).map(Number);
+    at = cmd === 'H' ? [n[0], at[1]] : cmd === 'V' ? [at[0], n[0]] : [n[0], n[1]];
+    out.push(at);
+  }
+  return out;
+}
+const segments = (pts) => pts.slice(1).map((p, i) => [pts[i], p]);
+function toSegment([px, py], [[ax, ay], [bx, by]]) {
+  const [dx, dy] = [bx - ax, by - ay];
+  const t = dx || dy ? Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy))) : 0;
+  return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+}
+function between(s, t) {
+  const cross = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+  const [a, b] = s;
+  const [c, d] = t;
+  if (cross(a, b, c) * cross(a, b, d) < 0 && cross(c, d, a) * cross(c, d, b) < 0) return 0;
+  return Math.min(toSegment(a, t), toSegment(b, t), toSegment(c, s), toSegment(d, s));
+}
+
+test('the traces of the art never cross, and two traces that do not meet keep 8 units apart', () => {
+  const traces = tags(ART, 'path')
+    .filter((p) => p['stroke-width'])
+    .map((p) => ({ d: p.d, pts: points(p.d) }));
+  assert.ok(traces.length >= 18, `${traces.length} traces`);
+  for (const [i, a] of traces.entries()) {
+    for (const b of traces.slice(i + 1)) {
+      let gap = Infinity;
+      for (const s of segments(a.pts)) for (const t of segments(b.pts)) gap = Math.min(gap, between(s, t));
+      if (gap >= 8) continue;
+      // They may only meet at the end of one of them: a pad both leave from, or a test point on a trace.
+      const ends = [a.pts[0], a.pts.at(-1), b.pts[0], b.pts.at(-1)];
+      const meet = ends.some((e) => segments(a.pts).some((s) => toSegment(e, s) < 0.01) && segments(b.pts).some((s) => toSegment(e, s) < 0.01));
+      assert.ok(gap < 0.01 && meet, `${a.d} and ${b.d}: ${gap.toFixed(1)} units apart`);
+    }
+  }
+});
+
 test('art text colors meet contrast', () => {
   const texts = tags(ART, 'text');
   assert.ok(texts.length > 0, 'the art prints some silkscreen');
