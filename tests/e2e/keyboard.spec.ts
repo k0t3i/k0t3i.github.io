@@ -35,6 +35,13 @@ test('tab order', async ({ page, browserName, isMobile }) => {
   // The SW2 of the back face is inert while the front face is up: out of the tab order.
   const buttons = ['jp1', 'sw2', 'sw1', ...IDS.map((id) => `sheet-${id}`)];
   expect(seen).toEqual(withLinks ? ['skip', 'lang:fr', 'lang:en', ...buttons] : buttons);
+  if (!withLinks) {
+    // WebKit: each link before JP1 takes the focus (their place in the order: the DOM-order test below).
+    for (const link of [page.locator('.skip-link'), page.locator('.lang__link[hreflang="fr"]'), page.locator('.lang__link[hreflang="en"]')]) {
+      await link.focus();
+      await expect(link).toBeFocused();
+    }
+  }
 });
 
 test('focusable elements are in the DOM order, with no positive tabindex', async ({ page }) => {
