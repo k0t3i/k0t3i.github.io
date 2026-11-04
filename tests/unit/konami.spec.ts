@@ -29,16 +29,17 @@ describe('the code', () => {
     expect(feed(detect, keys)).toEqual([...Array(9).fill(false), true]);
   });
 
-  it('a wrong key sets it back to the start, or to its first key when it is one', () => {
+  it('a wrong key sets it back to the longest start of the code that the keys typed end with', () => {
     const detect = codeDetector();
     // ↑ ↑ ↓ then a wrong key: from the start again.
     expect(feed(detect, ['up', 'up', 'down', null, ...CODE])).toEqual([false, false, false, false, ...Array(9).fill(false), true]);
     // ↑ ↑ ↓ ↓ ← then ↑ (wrong here, and the first key of the code): progress is 1, so ↑ ↓ ↓ … completes it.
     expect(feed(detect, ['up', 'up', 'down', 'down', 'left', 'up', ...CODE.slice(1)])).toEqual([...Array(14).fill(false), true]);
-    // ↑ ↑ ↑ : the third is wrong, and the first of the code: progress 1, not 2 (↑ ↓ ↓ … then completes
-    // it, ↓ ↓ … does not).
-    expect(feed(detect, ['up', 'up', 'up', ...CODE.slice(1)])).toEqual([...Array(11).fill(false), true]);
-    expect(feed(codeDetector(), ['up', 'up', 'up', ...CODE.slice(2)])).toEqual(Array(11).fill(false));
+    // ↑ ↑ ↑ : the keys typed end with ↑ ↑, the start of the code: progress 2, so ↑ ↑ ↑ ↓ ↓ ← → ← → B A completes it.
+    expect(feed(detect, ['up', 'up', 'up', ...CODE.slice(2)])).toEqual([...Array(10).fill(false), true]);
+    expect(feed(codeDetector(), ['up', 'up', 'up', 'up', ...CODE.slice(2)])).toEqual([...Array(11).fill(false), true]);
+    // ↑ ↑ ↓ ↓ ← → ← → ↑ ↑ (a slip after the arrows): the last two keys start it again.
+    expect(feed(codeDetector(), [...CODE.slice(0, 8), 'up', 'up', ...CODE.slice(2)])).toEqual([...Array(17).fill(false), true]);
   });
 
   it('by touch, a tap of DISP1 stands for B, then A, and for nothing else', () => {

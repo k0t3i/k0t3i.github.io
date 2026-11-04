@@ -20,19 +20,20 @@ export function codeKey(key: string): CodeKey | null | undefined {
 }
 
 /**
- * Follows the steps typed or swiped: true on the step that completes the code. A wrong step sets it
- * back to the start, or to its first step when it is one. A tap stands for B, then for A.
+ * Follows the steps typed or swiped: true on the step that completes the code. After a wrong step it
+ * goes on from the longest start of the code that the steps typed end with (↑ ↑ ↑: still two steps
+ * in). A tap stands for B, then for A.
  */
 export function codeDetector(): (key: CodeKey | null) => boolean {
   let at = 0;
   const fits = (i: number, key: CodeKey | null): boolean => key === CODE[i] || (key === 'tap' && i >= 8);
   return (key) => {
-    if (!fits(at, key)) {
-      at = fits(0, key) ? 1 : 0;
-      return false;
-    }
-    at = (at + 1) % CODE.length;
-    return at === 0;
+    const typed = [...CODE.slice(0, at), key];
+    at = 0;
+    for (let n = typed.length; n > 0 && !at; n--) if (typed.slice(-n).every((k, i) => fits(i, k))) at = n;
+    if (at < CODE.length) return false;
+    at = 0;
+    return true;
   };
 }
 
