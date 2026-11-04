@@ -1,5 +1,6 @@
 import { PACKAGES } from '../lib/packages';
 import { BACK_PARTS, BACK_NETS, CIRCUIT_VIEW, netPoints, type BackPart, type Point } from './backNets';
+import { BACK_PASSIVES, STUBS, passiveBox, passiveRef, stubPoints } from './backPassives';
 
 /**
  * The copper of the back face that names nothing: what a real bottom side shows besides its parts.
@@ -8,7 +9,8 @@ import { BACK_PARTS, BACK_NETS, CIRCUIT_VIEW, netPoints, type BackPart, type Poi
  *   GND, square, at its right end now), SW1, J1, J2 and the shield tabs of J3;
  * - the mounting holes in the corners, each with its ring of stitching vias, and the fiducials;
  * - the ground pour under the circuit, cut back round every trace, part and pad, its ground pads
- *   joined to it by thermal spokes, and stitched to the ground plane by vias wherever it is free.
+ *   joined to it by thermal spokes, and stitched to the ground plane by vias wherever it is free
+ *   (the passive parts, content/backPassives.ts, included).
  */
 
 export interface ThroughHole {
@@ -116,13 +118,16 @@ function nearSegment([px, py]: Point, [ax, ay]: Point, [bx, by]: Point): number 
 
 /**
  * The stitching vias: a staggered grid of 32 units over the pour, kept 12 units clear of every
- * trace, part, reference, pad and of the edge of the pour.
+ * trace, part (skill or passive), reference, pad and of the edge of the pour.
  */
 function stitching(): Point[] {
   const step = 32;
   const keep = 12;
-  const boxes = BACK_PARTS.flatMap((p) => [{ x: p.x, y: p.y, w: PACKAGES[p.pkg].w, h: PACKAGES[p.pkg].h }, labelRoom(p)]);
-  const traces = BACK_NETS.map(netPoints);
+  const boxes = [
+    ...BACK_PARTS.flatMap((p) => [{ x: p.x, y: p.y, w: PACKAGES[p.pkg].w, h: PACKAGES[p.pkg].h }, labelRoom(p)]),
+    ...BACK_PASSIVES.flatMap((p) => [passiveBox(p), passiveRef(p).room]),
+  ];
+  const traces = [...BACK_NETS.map(netPoints), ...STUBS.map(stubPoints)];
   const out: Point[] = [];
   for (let row = 0, y = POUR.y + step / 2; y < POUR.y + POUR.h - keep; row++, y += step) {
     for (let x = POUR.x + step / 2 + (row % 2) * (step / 2); x < POUR.x + POUR.w - keep; x += step) {

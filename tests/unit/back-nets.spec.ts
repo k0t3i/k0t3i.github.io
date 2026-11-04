@@ -4,8 +4,10 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { BACK_NETS as ORACLE_NETS, EN, FR } from '../helpers/copy';
 import { BACK_NETS, BACK_PARTS, BACK_REFS, CIRCUIT_VIEW, linkedTo, netPoints, type BackPart } from '../../src/content/backNets';
-import { FRONT_PADS, HOLES } from '../../src/content/backCopper';
+import { FIDUCIALS, FRONT_PADS, HOLES, POUR, STITCH, VIA, labelRoom } from '../../src/content/backCopper';
+import { BACK_PASSIVES, PASSIVE_REF, STUBS, passiveBox, passivePad, passiveRef, passiveUse, stubPoints } from '../../src/content/backPassives';
 import { PACKAGES, padCenter } from '../../src/lib/packages';
+import { PASSIVES, PASSIVE_IDS } from '../../src/lib/passives';
 import { en } from '../../src/content/en';
 import { fr } from '../../src/content/fr';
 
@@ -122,5 +124,124 @@ describe('the nets of the back face', () => {
       for (const q of BACK_PARTS.slice(i + 1)) expect(apart(grow(box, 24), footprint(q)), `${p.ref} / ${q.ref}`).toBe(true);
       for (const d of FRONT_PADS) expect(apart(grow(box, 10), { x: d.x - d.r, y: d.y - d.r, w: 2 * d.r, h: 2 * d.r }), `${p.ref} by ${d.x},${d.y}`).toBe(true);
     }
+  });
+});
+
+describe('the passive parts of the back face', () => {
+  const within = (a: Box, b: Box): boolean => a.x >= b.x && a.y >= b.y && a.x + a.w <= b.x + b.w && a.y + a.h <= b.y + b.h;
+  const pad = (d: { x: number; y: number; r: number }): Box => ({ x: d.x - d.r, y: d.y - d.r, w: 2 * d.r, h: 2 * d.r });
+
+  it('are decoration of every kind, each with a reference of its kind, smaller than the skills', () => {
+    const refs = BACK_PASSIVES.map((p) => p.ref);
+    expect(new Set(refs).size).toBe(refs.length);
+    const letter = { c0603: 'C', tant: 'C', elec: 'C', r0805: 'R', led: 'D', xtal: 'Y', ind: 'L' } as const;
+    for (const p of BACK_PASSIVES) expect(p.ref).toMatch(new RegExp(`^${letter[p.pkg]}\\d+$`));
+    // Every package, an LED of each colour.
+    expect(new Set(BACK_PASSIVES.map((p) => p.pkg))).toEqual(new Set(PASSIVE_IDS));
+    expect(new Set(BACK_PASSIVES.filter((p) => p.pkg === 'led').map((p) => p.tone))).toEqual(new Set(['amber', 'blue', 'green', 'red']));
+    // Never a skill: no reference of the bill of materials.
+    for (const p of BACK_PASSIVES) expect([...BACK_REFS] as string[]).not.toContain(p.ref);
+    // The skills stay the subject: every passive under half the mean area of a skill.
+    const mean = BACK_PARTS.reduce((sum, q) => sum + PACKAGES[q.pkg].w * PACKAGES[q.pkg].h, 0) / BACK_PARTS.length;
+    for (const p of BACK_PASSIVES) {
+      const b = passiveBox(p);
+      expect(b.w * b.h, p.ref).toBeLessThan(mean / 2);
+    }
+  });
+
+  it('passives are decorative and clear of the meaningful copper', () => {
+    const pour = grow(POUR, -8);
+    for (const p of BACK_PASSIVES) {
+      const b = passiveBox(p);
+      const label = passiveRef(p).room;
+      for (const box of [b, label]) expect(within(box, pour), `${p.ref} inside the pour`).toBe(true);
+      for (const q of BACK_PARTS) {
+        // Never under a part or on its reference, the reference of a passive neither.
+        expect(apart(grow(b, 6), footprint(q)), `${p.ref} by ${q.ref}`).toBe(true);
+        expect(apart(grow(b, 2), labelRoom(q)), `${p.ref} on the reference of ${q.ref}`).toBe(true);
+        expect(apart(label, footprint(q)), `reference of ${p.ref} on ${q.ref}`).toBe(true);
+        expect(apart(label, labelRoom(q)), `reference of ${p.ref} on the reference of ${q.ref}`).toBe(true);
+      }
+      // Never on a net, which keeps its clearance from them.
+      for (const net of BACK_NETS) {
+        for (const s of segments(netPoints(net))) {
+          expect(crosses(s, grow(b, 9)), `${net.id} by ${p.ref}`).toBe(false);
+          expect(crosses(s, grow(label, 3)), `${net.id} on the reference of ${p.ref}`).toBe(false);
+        }
+      }
+      // Never on a through-hole pad, a mounting hole or a fiducial.
+      for (const d of FRONT_PADS) expect(apart(grow(b, 8), pad(d)), `${p.ref} by ${d.x},${d.y}`).toBe(true);
+      for (const [x, y] of [...HOLES, ...FIDUCIALS]) expect(apart(grow(b, 8), pad({ x, y, r: 15 })), `${p.ref} by ${x},${y}`).toBe(true);
+    }
+    // Apart from each other, their references included.
+    const rooms = BACK_PASSIVES.map((p) => [passiveBox(p), passiveRef(p).room] as const);
+    for (const [i, [b, l]] of rooms.entries()) {
+      for (const [k, [c, m]] of rooms.slice(i + 1).entries()) {
+        const q = BACK_PASSIVES[i + 1 + k]?.ref;
+        for (const [x, y] of [[b, c], [b, m], [l, c], [l, m]] as const) expect(apart(grow(x, 2), y), `${BACK_PASSIVES[i]?.ref} / ${q}`).toBe(true);
+      }
+    }
+  });
+
+  it('the short traces of the decoupling capacitors are ordinary copper, clear of the nets', () => {
+    expect(STUBS.length).toBeGreaterThan(5);
+    const used = new Set(BACK_NETS.flatMap((n) => [`${n.from} ${n.pins[0]}`, `${n.to} ${n.pins[1]}`]));
+    for (const stub of STUBS) {
+      const pts = stubPoints(stub);
+      const id = `${stub.from} to ${stub.to}`;
+      for (const [x, y] of pts) expect(Number.isInteger(x) && Number.isInteger(y), `${id} ${x},${y}`).toBe(true);
+      for (const [[ax, ay], [bx, by]] of segments(pts)) {
+        const [dx, dy] = [Math.abs(bx - ax), Math.abs(by - ay)];
+        expect(dx === 0 || dy === 0 || dx === dy, `${id} at 45°`).toBe(true);
+        expect(dx + dy, `${id}: a segment of no length`).toBeGreaterThan(0);
+      }
+      // Short, from a pad of its passive to a pin of its chip that no net uses.
+      const length = segments(pts).reduce((sum, [[ax, ay], [bx, by]]) => sum + Math.hypot(bx - ax, by - ay), 0);
+      expect(length, id).toBeLessThan(48);
+      expect(used.has(`${stub.to} ${stub.pin}`), `${id}: pin ${stub.pin} carries a net`).toBe(false);
+      // Clear of every net, and of the bodies of the parts, its own chip's body included.
+      for (const net of BACK_NETS) {
+        let gap = Infinity;
+        for (const a of segments(pts)) for (const b of segments(netPoints(net))) gap = Math.min(gap, between(a, b));
+        expect(gap, `${id} / ${net.id}`).toBeGreaterThanOrEqual(10);
+      }
+      for (const q of BACK_PARTS) {
+        const keep = q.ref === stub.to ? body(q) : grow(footprint(q), 6);
+        for (const sgm of segments(pts)) expect(crosses(sgm, keep), `${id} through ${q.ref}`).toBe(false);
+        for (const sgm of segments(pts)) expect(crosses(sgm, labelRoom(q)), `${id} on the reference of ${q.ref}`).toBe(false);
+      }
+      for (const p of BACK_PASSIVES) {
+        for (const sgm of segments(pts)) expect(crosses(sgm, grow(passiveRef(p).room, 1)), `${id} on the reference of ${p.ref}`).toBe(false);
+        if (p.ref !== stub.from) for (const sgm of segments(pts)) expect(crosses(sgm, grow(passiveBox(p), 4)), `${id} through ${p.ref}`).toBe(false);
+      }
+    }
+  });
+
+  it('the stitching vias keep clear of the passives and their references', () => {
+    for (const p of BACK_PASSIVES) {
+      for (const box of [passiveBox(p), passiveRef(p).room]) {
+        const near = STITCH.filter(([x, y]) => !apart(grow(box, VIA.r + 4), { x, y, w: 0, h: 0 }));
+        expect(near, p.ref).toEqual([]);
+      }
+    }
+  });
+
+  it('a turned part stays on whole units, its pads within its box', () => {
+    for (const p of BACK_PASSIVES) {
+      const use = passiveUse(p);
+      for (const v of [use.x, use.y, use.width, use.height]) expect(Number.isInteger(v), p.ref).toBe(true);
+      const b = passiveBox(p);
+      for (const n of PASSIVES[p.pkg].pads.keys()) {
+        if (n > 1) continue;
+        const [x, y] = passivePad(p, (n + 1) as 1 | 2);
+        expect(x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h, `${p.ref} pad ${n + 1}`).toBe(true);
+      }
+    }
+  });
+
+  it('the stylesheet prints their references at the size the data makes room for', () => {
+    const css = readFileSync(new URL('../../src/styles/back.css', import.meta.url), 'utf8');
+    const rule = css.match(/.back__psv-ref {([^}]*)}/)?.[1] ?? '';
+    expect(rule).toMatch(new RegExp(`font: 500 ${PASSIVE_REF.size}px`));
   });
 });

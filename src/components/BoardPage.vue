@@ -18,7 +18,7 @@ import UptimeCounter from './UptimeCounter.vue';
 const props = defineProps<{ content: SiteContent }>();
 
 /*
- * The board is an object with two faces and an edge. It leans towards a mouse on the wide board
+ * The board is an object with two faces and an edge. It leans towards a mouse at every width
  * (useTilt) and SW2 turns it over (useFlip): both write their state on the board element itself,
  * on the client only.
  */

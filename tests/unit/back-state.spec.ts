@@ -86,6 +86,30 @@ describe('BackFace, the parts group', () => {
     }
   });
 
+  it('the arrows with Alt, Ctrl or Meta are left to the browser and the screen reader', async () => {
+    wrapper = mount(Harness, { attachTo: document.body });
+    await nextTick();
+    (parts()[0]?.element as HTMLElement).focus();
+    const group = wrapper.get('[role="group"]');
+    for (const [key, mod] of [
+      ['ArrowRight', 'altKey'],
+      ['ArrowLeft', 'altKey'],
+      ['Home', 'ctrlKey'],
+      ['End', 'ctrlKey'],
+      ['ArrowDown', 'metaKey'],
+    ] as const) {
+      const event = new KeyboardEvent('keydown', { key, [mod]: true, bubbles: true, cancelable: true });
+      group.element.dispatchEvent(event);
+      await nextTick();
+      expect(event.defaultPrevented, `${mod} ${key}`).toBe(false);
+      expect(tabStops(), `${mod} ${key}`).toEqual(['U10']);
+      expect((document.activeElement as HTMLElement).dataset.ref).toBe('U10');
+    }
+    // Without them, the arrows still move.
+    await group.trigger('keydown', { key: 'ArrowRight' });
+    expect(tabStops()).toEqual(['U11']);
+  });
+
   it('a click pins (aria-pressed), a second one unpins, Escape unpins', async () => {
     wrapper = mount(Harness, { attachTo: document.body });
     await nextTick();

@@ -25,6 +25,12 @@
   initial-value: 0deg;
 }
 
+/* The middle of the part of the board in view, from its top (useTilt.ts): unset, the fallbacks below. */
+@property --tilt-oy {
+  syntax: "*";
+  inherits: false;
+}
+
 @layer depth {
   .board {
     /* The thickness of the edge seen under the face: FR4 between two layers of solder mask. */
@@ -171,6 +177,56 @@
   .board[data-tilting] .board__body,
   .board[data-turning] .board__body {
     transform-style: preserve-3d;
+  }
+
+  /*
+   * In 3D the body is in the plane of the face that is up: a pointer could land on the body itself
+   * instead of the part under it (one side of the back face, turned over inside it). Only the faces
+   * take the pointer.
+   */
+  .board:is([data-tilting], [data-turning]) .board__body {
+    pointer-events: none;
+  }
+
+  .board:is([data-tilting], [data-turning]) .board__face {
+    pointer-events: auto;
+  }
+
+  /*
+   * The flowing board is taller than the window: it leans about the middle of the part in view
+   * (--tilt-oy, useTilt.ts) and is seen from there, its perspective in its own transform, so what is
+   * in view leans as the wide board does and no far edge dives. Without --tilt-oy (a turn with no
+   * mouse) that point is the middle of the board, where the perspective of the board was.
+   */
+  @media (width < 79rem) {
+    :root[data-js] .board--home {
+      perspective: none;
+    }
+
+    .board[data-tilting] .board__body,
+    .board[data-tilting] .board__edge,
+    .board[data-turning] .board__body,
+    .board[data-turning] .board__edge {
+      transform: perspective(2400px) rotateX(var(--tilt-x, 0deg)) rotateY(calc(var(--tilt-y, 0deg) + var(--flip, 0deg)));
+    }
+
+    .board:is([data-tilting], [data-turning]) .board__body {
+      transform-origin: 50% var(--tilt-oy, 50%);
+    }
+
+    :root[data-js] .board--home:is([data-tilting], [data-turning]) .board__edge {
+      transform-origin: 50% var(--tilt-oy, calc(50% - (1px + var(--thick)) / 2));
+    }
+
+    /*
+     * A far corner of the leaning board, out of view, may come out of its sides by more than the
+     * margin of the page: it is cut 0.5rem from them, so the page never scrolls sideways (its soft
+     * shadow is lost there, the faint end of it).
+     */
+    .board--home[data-tilting]:not([data-turning]) {
+      overflow-x: clip;
+      overflow-clip-margin: 0.5rem;
+    }
   }
 
   .board[data-tilting] .board__face--back,

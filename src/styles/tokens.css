@@ -9,8 +9,9 @@
 /*
  * Two boards. The green one, on a light page, is the default (no preference, robots, link previews);
  * the matte black one follows a dark device scheme. A choice made with JP1 sets data-theme on <html>
- * and wins over the device. Only the mask, the traces, the page, the dim silkscreen, the sheets and
- * the shadow of the board change: the gold, the silkscreen, the holes and DISP1 are the same.
+ * and wins over the device. Only the mask, the traces, the page, the dim silkscreen, the sheets, the
+ * shadow of the board, the second colour of the back face and the pale parts of its passives change:
+ * the gold, the silkscreen, the holes and DISP1 are the same.
  */
 @layer tokens {
   :root {
@@ -22,6 +23,12 @@
     --trace: #174a39;
     --silk-dim: #b3b8a6;
     --sheet-bg: #0b2b20;
+    /*
+     * The second colour of the back face: the parts linked to the one that is lit (gold), their rows
+     * and their references. A cool tone, apart from the gold on both masks; text in it stays AA.
+     */
+    --linked: #86c6e3;
+    --pad-linked: #6eb3d3;
     /* An object lying on the page: a soft shadow under it, lifted a little on standoffs (depth.css). */
     --board-shadow:
       0 1px 2px rgb(16 30 23 / 0.2),
@@ -62,6 +69,32 @@
     --cap: #141519;
     --cap-top: #24262c;
     --cap-edge: #5d6069;
+    /*
+     * The passive parts of the back face (lib/passives.ts): resistors, tantalum and electrolytic
+     * capacitors, chip LEDs, a crystal, an inductor; the ceramic capacitors take --ceramic. Muted,
+     * as parts at rest: colour and life around the skills, never what the eye goes to.
+     */
+    --psv-resistor: #17181b;
+    --psv-resistor-edge: #34363b;
+    --psv-marking: #c9c5ba;
+    --psv-tantalum: #c39a3a;
+    --psv-band: #7d5523;
+    --psv-led: #cfcabd;
+    --psv-cathode: #5d8a62;
+    --psv-glint: rgb(255 255 255 / 0.4);
+    --psv-red: #c2493d;
+    --psv-green: #4f9a5c;
+    --psv-amber: #d3952f;
+    --psv-blue: #4e7fc4;
+    --psv-ceramic-base: #bfb6a0;
+    --psv-lid: #9fa4aa;
+    --psv-lid-edge: #7c8188;
+    --psv-base: #191a1d;
+    --psv-can: #989da3;
+    --psv-can-edge: #858b92;
+    --psv-can-mark: #26292f;
+    --psv-ferrite: #32353a;
+    --psv-core: #43474d;
     /* Shadows cast on the board (DISP1, the sheets). */
     --shadow: #000;
     /* Matte grain of the solder mask: a 160px noise tile, 5% strong, the same on both masks. */
@@ -98,6 +131,13 @@
       --silk-dim: #a29e95;
       --sheet-bg: #101114;
       --board-shadow: 0 2rem 3rem -2rem var(--shadow);
+      --linked: #7fc0d8;
+      --pad-linked: #64a9c6;
+      /* On the black mask, the metal and the pale bodies a little darker: they would glare. */
+      --psv-led: #b9b4a8;
+      --psv-ceramic-base: #a69e8a;
+      --psv-lid: #898e94;
+      --psv-can: #858a90;
     }
   }
 
@@ -110,6 +150,12 @@
     --silk-dim: #a29e95;
     --sheet-bg: #101114;
     --board-shadow: 0 2rem 3rem -2rem var(--shadow);
+    --linked: #7fc0d8;
+    --pad-linked: #64a9c6;
+    --psv-led: #b9b4a8;
+    --psv-ceramic-base: #a69e8a;
+    --psv-lid: #898e94;
+    --psv-can: #858a90;
   }
 
   :root[data-theme="green"] {

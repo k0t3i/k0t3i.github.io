@@ -34,39 +34,60 @@ async function showBack(page: Page, path = '/'): Promise<void> {
   await expect(page.locator('#back-title')).toBeVisible();
 }
 
+/** The second colour of the back face (the parts linked to the lit one), as the browser computes it. */
+const linkedColour = (page: Page): Promise<string> =>
+  face(page).evaluate((el) => {
+    const probe = el.ownerDocument.createElement('i');
+    probe.style.color = 'var(--linked)';
+    el.append(probe);
+    const colour = getComputedStyle(probe).color;
+    probe.remove();
+    return colour;
+  });
+
 /**
  * What is lit on the back face: the part of the state, the parts by the colour of their reference
- * (gold: active, silk: a neighbour), the traces drawn (opacity 1), the rows marked by their gold rule.
+ * (gold: active, the second colour: a neighbour), the traces drawn (opacity 1), the rows marked by
+ * their gold rule, and the rows marked in the second colour.
  */
-const lighting = (page: Page) =>
-  face(page).evaluate((el, gold) => {
-    const refs = [...el.querySelectorAll<HTMLElement>('.back-part')];
-    return {
-      active: el.getAttribute('data-active'),
-      parts: Object.fromEntries(refs.map((p) => [p.dataset.ref, getComputedStyle(p.querySelector('.part__ref') as Element).color])),
-      nets: [...el.querySelectorAll<SVGPathElement>('path.back-net')].filter((n) => getComputedStyle(n).opacity === '1').map((n) => n.dataset.net),
-      rows: [...el.querySelectorAll<HTMLTableRowElement>('tbody tr')]
-        .filter((tr) => getComputedStyle(tr.cells[0] as Element).boxShadow.includes(gold))
-        .map((tr) => tr.dataset.ref),
-    };
-  }, GOLD);
+const lighting = async (page: Page) => {
+  const linked = await linkedColour(page);
+  return face(page).evaluate(
+    (el, { gold, linked }) => {
+      const refs = [...el.querySelectorAll<HTMLElement>('.back-part')];
+      const rows = [...el.querySelectorAll<HTMLTableRowElement>('tbody tr')];
+      const ruled = (colour: string) => rows.filter((tr) => getComputedStyle(tr.cells[0] as Element).boxShadow.includes(colour)).map((tr) => tr.dataset.ref);
+      return {
+        active: el.getAttribute('data-active'),
+        parts: Object.fromEntries(refs.map((p) => [p.dataset.ref, getComputedStyle(p.querySelector('.part__ref') as Element).color])),
+        nets: [...el.querySelectorAll<SVGPathElement>('path.back-net')].filter((n) => getComputedStyle(n).opacity === '1').map((n) => n.dataset.net),
+        rows: ruled(gold),
+        linkedRows: ruled(linked),
+      };
+    },
+    { gold: GOLD, linked },
+  );
+};
 
 /** The nets of a part, from the annex. */
 const netsOf = (ref: string): string[] => BACK_NETS.filter(([, a, b]) => a === ref || b === ref).map(([id]) => id);
 
-/** Checks that `ref` is lit, with its row, its nets and its neighbours. */
+/** Checks that `ref` is lit, with its row, its nets and, in the second colour, its neighbours and their rows. */
 async function expectLit(page: Page, ref: string): Promise<void> {
   await expect.poll(async () => (await lighting(page)).nets.sort()).toEqual(netsOf(ref).sort());
   const now = await lighting(page);
+  const linked = await linkedColour(page);
   expect(now.active).toBe(ref);
   expect(now.rows).toEqual([ref]);
+  expect(now.linkedRows).toEqual(NEIGHBOURS[ref]);
   expect(now.parts[ref]).toBe(GOLD);
   const dim = now.parts[REFS.find((r) => r !== ref && !NEIGHBOURS[ref]?.includes(r)) ?? ''];
   for (const other of REFS) {
     if (other === ref) continue;
-    if (NEIGHBOURS[ref]?.includes(other)) expect(now.parts[other], `${other}, a neighbour of ${ref}`).toBe(SILK);
+    if (NEIGHBOURS[ref]?.includes(other)) expect(now.parts[other], `${other}, a neighbour of ${ref}`).toBe(linked);
     else expect(now.parts[other], other).toBe(dim);
   }
+  expect(dim).not.toBe(linked);
   expect(dim).not.toBe(SILK);
 }
 
@@ -181,6 +202,246 @@ test.describe('the back face lights up', () => {
     await page.mouse.move(1, 1);
     await expect.poll(async () => (await lighting(page)).active).toBeNull();
   });
+});
+
+/** A colour as the browser gives it (rgb(), rgba() or color(srgb ...)): red, green, blue (0 to 255) and alpha. */
+function parseColour(c: string): [number, number, number, number] {
+  const srgb = c.match(/^color\(srgb ([\d.e-]+) ([\d.e-]+) ([\d.e-]+)(?: \/ ([\d.e-]+))?\)$/);
+  if (srgb) return [Number(srgb[1]) * 255, Number(srgb[2]) * 255, Number(srgb[3]) * 255, srgb[4] === undefined ? 1 : Number(srgb[4])];
+  const rgb = c.match(/^rgba?\(([\d.]+),? ([\d.]+),? ([\d.]+)(?:[,/] ?([\d.]+))?\)$/);
+  if (rgb) return [Number(rgb[1]), Number(rgb[2]), Number(rgb[3]), rgb[4] === undefined ? 1 : Number(rgb[4])];
+  throw new Error(`unknown colour ${c}`);
+}
+
+/** WCAG contrast of a text colour on a background, the background composited over the face. */
+function contrastOn(text: string, background: string, under: string): number {
+  const [tr, tg, tb] = parseColour(text);
+  const [br, bg, bb, ba] = parseColour(background);
+  const [ur, ug, ub] = parseColour(under);
+  const mix = [br * ba + ur * (1 - ba), bg * ba + ug * (1 - ba), bb * ba + ub * (1 - ba)];
+  const lum = (rgb: number[]) =>
+    rgb
+      .map((v) => {
+        const c = v / 255;
+        return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+      })
+      .reduce((sum, c, i) => sum + c * ([0.2126, 0.7152, 0.0722][i] ?? 0), 0);
+  const [a, b] = [lum([tr, tg, tb]), lum(mix)];
+  return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+}
+
+/** The hue of a colour, in degrees. */
+function hueOf(c: string): number {
+  const [r, g, b] = parseColour(c).map((v) => v / 255) as [number, number, number, number];
+  const [max, min] = [Math.max(r, g, b), Math.min(r, g, b)];
+  const h = max === r ? (g - b) / (max - min) : max === g ? 2 + (b - r) / (max - min) : 4 + (r - g) / (max - min);
+  return (h * 60 + 360) % 360;
+}
+
+/**
+ * The rule of a row as drawn: a box shadow of its first cell, outside it (flowing board) or inset
+ * (wide board). Its colour, its width, the gap from its edge on the side of the text to the text.
+ */
+const ruleOf = (page: Page, ref: string) =>
+  row(page, ref).evaluate((tr) => {
+    const th = (tr as HTMLTableRowElement).cells[0] as HTMLElement;
+    const m = getComputedStyle(th).boxShadow.match(/^(.*\)) (-?[\d.]+)px (-?[\d.]+)px (-?[\d.]+)px (-?[\d.]+)px( inset)?$/);
+    const box = th.getBoundingClientRect();
+    const range = document.createRange();
+    range.selectNodeContents(th);
+    const text = Math.min(...[...range.getClientRects()].map((r) => r.left));
+    const [, colour = '', ox = '0', , , spread = '0', inset] = m ?? [];
+    const width = inset ? Number(ox) : -Number(ox) + Number(spread);
+    return {
+      colour,
+      width,
+      gap: text - (inset ? box.left + width : box.left),
+      row: (tr as HTMLElement).getBoundingClientRect().toJSON() as Record<string, number>,
+      text,
+    };
+  });
+
+test.describe('the parts linked to the lit one', () => {
+  test.use({ reducedMotion: 'reduce' });
+  test.beforeEach(async ({ isMobile }) => {
+    test.skip(isMobile, 'a mouse: the touch projects tap');
+  });
+
+  test('neighbours light in the second colour', async ({ page }) => {
+    await booted(page);
+    await page.setViewportSize(WIDE);
+    await showBack(page);
+    const linked = await linkedColour(page);
+    // A cool tone, apart from the gold: its hue more than 90 degrees away.
+    const apart = Math.abs(hueOf(linked) - hueOf(GOLD));
+    expect(Math.min(apart, 360 - apart)).toBeGreaterThan(90);
+    const edge = await face(page).evaluate((el) => getComputedStyle(el).getPropertyValue('--linked').trim());
+
+    for (const [how, ref] of [
+      ['part', 'U14'],
+      ['row', 'U10'],
+    ] as const) {
+      if (how === 'part') await part(page, ref).hover();
+      else await row(page, ref).hover();
+      await expectLit(page, ref);
+      const neighbours = NEIGHBOURS[ref] ?? [];
+      const look = await face(page).evaluate((el) => {
+        const rows = [...el.querySelectorAll<HTMLTableRowElement>('tbody tr')];
+        return {
+          tint: Object.fromEntries(rows.map((tr) => [tr.dataset.ref, getComputedStyle(tr.cells[1] as Element).backgroundColor])),
+          refs: Object.fromEntries(rows.map((tr) => [tr.dataset.ref, getComputedStyle(tr.cells[0] as Element).color])),
+          to: Object.fromEntries(rows.map((tr) => [tr.dataset.ref, [...tr.querySelectorAll('td.bom__linked .bom__to')].map((t) => getComputedStyle(t).color)])),
+          edges: Object.fromEntries([...el.querySelectorAll<HTMLElement>('.back-part')].map((p) => [p.dataset.ref, getComputedStyle(p).getPropertyValue('--body-edge').trim()])),
+        };
+      });
+      for (const other of REFS.filter((r) => r !== ref)) {
+        if (neighbours.includes(other)) {
+          // Their rows: tinted in the second colour, a finer rule of it, the reference in it.
+          expect(parseColour(look.tint[other] ?? '')[3], `${other} tinted`).toBeGreaterThan(0);
+          expect(look.refs[other], `${other} reference`).toBe(linked);
+          const rule = await ruleOf(page, other);
+          expect([rule.colour, rule.width], `${other} rule`).toEqual([linked, 1]);
+          // Their packages on the circuit, in the second colour too.
+          expect(look.edges[other], `${other} package`).toBe(edge);
+        } else {
+          expect(parseColour(look.tint[other] ?? '')[3], `${other} not tinted`).toBe(0);
+          expect(look.refs[other], `${other} reference`).not.toBe(linked);
+          expect(look.edges[other], `${other} package`).not.toBe(edge);
+        }
+      }
+      // The lit row: its gold rule, twice as wide, and its « Relié à » in the second colour.
+      expect((await ruleOf(page, ref)).width).toBe(2);
+      expect(look.to[ref]).toEqual(neighbours.map(() => linked));
+      for (const other of REFS.filter((r) => r !== ref)) for (const c of look.to[other] ?? []) expect(c, `${other} links`).not.toBe(linked);
+      await page.mouse.move(1, 1);
+      await expect.poll(async () => (await lighting(page)).linkedRows).toEqual([]);
+    }
+  });
+
+  for (const viewport of [
+    WIDE,
+    { width: 1264, height: 800 },
+    { width: 768, height: 1024 },
+    { width: 711, height: 900 },
+    { width: 390, height: 844 },
+    { width: 375, height: 812 },
+    { width: 320, height: 720 },
+  ]) {
+    test(`lit row keeps a gap between its rule and its ref at ${viewport.width}px`, async ({ page }) => {
+      await booted(page);
+      await page.setViewportSize(viewport);
+      await showBack(page);
+      // The rows in view first: the hover does not scroll them then.
+      await row(page, 'U10').evaluate((el) => el.scrollIntoView({ block: 'center' }));
+      const [rest, restNeighbour] = [await ruleOf(page, 'U10'), await ruleOf(page, 'U11')];
+      await row(page, 'U10').hover();
+      await expectLit(page, 'U10');
+      const [lit, neighbour] = [await ruleOf(page, 'U10'), await ruleOf(page, 'U11')];
+      // At least 0.5rem between the inner edge of the rule and the reference, gold or not.
+      expect(lit.gap, 'lit').toBeGreaterThanOrEqual(8);
+      expect(neighbour.gap, 'neighbour').toBeGreaterThanOrEqual(8);
+      // Nothing moves when a row lights up.
+      expect(lit.row).toEqual(rest.row);
+      expect(lit.text).toBe(rest.text);
+      expect(neighbour.row).toEqual(restNeighbour.row);
+      // No sideways scrolling.
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)).toBe(0);
+    });
+  }
+
+  for (const scheme of ['light', 'dark'] as const) {
+    test(`second colour meets AA (${scheme})`, async ({ page }) => {
+      await page.emulateMedia({ colorScheme: scheme });
+      await booted(page);
+      for (const viewport of [WIDE, { width: 390, height: 844 }]) {
+        await page.setViewportSize(viewport);
+        await showBack(page);
+        await part(page, 'U14').click();
+        await page.mouse.move(1, 1);
+        await expectLit(page, 'U14');
+        // Every text of the lit row and of its neighbours, on its row, on the face.
+        const texts = await face(page).evaluate((el) => {
+          const under = getComputedStyle(el).backgroundColor;
+          const out: { what: string; color: string; background: string; under: string }[] = [];
+          for (const tr of el.querySelectorAll<HTMLTableRowElement>('tbody tr')) {
+            if (!['U12', 'U14', 'U17', 'U19'].includes(tr.dataset.ref ?? '')) continue;
+            for (const cell of tr.cells) {
+              const background = getComputedStyle(cell).backgroundColor;
+              for (const t of [cell, ...cell.querySelectorAll<HTMLElement>('span')]) {
+                const own = [...t.childNodes].some((n) => n.nodeType === Node.TEXT_NODE && n.textContent?.trim());
+                if (own && t.checkVisibility()) out.push({ what: `${tr.dataset.ref} ${t.textContent?.trim()}`, color: getComputedStyle(t).color, background, under });
+              }
+            }
+          }
+          return out;
+        });
+        expect(texts.length).toBeGreaterThan(12);
+        for (const t of texts) expect(contrastOn(t.color, t.background, t.under), `${viewport.width}px ${t.what}`).toBeGreaterThanOrEqual(4.5);
+      }
+    });
+  }
+});
+
+test.describe('forced colours', () => {
+  test.use({ forcedColors: 'active', reducedMotion: 'reduce' });
+
+  test('forced colours: the lit part in Highlight, the parts linked to it apart from it, the passives in outline', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'a mouse');
+    await booted(page);
+    await page.setViewportSize(WIDE);
+    await showBack(page);
+    await part(page, 'U14').click();
+    await page.mouse.move(1, 1);
+    await expect(face(page)).toHaveAttribute('data-active', 'U14');
+    const look = await face(page).evaluate((el) => ({
+      pads: Object.fromEntries([...el.querySelectorAll<HTMLElement>('.back-part')].map((p) => [p.dataset.ref, getComputedStyle(p).getPropertyValue('--pad').trim()])),
+      outlines: Object.fromEntries([...el.querySelectorAll<HTMLTableRowElement>('tbody tr')].map((tr) => [tr.dataset.ref, getComputedStyle(tr.cells[0] as Element).outlineStyle])),
+      passives: [...el.querySelectorAll<SVGUseElement>('use.back__psv')].map((u) => [getComputedStyle(u).display, getComputedStyle(u).getPropertyValue('--psv-line').trim()]),
+    }));
+    expect(look.pads.U14).toBe('Highlight');
+    for (const ref of NEIGHBOURS.U14 ?? []) {
+      expect(look.pads[ref], ref).toBe('CanvasText');
+      expect(look.outlines[ref], ref).toBe('dashed');
+    }
+    expect(look.outlines.U14).toBe('solid');
+    expect(look.outlines.U10).toBe('none');
+    expect(look.passives.length).toBeGreaterThan(20);
+    for (const [display, line] of look.passives) expect([display, line]).toEqual(['inline', 'GrayText']);
+  });
+});
+
+test.describe('the circuit on a flowing board', () => {
+  for (const viewport of [
+    { width: 711, height: 900 },
+    { width: 390, height: 844 },
+  ]) {
+    test(`wider circuit on flowing boards at ${viewport.width}px`, async ({ page, isMobile }) => {
+      test.skip(isMobile && viewport.width > 390, 'the phone sizes only');
+      if (!isMobile) await page.setViewportSize(viewport);
+      await showBack(page);
+      const fit = await face(page).evaluate((el) => {
+        const cs = getComputedStyle(el);
+        const room = el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+        return { room, circuit: (el.querySelector('.back__circuit') as Element).getBoundingClientRect().width };
+      });
+      // The whole width of the face, as the table under it.
+      expect(Math.abs(fit.circuit - fit.room)).toBeLessThanOrEqual(1);
+    });
+  }
+});
+
+test.describe('the description of a part', () => {
+  for (const viewport of [WIDE, { width: 390, height: 844 }]) {
+    test(`a part is described by its value and the parts it is linked to, labelled, at ${viewport.width}px`, async ({ page, isMobile }) => {
+      test.skip(isMobile && viewport.width > 390, 'the phone sizes only');
+      if (!isMobile) await page.setViewportSize(viewport);
+      await showBack(page);
+      for (const [ref = '', , value, links] of FR.back.rows) {
+        // Not its name again: the reference and the skill are its name already.
+        await expect(part(page, ref)).toHaveAccessibleDescription(`${value} ${FR.back.columns[3]} ${links}`);
+      }
+    });
+  }
 });
 
 test.describe('the back face on a touch screen', () => {

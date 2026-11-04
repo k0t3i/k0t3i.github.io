@@ -92,9 +92,8 @@ export function netPoints(net: BackNet): Point[] {
   return [pinAt(net.from, net.pins[0]), ...net.bends, pinAt(net.to, net.pins[1])];
 }
 
-/** The path of a net, from its first part to its second one: M, then H and V, or L at 45°. */
-export function netPath(net: BackNet): string {
-  const pts = netPoints(net);
+/** The path through some points: M, then H and V, or L at 45°. */
+export function pointsPath(pts: readonly Point[]): string {
   return pts
     .map(([x, y], i) => {
       if (i === 0) return `M${x} ${y}`;
@@ -105,6 +104,9 @@ export function netPath(net: BackNet): string {
     })
     .join('');
 }
+
+/** The path of a net, from its first part to its second one. */
+export const netPath = (net: BackNet): string => pointsPath(netPoints(net));
 
 /** The parts a part is linked to, in order: the column « Relié à » of the bill of materials. */
 export function linkedTo(ref: BackRef): BackRef[] {

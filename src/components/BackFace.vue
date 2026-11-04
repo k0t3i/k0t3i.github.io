@@ -1,17 +1,17 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useBackState } from '../composables/useBackState';
-import { CLEARANCE, FIDUCIAL, FIDUCIALS, FRONT_PADS, HOLE, HOLES, HOLE_RING, OUTLINE, POUR, SPOKES, STITCH, TRACE, VIA } from '../content/backCopper';
 import { BACK_NETS, BACK_PARTS, BACK_REFS, linkedTo, netPath, type BackRef } from '../content/backNets';
 import type { SiteContent } from '../content/types';
-import { PACKAGES } from '../lib/packages';
+import BackCopper from './BackCopper.vue';
 
 /**
  * The back face: a circuit where every part is a skill of the bill of materials and every trace
  * links two skills that work together (content/backNets.ts), over the copper of a real bottom side
- * (content/backCopper.ts); then the bill of materials itself, a real table that holds all of it in
- * text. A part under the pointer, the keyboard focus or a tap lights up (useBackState, back.css),
- * and so does a row under the pointer.
+ * and its passive parts (BackCopper.vue); then the bill of materials itself, a real table that holds
+ * all of it in text. A part under the pointer, the keyboard focus or a tap lights up with its row,
+ * its traces and the parts it is linked to (useBackState, back.css), and so does a row under the
+ * pointer.
  */
 const props = defineProps<{ back: SiteContent['back'] }>();
 
@@ -30,21 +30,17 @@ const items = (value: string): { text: string; glued: string }[] =>
   });
 
 const NETS = BACK_NETS.map((n) => ({ ...n, d: netPath(n) }));
-/** The pour is cut back round every part: its footprint, and the clearance. */
-const KEEP_OUT = BACK_PARTS.map((p) => ({
-  x: p.x - CLEARANCE.part,
-  y: p.y - CLEARANCE.part,
-  w: PACKAGES[p.pkg].w + 2 * CLEARANCE.part,
-  h: PACKAGES[p.pkg].h + 2 * CLEARANCE.part,
-}));
 
-/** A row of the table: the part, and the parts it is linked to (« Relié à »). */
+/**
+ * A row of the table: the part, and the parts it is linked to (« Relié à »), each reference but the
+ * last followed by its dot.
+ */
 const rows = computed(() =>
   props.back.bom.rows.map((row) => {
     const ref = row.ref as BackRef;
     const linked = linkedTo(ref);
-    const linkedItems = linked.map((r, i) => (i < linked.length - 1 ? `${r} ·` : r));
-    return { ...row, ref, linked: linked.join(' · '), linkedItems, links: linked.join(' ') };
+    const linkedItems = linked.map((to, i) => ({ to, dot: i < linked.length - 1 }));
+    return { ...row, ref, linkedItems, links: linked.join(' ') };
   }),
 );
 /** The parts drawn on the circuit, in the order of the table, with their skill. */
@@ -78,6 +74,8 @@ function onKeydown(event: KeyboardEvent): void {
     if (state.pinned.value) state.toggle(state.pinned.value);
     return;
   }
+  // Alt+Left, Ctrl+Home and the like belong to the browser and the screen reader.
+  if (event.altKey || event.ctrlKey || event.metaKey) return;
   const n = BACK_REFS.length;
   const i = BACK_REFS.indexOf(current.value);
   const moves: Record<string, number> = { ArrowRight: i + 1, ArrowDown: i + 1, ArrowLeft: i - 1 + n, ArrowUp: i - 1 + n, Home: 0, End: n - 1 };
@@ -108,157 +106,9 @@ function onClick(ref: BackRef): void {
 
 <template>
   <div class="back__circuit">
-    <!--
-      The copper of the bottom layer, in the 1600 x 900 units of the wide board: the edge of the board,
-      the pour and its cuts, the traces of the nets, the stitching vias, the through-hole pads of the
-      front, the mounting holes and fiducials; then the live layer of the nets (back-net, lit with its
-      parts) and the signal that runs along it (back-pulse). pathLength="100": a share of each net.
-    -->
-    <svg
-      class="back__copper"
-      aria-hidden="true"
-      focusable="false"
-      viewBox="0 0 1600 900"
-    >
-      <defs>
-        <g id="back-stitch">
-          <circle
-            class="back__via"
-            :r="VIA.r"
-          />
-          <circle
-            class="pcb-drill"
-            :r="VIA.drill"
-          />
-        </g>
-      </defs>
-      <rect
-        class="back__veil back__outline"
-        :x="OUTLINE.x"
-        :y="OUTLINE.y"
-        :width="OUTLINE.w"
-        :height="OUTLINE.h"
-        :rx="OUTLINE.r"
-      />
-      <rect
-        class="back__pour"
-        :x="POUR.x"
-        :y="POUR.y"
-        :width="POUR.w"
-        :height="POUR.h"
-        :rx="POUR.r"
-      />
-      <rect
-        v-for="(k, i) in KEEP_OUT"
-        :key="`keep-${i}`"
-        class="back__clear"
-        :x="k.x"
-        :y="k.y"
-        :width="k.w"
-        :height="k.h"
-        :rx="CLEARANCE.part"
-      />
-      <path
-        v-for="n in NETS"
-        :key="`clear-${n.id}`"
-        class="back__clear"
-        :d="n.d"
-        :stroke-width="TRACE + 2 * CLEARANCE.trace"
-      />
-      <circle
-        v-for="(p, i) in FRONT_PADS"
-        :key="`ring-${i}`"
-        class="back__clear"
-        :cx="p.x"
-        :cy="p.y"
-        :r="p.r + CLEARANCE.pad"
-      />
-      <path
-        class="back__veil back__spokes"
-        :d="SPOKES"
-      />
-      <path
-        v-for="n in NETS"
-        :key="`trace-${n.id}`"
-        class="back__veil back__trace"
-        :d="n.d"
-        :stroke-width="TRACE"
-      />
-      <use
-        v-for="([x, y], i) in STITCH"
-        :key="`stitch-${i}`"
-        href="#back-stitch"
-        :x="x"
-        :y="y"
-      />
-      <g
-        v-for="(p, i) in FRONT_PADS"
-        :key="`pad-${i}`"
-      >
-        <rect
-          v-if="p.square"
-          class="pcb-pad"
-          :x="p.x - p.r"
-          :y="p.y - p.r"
-          :width="p.r * 2"
-          :height="p.r * 2"
-          rx="1"
-        />
-        <circle
-          v-else
-          class="pcb-pad"
-          :cx="p.x"
-          :cy="p.y"
-          :r="p.r"
-        />
-        <circle
-          class="pcb-drill"
-          :cx="p.x"
-          :cy="p.y"
-          :r="p.drill"
-        />
-      </g>
-      <g
-        v-for="([x, y], i) in HOLES"
-        :key="`hole-${i}`"
-      >
-        <circle
-          class="pcb-pad"
-          :cx="x"
-          :cy="y"
-          :r="HOLE.r"
-        />
-        <circle
-          class="pcb-drill"
-          :cx="x"
-          :cy="y"
-          :r="HOLE.drill"
-        />
-        <use
-          v-for="([dx, dy], k) in HOLE_RING"
-          :key="k"
-          href="#back-stitch"
-          :x="x + dx"
-          :y="y + dy"
-        />
-      </g>
-      <g
-        v-for="([x, y], i) in FIDUCIALS"
-        :key="`fid-${i}`"
-      >
-        <circle
-          class="back__clear"
-          :cx="x"
-          :cy="y"
-          :r="FIDUCIAL.clear"
-        />
-        <circle
-          class="pcb-pad"
-          :cx="x"
-          :cy="y"
-          :r="FIDUCIAL.r"
-        />
-      </g>
+    <!-- The copper and its passives, a static drawing (BackCopper.vue); over them, the live layer of the nets. -->
+    <BackCopper>
+      <!-- Each net in gold, lit with its parts (back-net), and the signal that runs along it (back-pulse). pathLength="100": a share of each net. -->
       <g class="back__nets">
         <path
           v-for="n in NETS"
@@ -281,7 +131,7 @@ function onClick(ref: BackRef): void {
           :d="n.d"
         />
       </g>
-    </svg>
+    </BackCopper>
     <!-- The parts: one tab stop, then the arrows (see onKeydown). -->
     <div
       class="back__parts"
@@ -302,7 +152,7 @@ function onClick(ref: BackRef): void {
         :disabled="!ready"
         :tabindex="ready ? (current === p.ref ? 0 : -1) : undefined"
         :aria-pressed="ready ? (state.pinned.value === p.ref ? 'true' : 'false') : undefined"
-        :aria-describedby="ready ? `row-${p.ref}` : undefined"
+        :aria-describedby="ready ? `value-${p.ref} links-${p.ref}` : undefined"
         @pointerenter="point($event, p.ref)"
         @pointerleave="point($event, null)"
         @focus="onFocus($event, p.ref)"
@@ -357,7 +207,7 @@ function onClick(ref: BackRef): void {
         <td>{{ row.part }}</td>
         <!-- The last word of each item is glued to its dot: a line never starts with a dot. -->
         <td>
-          <template
+          <span :id="`value-${row.ref}`"><template
             v-for="(item, i) in items(row.value)"
             :key="i"
           >
@@ -365,22 +215,28 @@ function onClick(ref: BackRef): void {
               v-if="item.glued"
               class="bom__glue"
             >{{ item.glued }}</span>
-          </template>
-          <!-- A narrow face has no room for the last column: the links are printed here instead. -->
-          <span class="bom__links"><span class="bom__links-label">{{ props.back.bom.columns.linked }}</span><template
+          </template></span>
+          <!--
+            A narrow face has no room for the last column: the links are printed here instead. Labelled,
+            this copy is also the end of the description of the part (with its value), at every size.
+          -->
+          <span
+            :id="`links-${row.ref}`"
+            class="bom__links"
+          ><span class="bom__links-label">{{ props.back.bom.columns.linked }}</span><template
             v-for="item in row.linkedItems"
-            :key="item"
+            :key="item.to"
           >
-            {{ ' ' }}<span class="bom__glue">{{ item }}</span>
+            {{ ' ' }}<span class="bom__glue"><span class="bom__to">{{ item.to }}</span>{{ item.dot ? ' ·' : '' }}</span>
           </template></span>
         </td>
         <!-- Each reference keeps its dot: a line never starts with a dot. -->
         <td class="bom__linked">
           <template
             v-for="(item, i) in row.linkedItems"
-            :key="item"
+            :key="item.to"
           >
-            {{ i ? ' ' : '' }}<span class="bom__glue">{{ item }}</span>
+            {{ i ? ' ' : '' }}<span class="bom__glue"><span class="bom__to">{{ item.to }}</span>{{ item.dot ? ' ·' : '' }}</span>
           </template>
         </td>
       </tr>

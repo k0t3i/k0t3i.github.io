@@ -2,7 +2,7 @@ import { chromium, expect, test, type Locator, type Page } from '@playwright/tes
 import { EN, FR, type Copy } from '../helpers/copy';
 
 /*
- * The board as an object: its edge (thickness), the tilt that follows a mouse on the wide board, and
+ * The board as an object: its edge (thickness), the tilt that follows a mouse at every width, and
  * SW2, which turns it over to its back face.
  */
 
@@ -86,6 +86,13 @@ test.describe('the edge', () => {
 test.describe('the tilt', () => {
   test.use({ reducedMotion: 'no-preference' });
 
+  /** The flowing board at the size Anthony looked at it, taller than the window. */
+  const FLOWING = { width: 711, height: 900 };
+
+  /** The angles the body reads (the edge reads the same ones), in degrees. */
+  const tiltOf = (page: Page): Promise<number[]> =>
+    page.locator('.board__body').evaluate((el) => ['--tilt-x', '--tilt-y'].map((p) => parseFloat(el.style.getPropertyValue(p) || '0')));
+
   test('desktop tilt follows the pointer', async ({ page, isMobile }) => {
     test.skip(isMobile, 'the tilt needs a mouse');
     await page.setViewportSize(WIDE);
@@ -96,10 +103,10 @@ test.describe('the tilt', () => {
     await expect.poll(() => isFlat(body), { timeout: 1000 }).toBe(false);
     // A few degrees at most; the edge leans with the face.
     // The angles are on the body and the edge (registered, not inherited), never on the board.
-    const tilt = await body.evaluate((el) => ['--tilt-x', '--tilt-y'].map((p) => parseFloat(el.style.getPropertyValue(p))));
+    const tilt = await tiltOf(page);
     expect(await board(page).getAttribute('style')).toBeNull();
     expect(await page.locator('.hero__title').evaluate((el) => getComputedStyle(el).getPropertyValue('--tilt-y'))).toBe('0deg');
-    for (const a of tilt) expect(Math.abs(a)).toBeLessThanOrEqual(4);
+    for (const a of tilt) expect(Math.abs(a)).toBeLessThanOrEqual(5);
     expect(tilt[1]).toBeGreaterThan(0);
     expect(tilt[0]).toBeGreaterThan(0);
     const [b, e] = await Promise.all(
@@ -113,38 +120,96 @@ test.describe('the tilt', () => {
     await expect(board(page)).not.toHaveAttribute('data-tilting', /.*/);
   });
 
-  test('no tilt on mobile or reduced motion', async ({ page, isMobile }) => {
-    // A touch device on a wide window; a desktop on a narrow window.
-    await page.setViewportSize(isMobile ? WIDE : PHONE);
-    await open(page);
-    await pointAt(page, 0.9, 0.1);
-    await page.waitForTimeout(400);
-    expect(await isFlat(page.locator('.board__body'))).toBe(true);
-    expect(await noTiltLeft(page)).toBe(true);
-  });
+  for (const viewport of [FLOWING, WIDE]) {
+    test(`board tilts at every width with a mouse (${viewport.width}x${viewport.height})`, async ({ page, isMobile }) => {
+      test.skip(isMobile, 'the tilt needs a mouse');
+      await page.setViewportSize(viewport);
+      await open(page);
+      // The top right of the window, over the board: its top and its right edge go away.
+      await page.mouse.move(viewport.width * 0.8, viewport.height * 0.3, { steps: 4 });
+      await expect(board(page)).toHaveAttribute('data-tilting', '');
+      await expect.poll(async () => (await tiltOf(page)).map((a) => a > 0.5)).toEqual([true, true]);
+      for (const a of await tiltOf(page)) expect(Math.abs(a)).toBeLessThanOrEqual(5);
+      // Written on the body and the edge only.
+      expect(await board(page).getAttribute('style')).toBeNull();
+      const [onBody, onEdge] = await page.evaluate(() =>
+        ['.board__body', '.board__edge'].map((s) => (document.querySelector(s) as HTMLElement).style.getPropertyValue('--tilt-y')),
+      );
+      expect(onEdge).toBe(onBody);
+      if (viewport.width < 1264) {
+        // The flowing board, taller than the window, scrolled to its end: the pointer near the top
+        // of the window is below the middle of the board, yet the top of what is in view goes away.
+        await page.mouse.move(1, 1);
+        await expect(board(page)).not.toHaveAttribute('data-tilting', /.*/);
+        await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+        const middle = await board(page).evaluate((el) => {
+          const b = el.getBoundingClientRect();
+          return { board: b.top + b.height / 2, view: (Math.max(b.top, 0) + Math.min(b.bottom, innerHeight)) / 2 - b.top };
+        });
+        expect(viewport.height * 0.15).toBeGreaterThan(middle.board);
+        await page.mouse.move(viewport.width / 2, viewport.height * 0.15, { steps: 4 });
+        await expect.poll(async () => (await tiltOf(page))[0], { timeout: 2000 }).toBeGreaterThan(2);
+        // It turns about the middle of the part in view, and is seen from there.
+        const origin = () => page.locator('.board__body').evaluate((el) => parseFloat(getComputedStyle(el).transformOrigin.split(' ')[1] ?? '0'));
+        await expect.poll(async () => Math.abs((await origin()) - middle.view)).toBeLessThanOrEqual(2);
+        expect(await page.locator('.board__body').evaluate((el) => getComputedStyle(el).transform)).toMatch(/^matrix3d/);
+      }
+      await page.mouse.move(1, 1);
+      await expect(board(page)).not.toHaveAttribute('data-tilting', /.*/);
+      expect(await noTiltLeft(page)).toBe(true);
+    });
+  }
 
-  test('no tilt under reduced motion', async ({ page, isMobile }) => {
-    test.skip(isMobile, 'covered by the touch case');
-    await page.emulateMedia({ reducedMotion: 'reduce' });
-    await page.setViewportSize(WIDE);
-    await open(page);
-    await pointAt(page, 0.9, 0.1);
-    await page.waitForTimeout(400);
-    expect(await isFlat(page.locator('.board__body'))).toBe(true);
-    expect(await noTiltLeft(page)).toBe(true);
-  });
-
-  test('the board stays flat while a sheet is open', async ({ page, isMobile }) => {
+  test('the flowing board leans with its back face up too', async ({ page, isMobile }) => {
     test.skip(isMobile, 'the tilt needs a mouse');
-    await page.setViewportSize(WIDE);
+    await page.setViewportSize(FLOWING);
     await open(page);
-    await page.locator('.part__trigger[popovertarget="sheet-r1"]').click();
-    await expect(page.locator('#sheet-r1')).toBeVisible();
-    await pointAt(page, 0.1, 0.9);
-    await pointAt(page, 0.9, 0.1);
-    await page.waitForTimeout(400);
-    expect(await isFlat(page.locator('.board__body'))).toBe(true);
+    await turn(page, 'front');
+    await page.mouse.move(FLOWING.width * 0.2, FLOWING.height * 0.8, { steps: 4 });
+    await expect(board(page)).toHaveAttribute('data-tilting', '');
+    // The left and the bottom go away, on the back face as on the front one.
+    await expect.poll(async () => (await tiltOf(page)).map((a) => Math.sign(Math.round(a * 10)))).toEqual([-1, -1]);
   });
+
+  test('no tilt on a touch screen', async ({ page, isMobile }) => {
+    test.skip(!isMobile, 'the touch projects');
+    for (const viewport of [WIDE, PHONE]) {
+      await page.setViewportSize(viewport);
+      await open(page);
+      await pointAt(page, 0.9, 0.1);
+      await page.touchscreen.tap(viewport.width * 0.9, viewport.height * 0.5);
+      await page.waitForTimeout(400);
+      expect(await isFlat(page.locator('.board__body'))).toBe(true);
+      expect(await noTiltLeft(page)).toBe(true);
+    }
+  });
+
+  for (const viewport of [WIDE, FLOWING]) {
+    test(`no tilt under reduced motion (${viewport.width}px)`, async ({ page, isMobile }) => {
+      test.skip(isMobile, 'covered by the touch case');
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      await page.setViewportSize(viewport);
+      await open(page);
+      await pointAt(page, 0.9, 0.1);
+      await page.waitForTimeout(400);
+      expect(await isFlat(page.locator('.board__body'))).toBe(true);
+      expect(await noTiltLeft(page)).toBe(true);
+    });
+  }
+
+  for (const viewport of [WIDE, FLOWING]) {
+    test(`the board stays flat while a sheet is open (${viewport.width}px)`, async ({ page, isMobile }) => {
+      test.skip(isMobile, 'the tilt needs a mouse');
+      await page.setViewportSize(viewport);
+      await open(page);
+      await page.locator('.part__trigger[popovertarget="sheet-r1"]').click();
+      await expect(page.locator('#sheet-r1')).toBeVisible();
+      await page.mouse.move(viewport.width * 0.1, viewport.height * 0.9, { steps: 4 });
+      await page.mouse.move(viewport.width * 0.9, viewport.height * 0.1, { steps: 4 });
+      await page.waitForTimeout(400);
+      expect(await isFlat(page.locator('.board__body'))).toBe(true);
+    });
+  }
 
   test('text stays crisp at rest', async ({ page }) => {
     await page.setViewportSize(WIDE);

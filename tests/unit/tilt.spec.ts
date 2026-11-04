@@ -3,14 +3,15 @@ import { defineComponent, h, nextTick, ref } from 'vue';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useTilt } from '../../src/composables/useTilt';
 
-const TILT_QUERY = '(min-width: 79rem) and (hover: hover) and (pointer: fine)';
+/** A mouse or a pen, at every width (spec rev. 6): never a finger. */
+const TILT_QUERY = '(hover: hover) and (pointer: fine)';
 const REDUCED_QUERY = '(prefers-reduced-motion: reduce)';
 
 type Listener = (event: { matches: boolean }) => void;
 /** The media queries of the test: whether each matches, and the listeners attached to it. */
 let queries = new Map<string, { matches: boolean; listeners: Set<Listener> }>();
 
-/** The device as the test sets it: a wide window with a mouse or not, reduced motion or not. */
+/** The device as the test sets it: a mouse or not, reduced motion or not. */
 function stubMedia({ fine, reduced }: { fine: boolean; reduced: boolean }): void {
   queries = new Map([
     [TILT_QUERY, { matches: fine, listeners: new Set() }],
@@ -56,6 +57,12 @@ function runFrames(count: number, ms = 1000 / 60): void {
   }
 }
 
+/** The window of a test: 1600 x 900 unless a test says otherwise. */
+function windowSize(width: number, height: number): void {
+  Object.defineProperty(window, 'innerWidth', { configurable: true, value: width });
+  Object.defineProperty(window, 'innerHeight', { configurable: true, value: height });
+}
+
 /** The board of a test: a 1600 x 900 box at the origin of the page, with its body and its edge. */
 function mountBoard(): { wrapper: VueWrapper; board: HTMLElement; body: HTMLElement; edge: HTMLElement } {
   const Harness = defineComponent({
@@ -71,8 +78,8 @@ function mountBoard(): { wrapper: VueWrapper; board: HTMLElement; body: HTMLElem
   return { wrapper, board, body: board.querySelector('.board__body') as HTMLElement, edge: board.querySelector('.board__edge') as HTMLElement };
 }
 
-const move = (board: HTMLElement, x: number, y: number): void => {
-  board.dispatchEvent(new PointerEvent('pointermove', { clientX: x, clientY: y, bubbles: true }));
+const move = (board: HTMLElement, x: number, y: number, pointerType = 'mouse'): void => {
+  board.dispatchEvent(new PointerEvent('pointermove', { clientX: x, clientY: y, bubbles: true, pointerType }));
 };
 /** The angle the body reads (the edge reads the same one). */
 const angle = (el: HTMLElement, axis: 'x' | 'y'): number => parseFloat(el.style.getPropertyValue(`--tilt-${axis}`) || '0');
@@ -80,6 +87,7 @@ const isFlat = (board: HTMLElement): boolean =>
   !board.hasAttribute('data-tilting') && [...board.children].every((c) => !c.hasAttribute('style')) && !board.hasAttribute('style');
 
 beforeEach(() => {
+  windowSize(1600, 900);
   frames = new Map();
   nextId = 1;
   clock = 0;
@@ -99,6 +107,10 @@ afterEach(() => {
 });
 
 describe('useTilt', () => {
+  it('leans with a mouse or a pen at every width: no width in the query', () => {
+    expect(TILT_QUERY).not.toMatch(/width/);
+  });
+
   it('no tilt without fine pointer / under reduced motion', () => {
     for (const device of [
       { fine: false, reduced: false },
@@ -129,7 +141,7 @@ describe('useTilt', () => {
     expect((board.querySelector('.board__face') as HTMLElement).hasAttribute('style')).toBe(false);
   });
 
-  it('tilt clamps to ±4deg', () => {
+  it('tilt clamps to ±5deg', () => {
     stubMedia({ fine: true, reduced: false });
     const { board, body } = mountBoard();
     // Far beyond a corner: each axis is held at its limit, never past it.
@@ -139,14 +151,14 @@ describe('useTilt', () => {
       runFrames(1);
       peak = Math.max(peak, Math.abs(angle(body, 'x')), Math.abs(angle(body, 'y')));
     }
-    expect(peak).toBeLessThanOrEqual(4);
-    expect(Math.abs(angle(body, 'x'))).toBeCloseTo(4, 1);
-    expect(Math.abs(angle(body, 'y'))).toBeCloseTo(4, 1);
+    expect(peak).toBeLessThanOrEqual(5);
+    expect(Math.abs(angle(body, 'x'))).toBeCloseTo(5, 1);
+    expect(Math.abs(angle(body, 'y'))).toBeCloseTo(5, 1);
     expect(board.hasAttribute('data-tilting')).toBe(true);
     // Damped: one frame covers only part of the way (factor 0.12).
     move(board, 800, 450);
     runFrames(1);
-    expect(Math.abs(angle(body, 'y'))).toBeCloseTo(4 * 0.88, 1);
+    expect(Math.abs(angle(body, 'y'))).toBeCloseTo(5 * 0.88, 1);
     // At the centre of the board, it is flat again.
     runFrames(200);
     expect(Math.abs(angle(body, 'x'))).toBeLessThan(0.02);
@@ -159,8 +171,73 @@ describe('useTilt', () => {
     move(board, 1600, 900);
     runFrames(200);
     // rotateY > 0 sends the right edge away from the viewer, rotateX < 0 the bottom edge.
-    expect(angle(body, 'y')).toBeGreaterThan(3.9);
-    expect(angle(body, 'x')).toBeLessThan(-3.9);
+    expect(angle(body, 'y')).toBeGreaterThan(4.9);
+    expect(angle(body, 'x')).toBeLessThan(-4.9);
+  });
+
+  it('a finger never leans the board, on a device that also has a mouse', () => {
+    stubMedia({ fine: true, reduced: false });
+    const { board } = mountBoard();
+    board.dispatchEvent(new PointerEvent('pointerenter', { pointerType: 'touch' }));
+    move(board, 1600, 900, 'touch');
+    runFrames(30);
+    expect(frames.size).toBe(0);
+    expect(isFlat(board)).toBe(true);
+    // A pen leans it, as a mouse does.
+    move(board, 1600, 900, 'pen');
+    runFrames(30);
+    expect(board.hasAttribute('data-tilting')).toBe(true);
+  });
+
+  it('a board taller than the window leans from the part of it in view, about the middle of that part', () => {
+    stubMedia({ fine: true, reduced: false });
+    windowSize(711, 900);
+    const { board, body, edge } = mountBoard();
+    // The flowing board, 4000px tall, scrolled 2000px down: the window shows 2000 to 2900 of it.
+    board.getBoundingClientRect = () => new DOMRect(0, -2000, 711, 4000);
+    // Near the top of the window, well below the middle of the board: its top edge goes away.
+    move(board, 355, 90);
+    runFrames(300);
+    expect(angle(body, 'x')).toBeCloseTo(5 * 0.8, 1);
+    expect(Math.abs(angle(body, 'y'))).toBeLessThan(0.05);
+    // It turns about the middle of the part in view (2450px from its top), seen from there (depth.css):
+    // the pivot is on the body and the edge, as the angles, never on the board.
+    expect(body.style.getPropertyValue('--tilt-oy')).toBe('2450px');
+    expect(edge.style.getPropertyValue('--tilt-oy')).toBe('2450px');
+    expect(board.hasAttribute('style')).toBe(false);
+    // Near the bottom of the window, the bottom edge goes away.
+    move(board, 355, 810);
+    runFrames(300);
+    expect(angle(body, 'x')).toBeCloseTo(-5 * 0.8, 1);
+    // Out of the board, flat again, the pivot gone with the angles.
+    board.dispatchEvent(new PointerEvent('pointerleave'));
+    runFrames(1000);
+    expect(isFlat(board)).toBe(true);
+  });
+
+  it('after a scroll, it follows the pointer from the part now in view, without a move', () => {
+    stubMedia({ fine: true, reduced: false });
+    windowSize(711, 900);
+    const { board, body } = mountBoard();
+    board.getBoundingClientRect = () => new DOMRect(0, -2000, 711, 4000);
+    move(board, 355, 90);
+    runFrames(300);
+    expect(frames.size).toBe(0);
+    // Scrolled to the end of the board: it ends 500px down the window, the part in view is 0 to 500.
+    board.getBoundingClientRect = () => new DOMRect(0, -3500, 711, 4000);
+    window.dispatchEvent(new Event('scroll'));
+    runFrames(300);
+    expect(body.style.getPropertyValue('--tilt-oy')).toBe('3750px');
+    // The pointer, still at 90px, is now 160px above the middle of that part: (90 - 250) / 250.
+    expect(angle(body, 'x')).toBeCloseTo(5 * 0.64, 1);
+    // On its way back to flat (the pointer gone to the scroll bar), its pivot still follows the scroll.
+    board.dispatchEvent(new PointerEvent('pointerleave'));
+    runFrames(2);
+    board.getBoundingClientRect = () => new DOMRect(0, -1000, 711, 4000);
+    window.dispatchEvent(new Event('scroll'));
+    runFrames(1);
+    expect(board.hasAttribute('data-tilting')).toBe(true);
+    expect(body.style.getPropertyValue('--tilt-oy')).toBe('1450px');
   });
 
   it('eases by time, not by frame: the same course at 30 Hz as at 60 Hz', () => {
@@ -235,7 +312,7 @@ describe('useTilt', () => {
     expect(board.hasAttribute('data-tilting')).toBe(true);
   });
 
-  it('goes flat at once when the window stops being wide with a mouse, or asks for less motion', async () => {
+  it('goes flat at once when the device loses its mouse, or asks for less motion', async () => {
     stubMedia({ fine: true, reduced: false });
     const { board } = mountBoard();
     // The reduced-motion setting read at mount reaches the watcher first.
@@ -249,7 +326,7 @@ describe('useTilt', () => {
     move(board, 1600, 900);
     expect(frames.size).toBe(0);
 
-    // Wide with a mouse again: it follows again, until reduced motion is asked for.
+    // A mouse again: it follows again, until reduced motion is asked for.
     change(TILT_QUERY, true);
     move(board, 0, 0);
     runFrames(20);

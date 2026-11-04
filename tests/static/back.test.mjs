@@ -33,18 +33,22 @@ function assertStaticDrawing(svg, what) {
   }
 }
 
+/** The names of the populated variant of the back face, removed in Task 8c (the word itself may be printed). */
+const VARIANT = /BACK_VARIANT|dist-populated|back-populated|populatedTitle|populatedAlt/;
+
 test('one back face: the populated variant and its second build are gone', () => {
   for (const f of ['src/components/BackPopulated.vue', 'src/assets/img/back-populated.svg']) assert.ok(!existsSync(at(f)), `${f} is still there`);
   // No variant switch, no second build, no copy of the other variant, anywhere in the sources.
-  const variant = /BACK_VARIANT|dist-populated|back-populated|populatedTitle|populatedAlt/;
   const hits = trackedFiles()
     .filter((f) => f !== 'tests/static/back.test.mjs' && !BINARY.test(f) && existsSync(at(f)))
-    .filter((f) => variant.test(read(f)));
+    .filter((f) => VARIANT.test(read(f)));
   assert.deepEqual(hits, []);
-  // Nothing of it in the build: no orphan drawing, no rule of the other variant in the CSS.
+  // Nothing of it in the build: no orphan drawing, no rule of the other variant in the CSS. A
+  // « populated » bottom side may still be written about.
+  assert.equal(VARIANT.test('a populated bottom side'), false);
   assert.deepEqual(distFiles().filter((f) => /back-populated/.test(f)), []);
   const code = distFiles().filter((f) => /\.(js|css|html)$/.test(f));
-  assert.deepEqual(code.filter((f) => /back-populated|populated/.test(readFileSync(join(DIST_ROOT, f), 'utf8'))), []);
+  assert.deepEqual(code.filter((f) => VARIANT.test(readFileSync(join(DIST_ROOT, f), 'utf8'))), []);
 });
 
 test('every rule of the back face is in back.css, in its own layer between wide and depth', () => {
@@ -107,4 +111,30 @@ test('every list that lights a part of the back face names all eleven parts', ()
     }
   }
   assert.ok(lists >= 4, `${lists} lists`);
+});
+
+test('passives are decorative: in the hidden copper, drawn by the sprite, never lit, never animated', () => {
+  for (const page of ['index.html', 'en/index.html']) {
+    const html = readFileSync(join(DIST_ROOT, page), 'utf8');
+    const copper = html.match(/<svg class="back__copper"[\s\S]*?<\/svg>/)?.[0] ?? '';
+    const uses = tags(copper, 'use').filter((t) => (t.class ?? '').split(' ').includes('back__psv'));
+    assert.ok(uses.length >= 20, `${page}: ${uses.length} passives`);
+    // Each one a symbol of the sprite of the page, at whole units.
+    const symbols = new Set(tags(html, 'symbol').map((t) => t.id));
+    for (const u of uses) {
+      assert.match(u.href ?? '', /^#psv-/);
+      assert.ok(symbols.has((u.href ?? '').slice(1)), `${page}: no symbol for ${u.href}`);
+      for (const k of ['x', 'y', 'width', 'height']) assert.match(u[k] ?? '', /^-?\d+$/, `${page}: ${k}="${u[k]}"`);
+    }
+    // Their references: silkscreen marks of their kind, one each.
+    const refs = [...copper.matchAll(/<text class="back__psv-ref"[^>]*>([^<]*)<\/text>/g)].map(([, t]) => t);
+    assert.equal(refs.length, uses.length);
+    for (const r of refs) assert.match(r, /^[CRDYL]\d+$/);
+    // Nowhere else on the page: no part, no button, nothing in the accessibility tree.
+    assert.equal((html.match(/back__psv/g) ?? []).length, (copper.match(/back__psv/g) ?? []).length);
+  }
+  // Nothing lights them, nothing moves them: no rule of motion names them, no list of the lit state.
+  const rules = (f) => read(f).replace(/\/\*[\s\S]*?\*\//g, '');
+  assert.doesNotMatch(rules('src/styles/motion.css'), /psv|passive/);
+  for (const list of isLists(rules('src/styles/back.css')).filter((l) => l.includes('data-active'))) assert.doesNotMatch(list, /psv/);
 });

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { PACKAGES, PACKAGE_IDS } from '../lib/packages';
+import { PASSIVES, PASSIVE_IDS } from '../lib/passives';
 </script>
 
 <template>
@@ -684,6 +685,44 @@ import { PACKAGES, PACKAGE_IDS } from '../lib/packages';
         :cy="PACKAGES[id].mark.y"
         :r="PACKAGES[id].mark.r"
       />
+    </symbol>
+
+    <!--
+      The passive parts of the back face (lib/passives.ts), decoration in the units of the wide board:
+      their pads and tin, then their bodies in the materials of the passives (back.css).
+    -->
+    <symbol
+      v-for="id in PASSIVE_IDS"
+      :id="`psv-${id}`"
+      :key="id"
+      :viewBox="`0 0 ${PASSIVES[id].w} ${PASSIVES[id].h}`"
+    >
+      <template
+        v-for="(s, i) in PASSIVES[id].shapes"
+        :key="i"
+      >
+        <rect
+          v-if="s.el === 'rect'"
+          :class="s.cls"
+          :x="s.x"
+          :y="s.y"
+          :width="s.w"
+          :height="s.h"
+          :rx="s.rx"
+        />
+        <circle
+          v-else-if="s.el === 'circle'"
+          :class="s.cls"
+          :cx="s.cx"
+          :cy="s.cy"
+          :r="s.r"
+        />
+        <path
+          v-else
+          :class="s.cls"
+          :d="s.d"
+        />
+      </template>
     </symbol>
   </svg>
 </template>
