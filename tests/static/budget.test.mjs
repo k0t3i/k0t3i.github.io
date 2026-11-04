@@ -43,6 +43,18 @@ test('the JavaScript loaded by / under 60 KB (entry and static imports)', (t) =>
   }
 });
 
+test('all the JavaScript of the build under 60 KB too, lazy chunks included', (t) => {
+  // A chunk split off from / (a dynamic import) leaves the test above: the site's JavaScript as a whole stays in budget.
+  const scripts = distFiles().filter((f) => /^assets\/[^/]+\.m?js$/.test(f));
+  assert.ok(scripts.length > 0, 'no JavaScript built');
+  const rows = scripts.map((f) => ({ path: `/${f}`, bytes: wireSize(`/${f}`) }));
+  const total = sum(rows.map((r) => r.bytes));
+  t.diagnostic(`all the JS: ${total} B of ${BUDGET.js} (${list(rows)})`);
+  assert.ok(total <= BUDGET.js, `${total} B gzip -9 > ${BUDGET.js} B (${list(rows)})`);
+  // Nothing outside dist/assets/ is a script but the inline ones of the pages (budgeted with them).
+  assert.deepEqual(distFiles().filter((f) => /\.m?js$/.test(f) && !scripts.includes(f)), []);
+});
+
 test('the first load of the wide board under 170 KB', (t) => {
   for (const page of HOMES) {
     const rows = firstLoad(page);
