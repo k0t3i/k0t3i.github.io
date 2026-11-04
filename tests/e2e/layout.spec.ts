@@ -844,8 +844,10 @@ test.describe('wide board', () => {
 
   test('on a short window every link of a sheet is in view when it opens, clear of the Close bar', async ({ page }) => {
     await page.setViewportSize({ width: 1264, height: 800 });
-    await page.goto('/');
     for (const id of IDS) {
+      // A fresh page for each sheet: Playwright's WebKit with the settings of a phone stops responding
+      // after about nine sheets opened in a row on the wide board with motion on (seen before J4 and J5 too).
+      await page.goto('/');
       await trigger(page, id).click();
       const sheet = page.locator(`#sheet-${id}`);
       await expect(sheet).toBeVisible();
