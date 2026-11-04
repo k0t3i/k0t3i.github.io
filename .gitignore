@@ -11,3 +11,6 @@ private-names.local.txt
 # Local outputs of scripts/deploy.mjs (worktree of master) and scripts/captures.mjs.
 .deploy/
 captures/
+
+# Crash dumps of Git Bash tools.
+*.stackdump
