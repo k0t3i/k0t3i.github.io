@@ -8,11 +8,10 @@ export interface PartContent {
   ref: string;
   /** Kind of part, e.g. resistor. */
   kind: string;
-  /** Silkscreen label of the part (the title of its sheet). */
+  /** Silkscreen label of the part, and the title of its sheet. */
   label: string;
-  title: string;
   body?: string;
-  /** Language of label and title when it differs from the page (a French name on the English page). */
+  /** Language of the label when it differs from the page (a French name on the English page). */
   labelLang?: Locale;
   link?: { href: string; text: string };
   /** J1 only. */

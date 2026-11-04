@@ -91,7 +91,7 @@ const srcset = (ext: string): string => `/img/kit-urgence-380.${ext} 380w, /img/
       autofocus
       :lang="props.part.labelLang"
     >
-      {{ props.part.title }}
+      {{ props.part.label }}
     </h3>
     <!-- eslint-enable vuejs-accessibility/no-autofocus -->
     <p

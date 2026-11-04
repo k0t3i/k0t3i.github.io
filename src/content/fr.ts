@@ -76,7 +76,6 @@ export const fr: SiteContent = {
       ref: 'R1',
       kind: 'résistance',
       label: 'Je conçois pour durer, pas pour la démo.',
-      title: 'Je conçois pour durer, pas pour la démo.',
       body: `Fondation Louis Vuitton, Van Cleef & Arpels${NB}: architecture en composants, migrations de plateforme.`,
     },
     {
@@ -84,7 +83,6 @@ export const fr: SiteContent = {
       ref: 'C1',
       kind: 'condensateur',
       label: 'L’accessibilité n’est pas une option.',
-      title: 'L’accessibilité n’est pas une option.',
       body: 'Elle fait partie de chaque projet que je mène, du luxe au B2B bancaire. Chez Fircosoft, j’en porte les guidelines pour tout le produit.',
     },
     {
@@ -92,7 +90,6 @@ export const fr: SiteContent = {
       ref: 'LED1',
       kind: 'LED',
       label: 'La performance se mesure, elle ne se suppose pas.',
-      title: 'La performance se mesure, elle ne se suppose pas.',
       body: 'Audits de performance chez SFEIR, optimisations sur la plupart des projets de luxe.',
     },
     {
@@ -100,7 +97,6 @@ export const fr: SiteContent = {
       ref: 'D1',
       kind: 'diode',
       label: 'Un bug a toujours une cause. Je la trouve.',
-      title: 'Un bug a toujours une cause. Je la trouve.',
       body: 'Le debug front de Fircosoft passe par moi depuis 2018.',
     },
     {
@@ -108,7 +104,6 @@ export const fr: SiteContent = {
       ref: 'U2',
       kind: 'circuit intégré',
       label: 'Une équipe solide vaut mieux qu’un héros.',
-      title: 'Une équipe solide vaut mieux qu’un héros.',
       body: 'Jusqu’à 20 développeurs front recrutés, formés et suivis chez Valtech. Des formations en entreprise.',
     },
   ],
@@ -118,7 +113,6 @@ export const fr: SiteContent = {
       ref: 'J1',
       kind: 'projet',
       label: KIT.name,
-      title: KIT.name,
       body: `Simulateur 3D qui calcule le kit d’urgence de votre foyer (adultes, enfants, de 72${NB}h à 3 semaines). Chaque objet arrive quand la voix le nomme. Un sac d’évacuation par personne, et des listes à cocher en PDF. Contenu comparé aux guides officiels d’une trentaine de pays.`,
       link: { href: KIT.href, text: 'Ouvrir le simulateur' },
       media: {
@@ -130,7 +124,6 @@ export const fr: SiteContent = {
       ref: 'J2',
       kind: 'projet',
       label: SPLITR.name,
-      title: SPLITR.name,
       body: 'Application de bureau (Windows, macOS) pour découper, traiter et exporter des fichiers médias simplement, sans la complexité de FFmpeg.',
       link: { href: SPLITR.href, text: 'Télécharger la dernière version' },
     },
@@ -139,7 +132,6 @@ export const fr: SiteContent = {
       ref: 'J3',
       kind: 'contact',
       label: 'Contact',
-      title: 'Contact',
       contacts: [
         { label: `E-mail${NB}:`, href: `mailto:${SITE.email}`, text: SITE.email },
         { label: `GitHub${NB}:`, href: SITE.github, text: GITHUB_TEXT },

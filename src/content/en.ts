@@ -75,7 +75,6 @@ export const en: SiteContent = {
       ref: 'R1',
       kind: 'resistor',
       label: 'I build to last, not for the demo.',
-      title: 'I build to last, not for the demo.',
       body: 'Fondation Louis Vuitton, Van Cleef & Arpels: component architecture, platform migrations.',
     },
     {
@@ -83,7 +82,6 @@ export const en: SiteContent = {
       ref: 'C1',
       kind: 'capacitor',
       label: 'Accessibility is not optional.',
-      title: 'Accessibility is not optional.',
       body: 'It is part of every project I lead, from luxury brands to B2B banking. At Fircosoft, I own the accessibility guidelines for the whole product.',
     },
     {
@@ -91,7 +89,6 @@ export const en: SiteContent = {
       ref: 'LED1',
       kind: 'LED',
       label: 'Performance is measured, not guessed.',
-      title: 'Performance is measured, not guessed.',
       body: 'Performance audits at SFEIR, optimisation on most luxury projects.',
     },
     {
@@ -99,7 +96,6 @@ export const en: SiteContent = {
       ref: 'D1',
       kind: 'diode',
       label: 'Every bug has a cause. I find it.',
-      title: 'Every bug has a cause. I find it.',
       body: 'Since 2018, front-end debugging at Fircosoft goes through me.',
     },
     {
@@ -107,7 +103,6 @@ export const en: SiteContent = {
       ref: 'U2',
       kind: 'chip',
       label: 'A strong team beats a hero.',
-      title: 'A strong team beats a hero.',
       body: 'Up to 20 front-end developers hired, trained and coached at Valtech. Training sessions for companies.',
     },
   ],
@@ -117,7 +112,6 @@ export const en: SiteContent = {
       ref: 'J1',
       kind: 'project',
       label: KIT.name,
-      title: KIT.name,
       labelLang: 'fr',
       body: 'A 3D simulator that plans the emergency kit for your home: adults, children, from 72 hours to 3 weeks. Each item appears when the voice says its name. One evacuation bag for each person, and checklists in PDF. The content is checked against official guides from about thirty countries.',
       link: { href: KIT.href, text: 'Open the simulator (in French)' },
@@ -130,7 +124,6 @@ export const en: SiteContent = {
       ref: 'J2',
       kind: 'project',
       label: SPLITR.name,
-      title: SPLITR.name,
       body: 'A desktop app (Windows, macOS) to split, process and export media files. Simple and fast, without the complexity of FFmpeg.',
       link: { href: SPLITR.href, text: 'Download the latest version' },
     },
@@ -139,7 +132,6 @@ export const en: SiteContent = {
       ref: 'J3',
       kind: 'contact',
       label: 'Contact',
-      title: 'Contact',
       contacts: [
         { label: 'Email:', href: `mailto:${SITE.email}`, text: SITE.email },
         { label: 'GitHub:', href: SITE.github, text: GITHUB_TEXT },
