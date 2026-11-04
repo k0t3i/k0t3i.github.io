@@ -1,11 +1,13 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { linkedTo, linksOf } from '../../src/circuit/links';
+import { FED_BY, linkedTo, linksOf } from '../../src/circuit/links';
+import { NETS, PARTS } from '../../src/circuit/netlist';
 
 /*
  * « Relié à » (spec 4.10), from the netlist: signal links only, the passives looked through, a device
- * of a bus linked to its master and what it serves, the chip to everything it serves, the regulator
- * to the connector that feeds it.
+ * of a bus linked to its master and what it serves, the chip to everything it serves; the regulator
+ * linked to the connector that feeds it, the one exception to « no power in Relié à » (Anthony's
+ * decision of 04/11/2026, spec 4.10).
  */
 describe('the links of the parts of the bill of materials', () => {
   it('follow the rules of the spec', () => {
@@ -31,6 +33,13 @@ describe('the links of the parts of the bill of materials', () => {
     expect(linksOf('U14').find((l) => l.to === 'SW1')?.nets).toEqual(['BTN']);
     // A device of the I²C bus reaches the chip on it, and not the other devices.
     expect(linksOf('U18').map((l) => [l.to, l.nets.sort()])).toEqual([['U10', ['SCL', 'SDA']]]);
+  });
+
+  it('name no power link but the one exception, U12 to J5, the connector that feeds it', () => {
+    expect(FED_BY).toEqual({ U12: 'J5' });
+    expect(linksOf('U12')).toEqual([{ to: 'J5', nets: ['VBUS'] }]);
+    const signal = (ref: string) => NETS.some((n) => n.kind === 'signal' && n.pins.some((p) => p.startsWith(`${ref}.`)));
+    for (const p of PARTS.filter((q) => q.ref !== 'U12' && !signal(q.ref))) expect(linksOf(p.ref), p.ref).toEqual([]);
   });
 
   it('are both ways between the parts of the bill of materials', () => {

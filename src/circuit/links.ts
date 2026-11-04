@@ -7,11 +7,18 @@ import { NETS, PARTS, deviceOf, type Net } from './netlist';
  *   D1, is named as well: its pads are on the page).
  * - On a shared bus (I²C, SPI), a device is linked to the chip that masters it (U10) and to what it
  *   serves, never to the other devices of the bus; the chip is linked to all of them.
- * - A part with no signal at all (the regulator) is linked to the connector that feeds it.
+ * - Power is never a link, but for one named exception (FED_BY).
  * Also the nets each link runs on, for the light of the back face (live.ts).
  */
 
 export const MASTER = 'U10';
+
+/**
+ * The one exception to « no power in Relié à » (Anthony's decision of 04/11/2026, spec 4.10,
+ * « U12 → J5 »): the regulator, which has no signal, is linked to the connector that feeds it, so that
+ * pointing at it lights something. The link runs on the power nets they share.
+ */
+export const FED_BY: Readonly<Record<string, string>> = { U12: 'J5' };
 
 const partOf = (pin: string): string => pin.split('.')[0] ?? '';
 const transparent = (ref: string): boolean => Boolean((deviceOf(ref) as { transparent?: true }).transparent);
@@ -52,12 +59,10 @@ export function linksOf(ref: string): Link[] {
     }
   };
   for (const net of netsOfPart(ref)) walk(net, [], new Set());
-  if (!found.size) {
-    // No signal: the connectors that feed it (the regulator and J5).
-    const inputs = Object.entries(deviceOf(ref).pins).filter(([, [, type]]) => type === 'power').map(([pin]) => `${ref}.${pin}`);
-    for (const net of NETS.filter((n) => n.kind === 'power' && n.pins.some((p) => inputs.includes(p)))) {
-      for (const pin of net.pins) if (/^J\d/.test(partOf(pin)) && PARTS.find((p) => p.ref === partOf(pin))) reach(partOf(pin), [net.name]);
-    }
+  const feeder = FED_BY[ref];
+  if (feeder) {
+    const shared = NETS.filter((n) => n.kind === 'power' && n.pins.some((p) => partOf(p) === ref) && n.pins.some((p) => partOf(p) === feeder));
+    reach(feeder, shared.map((n) => n.name));
   }
   return [...found].map(([to, nets]) => ({ to, nets: [...nets] })).sort((a, b) => order(a.to) - order(b.to));
 }
