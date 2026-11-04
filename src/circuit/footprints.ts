@@ -111,17 +111,18 @@ export const FOOTPRINTS = {
   'sot23-5': gull({ n: 3, pitch: 13, bodyW: 40, bodyH: 36, padW: 8, padL: 12, top: [4, null, 5] }),
   'sot23-6': gull({ n: 3, pitch: 13, bodyW: 40, bodyH: 36, padW: 8, padL: 12 }),
   wsof6: gull({ n: 3, pitch: 10, bodyW: 36, bodyH: 28, padW: 5, padL: 10 }),
-  xtal3225: {
-    w: 52,
-    h: 40,
+  // A 2.0 x 1.6 mm crystal (2016), at the scale of the board (an 0603 is 28 x 14): four pads under its can.
+  xtal2016: {
+    w: 36,
+    h: 30,
     pads: [
-      { pin: '1', x: 9, y: 31, w: 16, h: 12 },
-      { pin: '2', x: 43, y: 31, w: 16, h: 12 },
-      { pin: '3', x: 43, y: 9, w: 16, h: 12 },
-      { pin: '4', x: 9, y: 9, w: 16, h: 12 },
+      { pin: '1', x: 7, y: 23, w: 12, h: 10 },
+      { pin: '2', x: 29, y: 23, w: 12, h: 10 },
+      { pin: '3', x: 29, y: 7, w: 12, h: 10 },
+      { pin: '4', x: 7, y: 7, w: 12, h: 10 },
     ],
-    body: { x: 6, y: 5, w: 40, h: 30 },
-    mark: { x: 9, y: 31 },
+    body: { x: 2, y: 2, w: 32, h: 26 },
+    mark: { x: 7, y: 23 },
     look: 'can',
   },
   xtal3215: chip(44, 18, 12, 'xtal'),
@@ -137,11 +138,12 @@ export const FOOTPRINTS = {
     look: 'ufl',
   },
   header6smd: {
-    w: 236,
+    w: 260,
     h: 40,
-    // The SMT tails, alternating above and below the row (as the TSM-SV), the posts in the middle.
-    pads: Array.from({ length: 6 }, (_, k): Pad => ({ pin: String(k + 1), x: 8 + k * 44, y: k % 2 ? 35 : 5, w: 12, h: 10 })),
-    body: { x: 0, y: 10, w: 236, h: 20 },
+    // The SMT tails, alternating above and below the row (as the TSM-SV), the posts in the middle; the
+    // plastic block of each position, 40 wide at a pitch of 44, inside the body.
+    pads: Array.from({ length: 6 }, (_, k): Pad => ({ pin: String(k + 1), x: 20 + k * 44, y: k % 2 ? 35 : 5, w: 12, h: 10 })),
+    body: { x: 0, y: 10, w: 260, h: 20 },
     look: 'header',
   },
   '0402': chip(20, 10, 8),

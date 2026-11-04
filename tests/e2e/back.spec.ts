@@ -693,6 +693,29 @@ test.describe('the lines of the table', () => {
   }
 });
 
+test.describe('the back face on a phone', () => {
+  // Anthony's decision of 04/11/2026 (spec 4.10, « Dos sur téléphone »): at that scale a reference
+  // would be about 4 px, so the drawing carries no text; the table under it gives the references.
+  test('its drawing carries no text, the table gives the references', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await showBack(page);
+    const texts = await face(page).evaluate((el) => {
+      const out: string[] = [];
+      const circuit = el.querySelector('.back__circuit') as Element;
+      const walker = el.ownerDocument.createTreeWalker(circuit, NodeFilter.SHOW_TEXT);
+      for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+        const p = n.parentElement;
+        if (p && n.nodeValue?.trim() && !p.closest('.vh') && p.checkVisibility()) out.push(n.nodeValue.trim());
+      }
+      return out;
+    });
+    expect(texts).toEqual([]);
+    await expect(page.locator('table.bom tbody tr')).toHaveCount(REFS.length);
+    // The art for that width is the one without text.
+    await expect.poll(() => face(page).locator('.back__art img').evaluate((img: HTMLImageElement) => img.currentSrc)).toMatch(/board-back-small-/);
+  });
+});
+
 test.describe('the title of the back face', () => {
   for (const viewport of [WIDE, { width: 1440, height: 900 }]) {
     test(`clears the pads of JP1 seen from behind, at their true place, at ${viewport.width}px`, async ({ page, isMobile }) => {

@@ -31,7 +31,7 @@ export interface Routed {
   failed: string[];
   /** Hops through an inner layer (L2 or L3, a split of its plane): a blind via at each end, nothing drawn between. */
   hops: { net: string; a: Point; b: Point; layer: 2 | 3; path: Point[] }[];
-  grid?: { owner: Int32Array; X0: number; Y0: number; W: number };
+  grid?: { owner: Int32Array; X0: number; Y0: number; W: number; inner?: Record<2 | 3, Int32Array> };
 }
 
 export function route(order: string[] = [], seed = 0, groundVias: string[] = []): Routed {
@@ -40,22 +40,22 @@ export function route(order: string[] = [], seed = 0, groundVias: string[] = [])
   const idx = (x: number, y: number) => (y - Y0) * W + (x - X0);
   const inside = (x: number, y: number) => x >= X0 && y >= Y0 && x < X0 + W && y < Y0 + H;
 
-  function mark(cx: number, cy: number, hx: number, hy: number, id: number, round = false): void {
+  function mark(cx: number, cy: number, hx: number, hy: number, id: number, round = false, grid = owner): void {
     for (let y = Math.floor(cy - hy); y <= Math.ceil(cy + hy); y++) {
       for (let x = Math.floor(cx - hx); x <= Math.ceil(cx + hx); x++) {
         if (!inside(x, y)) continue;
         if (round && Math.hypot(x - cx, y - cy) > hx) continue;
         if (!round && (Math.abs(x - cx) > hx || Math.abs(y - cy) > hy)) continue;
         const i = idx(x, y);
-        const o = owner[i] ?? 0;
-        owner[i] = o === 0 || o === id ? id : -1;
+        const o = grid[i] ?? 0;
+        grid[i] = o === 0 || o === id ? id : -1;
       }
     }
   }
   /** Keep-out round a segment, for the traces of other nets. */
-  function markSegment([ax, ay]: Point, [bx, by]: Point, r: number, id: number): void {
+  function markSegment([ax, ay]: Point, [bx, by]: Point, r: number, id: number, grid = owner): void {
     const n = Math.max(1, Math.ceil(Math.hypot(bx - ax, by - ay)));
-    for (let k = 0; k <= n; k++) mark(ax + ((bx - ax) * k) / n, ay + ((by - ay) * k) / n, r, r, id, true);
+    for (let k = 0; k <= n; k++) mark(ax + ((bx - ax) * k) / n, ay + ((by - ay) * k) / n, r, r, id, true, grid);
   }
 
   // Every copper pad of the back, with its net.
@@ -110,6 +110,41 @@ export function route(order: string[] = [], seed = 0, groundVias: string[] = [])
   const vias: Via[] = [];
   const throughs = VIAS.filter((v) => v.kind === 'through');
   for (const v of throughs) mark(v.x, v.y, 4 + CLEAR + hw, 4 + CLEAR + hw, netId.get(v.net) ?? -1, true);
+
+  // The inner layers, L2 (the ground plane) and L3 (the +3V3 plane): a hop runs in a split of one of
+  // them, so each has its own grid of what crosses it. The stack, from the front: F, L2, L3, B. A
+  // through via and a through-hole pad cross both; a blind via of the front reaches L2, and L3 too for
+  // +3V3; a blind via of the back reaches L3, and L2 too for ground and for the ends of a hop on L2.
+  const inner = { 2: new Int32Array(N), 3: new Int32Array(N) };
+  const both = [2, 3] as const;
+  const backReach = (net: string, hop?: 2 | 3): readonly (2 | 3)[] => (net === 'GND' || hop === 2 ? both : [3]);
+  for (const l of both) {
+    for (const v of throughs) mark(v.x, v.y, 4 + CLEAR + hw, 4 + CLEAR + hw, netId.get(v.net) ?? -1, true, inner[l]);
+    for (const v of VIAS.filter((q) => q.kind === 'blind' && (l === 2 || q.net === '+3V3'))) mark(v.x, v.y, VIA_R + CLEAR + hw, VIA_R + CLEAR + hw, netId.get(v.net) ?? -1, true, inner[l]);
+    for (const p of pads.filter((q) => q.layer === 'both')) {
+      if (p.round) mark(p.x, p.y, p.w / 2 + CLEAR + hw, p.w / 2 + CLEAR + hw, p.net, true, inner[l]);
+      else mark(p.x, p.y, p.w / 2 + CLEAR + hw, p.h / 2 + CLEAR + hw, p.net, false, inner[l]);
+    }
+    // The fan-out of the chips is kept on the inner layers too: under each pin and its corridor, only
+    // its own net, so that a hop of another net never takes the place of the via a pin needs.
+    for (const c of corridors) mark((c.x0 + c.x1) / 2, (c.y0 + c.y1) / 2, (c.x1 - c.x0) / 2, (c.y1 - c.y0) / 2, c.id, false, inner[l]);
+    for (const p of BACK_PLACED.filter((q) => q.fp.look === 'qfn' || q.fp.look === 'gull').flatMap(placedPads)) {
+      const id = netId.get(netOf(`${p.ref}.${p.pin}`)?.name ?? '') ?? -1;
+      // The room of a via in the pad, with its clearance.
+      if (id > 0 && !(p.w > 30 && p.h > 30)) mark(p.x, p.y, VIA_R + CLEAR + hw, VIA_R + CLEAR + hw, id, true, inner[l]);
+    }
+    const grid = inner[l];
+    for (let y = Y0; y < Y0 + H; y++) {
+      for (let x = X0; x < X0 + W; x++) if (x < CIRCUIT.x + 6 || x > CIRCUIT.x + CIRCUIT.w - 6 || y < CIRCUIT.y + 6 || y > CIRCUIT.y + CIRCUIT.h - 6) grid[idx(x, y)] = -1;
+    }
+  }
+  /** A blind via of the back: on the back, and on the inner layers it reaches. */
+  function addVia(name: string, [x, y]: Point, reach: readonly (2 | 3)[]): void {
+    const id = netId.get(name) ?? -1;
+    vias.push({ net: name, x, y, kind: 'blind', layer: 'B' });
+    mark(x, y, VIA_R + CLEAR + hw, VIA_R + CLEAR + hw, id, true);
+    for (const l of reach) mark(x, y, VIA_R + CLEAR + hw, VIA_R + CLEAR + hw, id, true, inner[l]);
+  }
   // The edge of the circuit.
   for (let y = Y0; y < Y0 + H; y++) {
     for (let x = X0; x < X0 + W; x++) {
@@ -127,7 +162,7 @@ export function route(order: string[] = [], seed = 0, groundVias: string[] = [])
   let tgen = 0;
 
   /** The cheapest path from any source to any target, for a net; its cells, or null. */
-  function search(sources: Point[], targets: Point[], id: number, bound = Infinity): Point[] | null {
+  function search(sources: Point[], targets: Point[], id: number, bound = Infinity, grid = owner): Point[] | null {
     gen++;
     tgen++;
     let minX = Infinity;
@@ -207,9 +242,10 @@ export function route(order: string[] = [], seed = 0, groundVias: string[] = [])
       push(hOf(x, y), s);
     }
     const ok = (i: number) => {
-      const o = owner[i] ?? 0;
+      const o = grid[i] ?? 0;
       return o === 0 || o === id;
     };
+    const bundles = grid === owner;
     let pops = 0;
     while (heap.length) {
       const s = pop();
@@ -244,7 +280,7 @@ export function route(order: string[] = [], seed = 0, groundVias: string[] = [])
         // A diagonal never squeezes between two blocked cells.
         if (dx && dy && (!ok(idx(x + dx, y)) || !ok(idx(x, y + dy)))) continue;
         const ns = ni * 9 + d;
-        const ng = gs + (dx && dy ? Math.SQRT2 : 1) * (along[ni] ? 0.7 : 1) + turn;
+        const ng = gs + (dx && dy ? Math.SQRT2 : 1) * (bundles && along[ni] ? 0.7 : 1) + turn;
         if (stamp[ns] === gen && (g[ns] ?? 0) <= ng) continue;
         stamp[ns] = gen;
         g[ns] = ng;
@@ -295,7 +331,7 @@ export function route(order: string[] = [], seed = 0, groundVias: string[] = [])
   }
 
   /** A free place for a via of a net, near a point. */
-  function viaSpot([px, py]: Point, id: number, r = VIA_R): Point | null {
+  function viaSpot([px, py]: Point, id: number, reach: readonly (2 | 3)[], held: Point[] = [], r = VIA_R): Point | null {
     // The zones of the others already hold their clearance: the via needs its own radius free of them, less a trace's half width.
     const keep = r - hw;
     for (let d = 6; d <= 30; d++) {
@@ -311,8 +347,9 @@ export function route(order: string[] = [], seed = 0, groundVias: string[] = [])
               free = false;
               break;
             }
-            const o = owner[idx(xx, yy)] ?? 0;
-            if (o !== 0 && o !== id) {
+            const i = idx(xx, yy);
+            const o = owner[i] ?? 0;
+            if ((o !== 0 && o !== id) || reach.some((l) => (inner[l][i] ?? 0) !== 0 && inner[l][i] !== id)) {
               free = false;
               break;
             }
@@ -322,6 +359,7 @@ export function route(order: string[] = [], seed = 0, groundVias: string[] = [])
         const toRect = (r: { x0: number; y0: number; x1: number; y1: number }) => Math.hypot(Math.max(r.x0 - x, 0, x - r.x1), Math.max(r.y0 - y, 0, y - r.y1));
         if (free && corridors.some((c) => c.id !== id && toRect(c) < r + CLEAR + hw)) free = false;
         if (free && pads.some((q) => q.net !== id && toRect({ x0: q.x - q.w / 2, x1: q.x + q.w / 2, y0: q.y - q.h / 2, y1: q.y + q.h / 2 }) < r + CLEAR + 2)) free = false;
+        if (free && held.some(([hx, hy]) => Math.hypot(hx - x, hy - y) < 2 * r + CLEAR + 2 * hw)) free = false;
         if (free) return [x, y];
       }
     }
@@ -336,7 +374,7 @@ export function route(order: string[] = [], seed = 0, groundVias: string[] = [])
     const pad = padsOf(pin)[0];
     if (!pad || pad.layer !== 'B') return;
     const id = netId.get(plane) ?? -1;
-    const spot = viaSpot(centre(pad), id);
+    const spot = viaSpot(centre(pad), id, backReach(plane));
     if (!spot) {
       failed.push(`${pin}: no room for its via`);
       return;
@@ -347,13 +385,12 @@ export function route(order: string[] = [], seed = 0, groundVias: string[] = [])
       return;
     }
     lay(plane, path, 2);
-    vias.push({ net: plane, x: spot[0], y: spot[1], kind: 'blind', layer: 'B' });
-    mark(spot[0], spot[1], VIA_R + CLEAR + hw, VIA_R + CLEAR + hw, id, true);
+    addVia(plane, spot, backReach(plane));
   }
 
   // 1. The exposed pad of U10: its thermal vias to the ground plane, a grid of 3 x 3.
   const epad = padsOf('U10.57')[0];
-  if (epad) for (const dx of [-18, 0, 18]) for (const dy of [-18, 0, 18]) vias.push({ net: 'GND', x: epad.x + dx, y: epad.y + dy, kind: 'blind', layer: 'B' });
+  if (epad) for (const dx of [-18, 0, 18]) for (const dy of [-18, 0, 18]) addVia('GND', [epad.x + dx, epad.y + dy], both);
 
   // 2. Decoupling: each capacitor joined to the pin it serves, then the planes.
   const done = new Set<string>(['U10.57']);
@@ -453,54 +490,53 @@ export function route(order: string[] = [], seed = 0, groundVias: string[] = [])
   const hops: Routed['hops'] = [];
   /** Joins two pieces of a net through the inner layer: a via by each, a short trace to each via. */
   /** A pad of a net at a point: a via may go in it (filled and capped, as on a fine-pitch board). */
-  const inPad = ([x, y]: Point, id: number): Point | null => (pads.some((q) => q.net === id && q.layer === 'B' && Math.abs(q.x - x) < 0.5 && Math.abs(q.y - y) < 0.5) ? [x, y] : null);
+  const inPad = ([x, y]: Point, id: number, reach: readonly (2 | 3)[]): Point | null => {
+    if (!pads.some((q) => q.net === id && q.layer === 'B' && Math.abs(q.x - x) < 0.5 && Math.abs(q.y - y) < 0.5)) return null;
+    const i = idx(x, y);
+    return reach.every((l) => (inner[l][i] ?? 0) === 0 || inner[l][i] === id) ? [x, y] : null;
+  };
+  /** A through-hole pad or a through via of a net at a point, if there is one. */
+  const throughAt = ([x, y]: Point, id: number): Point | null => {
+    const pad = pads.find((q) => q.net === id && q.layer === 'both' && Math.abs(q.x - x) < 0.5 && Math.abs(q.y - y) < 0.5);
+    const via = throughs.find((v) => (netId.get(v.net) ?? -1) === id && v.x === x && v.y === y);
+    return pad ? [Math.round(pad.x), Math.round(pad.y)] : via ? [via.x, via.y] : null;
+  };
   function hopBetween(name: string, id: number, w: number, from: Point[], to: Point[], [a, b]: [Point, Point]): Point[] | null {
     const at = (pts: Point[], q: Point) => pts.some((p) => p[0] === q[0] && p[1] === q[1]);
-    /** A via near an end (or in its pad) and the path to it. */
-    const end = (p: Point, pts: Point[], reverse: boolean): { spot: Point; path: Point[] } | null => {
-      for (const spot of [viaSpot(p, id), inPad(p, id)]) {
-        if (!spot) continue;
+    /** A via near an end (or in its pad), free on the layers it reaches, and the path to it on the back. */
+    const end = (p: Point, pts: Point[], reverse: boolean, reach: readonly (2 | 3)[], held: Point[]): { spot: Point; path: Point[]; through?: true } | null => {
+      // A through-hole pad or a through via of the net already reaches the inner layers: the hop starts there.
+      const own = throughAt(p, id);
+      if (own) return { spot: own, path: [own], through: true };
+      for (const spot of [viaSpot(p, id, reach, held), inPad(p, id, reach)]) {
+        if (!spot || held.some(([hx, hy]) => Math.hypot(hx - spot[0], hy - spot[1]) < 2 * VIA_R + CLEAR + 2 * hw)) continue;
         if (at(pts, spot)) return { spot, path: [spot] };
         const path = reverse ? search([spot], pts, id, 3 * octile(p, spot) + 30) : search(pts, [spot], id, 3 * octile(p, spot) + 30);
         if (path) return { spot, path };
       }
       return null;
     };
-    const ea = end(a, from, false);
-    if (!ea) return null;
-    // Hold the first via while the second is placed.
-    mark(ea.spot[0], ea.spot[1], VIA_R + CLEAR + hw, VIA_R + CLEAR + hw, id, true);
-    const eb = end(b, to, true);
-    if (!eb) return null;
-    // The inner layer is a layer too: a hop never crosses the hop of another net.
-    const cross = (o: Point, p: Point, q: Point) => (p[0] - o[0]) * (q[1] - o[1]) - (p[1] - o[1]) * (q[0] - o[0]);
-    const crosses = (a1: Point, a2: Point, b1: Point, b2: Point) => cross(a1, a2, b1) * cross(a1, a2, b2) <= 0 && cross(b1, b2, a1) * cross(b1, b2, a2) <= 0;
-    // The inner trace: straight, or round the ends of the others (below, above, left, right of both vias).
-    const [A, B] = [ea.spot, eb.spot];
-    const shapes: Point[][] = [
-      [A, B],
-      ...[16, 32, 56].flatMap((d) => [
-        ...[Math.max(A[1], B[1]) + d, Math.min(A[1], B[1]) - d].map((y): Point[] => [A, [A[0], y], [B[0], y], B]),
-        ...[Math.min(A[0], B[0]) - d, Math.max(A[0], B[0]) + d].map((x): Point[] => [A, [x, A[1]], [x, B[1]], B]),
-      ]),
-    ];
-    const pieces = (pts: Point[]) => pts.slice(1).map((q, i): [Point, Point] => [pts[i] as Point, q]);
-    const clash = (pts: Point[], l: 2 | 3) => hops.some((h) => h.layer === l && h.net !== name && pieces(pts).some(([p, q]) => pieces(h.path).some(([u, v]) => crosses(p, q, u, v))));
-    let pick: { layer: 2 | 3; path: Point[] } | null = null;
-    for (const path of shapes) {
-      const layer = ([3, 2] as const).find((l) => !clash(path, l));
-      if (layer) {
-        pick = { layer, path };
-        break;
-      }
+    // L2 first: a slot cut in the ground plane leaves its pieces joined through the pour of the back
+    // and its stitching, where an island of the +3V3 plane (L3) would be cut off. Then L3. The inner
+    // trace is routed as on the back, at 45°, clear of everything that crosses its layer.
+    for (const layer of [2, 3] as const) {
+      const reach = backReach(name, layer);
+      const ea = end(a, from, false, reach, []);
+      if (!ea) continue;
+      const eb = end(b, to, true, reach, [ea.spot]);
+      if (!eb) continue;
+      const cells = search([ea.spot], [eb.spot], id, 3 * octile(ea.spot, eb.spot) + 160, inner[layer]);
+      if (!cells) continue;
+      const path = corners(cells);
+      if (ea.path.length > 1) lay(name, ea.path, w);
+      if (eb.path.length > 1) lay(name, eb.path, w);
+      if (!ea.through) addVia(name, ea.spot, reach);
+      if (!eb.through) addVia(name, eb.spot, reach);
+      for (let i = 1; i < path.length; i++) markSegment(path[i - 1] as Point, path[i] as Point, hw + CLEAR + hw, id, inner[layer]);
+      hops.push({ net: name, a: ea.spot, b: eb.spot, layer, path });
+      return [...ea.path, ...eb.path];
     }
-    if (!pick) return null;
-    if (ea.path.length > 1) lay(name, ea.path, w);
-    if (eb.path.length > 1) lay(name, eb.path, w);
-    mark(eb.spot[0], eb.spot[1], VIA_R + CLEAR + hw, VIA_R + CLEAR + hw, id, true);
-    vias.push({ net: name, x: ea.spot[0], y: ea.spot[1], kind: 'blind', layer: 'B' }, { net: name, x: eb.spot[0], y: eb.spot[1], kind: 'blind', layer: 'B' });
-    hops.push({ net: name, a: ea.spot, b: eb.spot, layer: pick.layer, path: pick.path });
-    return [...ea.path, ...eb.path];
+    return null;
   }
 
   const rest = NETS.filter((n) => n.kind !== 'ground' && n.name !== '+3V3').map((n) => n.name);
@@ -545,8 +581,16 @@ export function route(order: string[] = [], seed = 0, groundVias: string[] = [])
         lay(name, path, w);
         joined.push(...path, ...next);
       } else {
-        // No good path on the back: down to the inner layer by a blind via near each end.
-        const hop = hopBetween(name, id, w, next, joined, pair);
+        // No good path on the back: down to the inner layer by a blind via near each end, from the
+        // closest pair of points, else from the next ones (a few, apart from each other).
+        const pairs: [Point, Point][] = [pair];
+        const all = next.flatMap((p) => joined.map((q): [Point, Point, number] => [p, q, octile(p, q)])).sort((u, v) => u[2] - v[2]);
+        for (const [p, q] of all) {
+          if (pairs.length >= 5) break;
+          if (pairs.every(([, b]) => Math.hypot(b[0] - q[0], b[1] - q[1]) > 24)) pairs.push([p, q]);
+        }
+        let hop: Point[] | null = null;
+        for (const pr of pairs) if (!hop) hop = hopBetween(name, id, w, next, joined, pr);
         if (hop) joined.push(...hop, ...next);
         else failed.push(`${name}: ${next.map((p) => p.join(',')).join(' ')}`);
       }
@@ -557,7 +601,7 @@ export function route(order: string[] = [], seed = 0, groundVias: string[] = [])
   for (const name of names) connect(name, true);
   // Last, the ground pins the pour could not reach in a previous pass: each its via, where there is room.
   for (const pin of groundVias) toPlane(pin, 'GND');
-  return { traces, vias, failed, hops, grid: { owner, X0, Y0, W } };
+  return { traces, vias, failed, hops, grid: { owner, X0, Y0, W, inner } };
 }
 
 function octile([ax, ay]: Point, [bx, by]: Point): number {

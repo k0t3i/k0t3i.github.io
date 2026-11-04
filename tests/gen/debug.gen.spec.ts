@@ -17,7 +17,9 @@ it('debug', () => {
   for (let y = y0; y <= y1; y++) {
     let line = `${String(y).padStart(4)} `;
     for (let x = x0; x <= x1; x++) {
-      const o = g.owner[(y - g.Y0) * g.W + (x - g.X0)] ?? 0;
+      const layer = process.env.LAYER === "2" ? 2 : process.env.LAYER === "3" ? 3 : 0;
+      const arr = layer && g.inner ? g.inner[layer] : g.owner;
+      const o = arr[(y - g.Y0) * g.W + (x - g.X0)] ?? 0;
       if (o === 0) line += '.';
       else if (o === -1) line += '#';
       else {

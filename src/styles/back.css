@@ -185,8 +185,8 @@
   }
 
   .back-part[data-ref="U12"] {
-    --x: 520;
-    --y: 700;
+    --x: 660;
+    --y: 720;
     --w: 40;
     --h: 48;
   }
@@ -200,7 +200,7 @@
 
   .back-part[data-ref="U14"] {
     --x: 190;
-    --y: 400;
+    --y: 300;
     --w: 62;
     --h: 77;
   }
@@ -236,14 +236,14 @@
   .back-part[data-ref="Y1"] {
     --x: 622;
     --y: 300;
-    --w: 40;
-    --h: 52;
+    --w: 30;
+    --h: 36;
   }
 
   .back-part[data-ref="J6"] {
     --x: 380;
     --y: 96;
-    --w: 236;
+    --w: 260;
     --h: 40;
   }
 
@@ -277,7 +277,7 @@
    * links name it) in the second colour, their rows too, finer; its row of the table marked in gold,
    * the references of its « Relié à » in the second colour.
    */
-  :is(.back-part, .back-ref):is(
+  .back-part:is(
       [data-active="U10"] [data-ref="U10"],
       [data-active="U11"] [data-ref="U11"],
       [data-active="U12"] [data-ref="U12"],
@@ -355,21 +355,11 @@
   }
 
   /*
-   * The references drawn in the live layer, for a narrow circuit only: there, at the scale of the
-   * drawing (silkscreen, aria-hidden), they keep clear of the parts; the references of the buttons,
-   * in rem, would be too large for its room.
+   * On a narrow circuit (a phone) the drawing carries no text: a reference would be about 4 px at its
+   * scale, and the table under it gives them (Anthony's decision of 04/11/2026, spec 4.10, « Dos sur
+   * téléphone »). The art for that width is the one without text (BackCircuit.vue, art.ts).
    */
-  .back-ref {
-    display: none;
-    fill: var(--ref, var(--silk-dim));
-    font: 500 20px/1 var(--font-mono);
-  }
-
   @container (width < 36rem) {
-    .back-ref {
-      display: inline;
-    }
-
     .back-part .part__ref {
       display: none;
     }

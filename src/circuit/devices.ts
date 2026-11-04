@@ -120,11 +120,11 @@ export const DEVICES = {
     datasheet: 'LM75B datasheet, §6 Pinning information, Table 3',
     pins: pinout('1 SDA io, 2 SCL in, 3 OS od, 4 GND ground, 5 A2 in, 6 A1 in, 7 A0 in, 8 VCC power'),
   },
-  // ECS ECX-32B crystal, 3.2 x 2.5 mm: the crystal between pads 1 and 3, the lid on 2 and 4 (ground).
+  // ECS ECX-1637B2 crystal, 2.0 x 1.6 mm (2016): the crystal between pads 1 and 3, the lid on 2 and 4 (ground).
   xtal40m: {
-    mpn: 'ECS-400-10-37B2-CKM-TR (ECS, 40 MHz, CL 10 pF, ±10 ppm, 3225)',
+    mpn: 'ECS-400-10-37B2-CKM-TR (ECS, 40 MHz, CL 10 pF, ±10 ppm, 2016)',
     load: 10,
-    datasheet: 'ECX-32B datasheet, Pad connections',
+    datasheet: 'ECX-1637B2 datasheet, Pad connections',
     pins: pinout('1 X1 passive, 2 GND ground, 3 X2 passive, 4 GND ground'),
   },
   // Abracon ABS07 tuning-fork crystal, 32.768 kHz, 3.2 x 1.5 mm, two pads.

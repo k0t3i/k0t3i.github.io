@@ -24,15 +24,59 @@ const MONO = 'JetBrains Mono,ui-monospace,Consolas,Menlo,monospace';
 /** The ink of the markings of a moulded body: a light grey, like the silkscreen, a step dimmer. */
 const ENGRAVE = '#8f8b83';
 
-/** What is printed on the packages big enough for it: the part number, the frequency (the 32.768 kHz crystal has room for its number only). The 0402 inductor is unmarked, as such parts are. */
+/**
+ * What is printed on the packages big enough for it: the part number, the frequency (the two crystals,
+ * 2.0 x 1.6 mm and 3.2 x 1.5 mm, have room for their number only). The 0402 inductor is unmarked, as
+ * such parts are.
+ */
 const MARKINGS: Readonly<Record<string, string>> = {
   U11: 'W25Q128',
   U14: 'TCA9554',
   U15: 'PCA9633',
   U16: 'PCF8563',
-  Y1: '40.000 MHz',
+  Y1: '40.000',
   Y2: '32.768',
 };
+
+/** A marking engraved on a body: its text, its centre and size, along the body or turned a quarter. */
+export interface Marking {
+  ref: string;
+  text: string;
+  x: number;
+  y: number;
+  size: number;
+  vertical: boolean;
+  colour: string;
+  body: { x: number; y: number; w: number; h: number };
+}
+
+/**
+ * The markings, each at the largest size up to 8 (U10's up to 16 and 12) that fits its body, 2 units
+ * clear of each edge (a mono character is 0.6 of the size): turned a quarter on a tall body where it
+ * reads larger so.
+ */
+export function markings(): Marking[] {
+  const out: Marking[] = [];
+  const fit = (len: number, along: number, across: number, max: number) => Math.min(max, across - 4, Math.floor(((along - 4) / (0.6 * len)) * 2) / 2);
+  for (const q of BACK_PLACED) {
+    const body = bodyOf(q);
+    const [cx, cy] = [body.x + body.w / 2, body.y + body.h / 2];
+    if (q.part.ref === 'U10') {
+      out.push({ ref: 'U10', text: 'U10', x: cx, y: cy + 8, size: 16, vertical: false, colour: ENGRAVE, body });
+      out.push({ ref: 'U10', text: 'ESP32-S3', x: cx, y: cy + 26, size: 12, vertical: false, colour: ENGRAVE, body });
+      continue;
+    }
+    const text = MARKINGS[q.part.ref];
+    if (!text) continue;
+    const flat = fit(text.length, body.w, body.h, 8);
+    const turned = fit(text.length, body.h, body.w, 8);
+    const vertical = turned > flat;
+    const size = vertical ? turned : flat;
+    const colour = q.fp.look === 'can' || q.fp.look === 'xtal' ? '#55554f' : ENGRAVE;
+    out.push({ ref: q.part.ref, text, x: cx, y: cy + size * 0.36, size, vertical, colour, body });
+  }
+  return out;
+}
 
 /** The eleven parts of the bill of materials are drawn live, not here. */
 export const LIVE = ['U10', 'U11', 'U12', 'U13', 'U14', 'U15', 'U16', 'U17', 'U18', 'Y1', 'J6'];
@@ -54,15 +98,17 @@ function bodyOf(p: PlacedPart): { x: number; y: number; w: number; h: number } {
 
 /**
  * Where the references of the parts out of the table go: beside each one, on the first side (by its
- * shape) where the text meets no part and no other reference, at the size of the silkscreen of
- * passives (8 units, 5 a character).
+ * shape) inside the circuit where the text meets no part, no outline and no other reference, at the
+ * size of the silkscreen of passives (8 units, 5 a character). No side free is an error of the
+ * layout, never a reference printed over something.
  */
-function refsAt(parts: { ref: string; box: { x: number; y: number; w: number; h: number } }[]): Map<string, { x: number; y: number; anchor: string }> {
+function refsAt(parts: { ref: string; box: { x: number; y: number; w: number; h: number } }[]): Map<string, { x: number; y: number; anchor: string; box: { x: number; y: number; w: number; h: number } }> {
   type Box = { x: number; y: number; w: number; h: number };
   const meets = (a: Box, b: Box) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
   // The parts, the outlines of the through-hole parts, and the references of the live parts (live.ts).
   const taken: Box[] = [...BACK_PLACED.map((q) => q.box), ...THT_GROUPS.map((g) => g.box), ...[...labels().values()].map((l) => l.box)].map((b) => ({ x: b.x - 1, y: b.y - 1, w: b.w + 2, h: b.h + 2 }));
-  const out = new Map<string, { x: number; y: number; anchor: string }>();
+  const inside = (b: Box, a: Box) => b.x >= a.x + 2 && b.y >= a.y + 2 && b.x + b.w <= a.x + a.w - 2 && b.y + b.h <= a.y + a.h - 2;
+  const out = new Map<string, { x: number; y: number; anchor: string; box: Box }>();
   for (const q of parts) {
     const { box } = q;
     const w = 5 * q.ref.length;
@@ -73,10 +119,13 @@ function refsAt(parts: { ref: string; box: { x: number; y: number; w: number; h:
       w: { x: box.x - 3 - w, y: box.y + box.h / 2 - 4, w, h: 8 },
     };
     const order = (box.w >= box.h ? ['n', 's', 'e', 'w'] : ['e', 'w', 'n', 's']) as (keyof typeof sides)[];
-    const side = order.find((k) => !taken.some((t) => meets(sides[k], t))) ?? order[0] ?? 'n';
+    // Inside the circuit (the window of the flowing board); a part out of it (JP1, by the title) on the board.
+    const area = inside(box, CIRCUIT) ? CIRCUIT : BOARD;
+    const side = order.find((k) => inside(sides[k], area) && !taken.some((t) => meets(sides[k], t)));
+    if (!side) throw new Error(`the reference of ${q.ref} has no free side`);
     const b = sides[side];
     taken.push(b);
-    out.set(q.ref, { x: b.x, y: b.y + 7, anchor: 'start' });
+    out.set(q.ref, { x: b.x, y: b.y + 7, anchor: 'start', box: b });
   }
   return out;
 }
@@ -92,6 +141,30 @@ const THT_GROUPS: { ref: string; box: { x: number; y: number; w: number; h: numb
     const y1 = Math.max(...pads.map((p) => p.y + p.h / 2)) + 4;
     return { ref, box: { x: x0, y: y0, w: x1 - x0, h: y1 - y0 } };
   });
+
+/** The board inside its edge, in the units of the face. */
+export const BOARD = { x: 24, y: 24, w: 1552, h: 852 };
+
+/** The pin names of the debug header J6, under its pads: their centre, baseline and box (7 units a character). */
+const J6_NAMES = ['3V3', 'EN', 'IO0', 'TX', 'RX', 'GND'];
+function j6Names(): { text: string; x: number; y: number; box: { x: number; y: number; w: number; h: number } }[] {
+  const j6 = BACK_PLACED.find((q) => q.part.ref === 'J6');
+  if (!j6) return [];
+  return placedPads(j6).map((pad) => {
+    const text = J6_NAMES[Number(pad.pin) - 1] ?? '';
+    const [y, w] = [j6.box.y + j6.box.h + 12, 5 * text.length];
+    return { text, x: pad.x, y, box: { x: pad.x - w / 2, y: y - 7, w, h: 8 } };
+  });
+}
+
+/** The silkscreen of the art (its references, J6's pin names and the outlines of the through-hole parts), for its checks. */
+export function silkscreen(): { refs: { ref: string; box: { x: number; y: number; w: number; h: number } }[]; names: { x: number; y: number; w: number; h: number }[]; outlines: typeof THT_GROUPS } {
+  const at = refsAt(labelledParts());
+  return { refs: [...at].map(([ref, l]) => ({ ref, box: l.box })), names: j6Names().map((n) => n.box), outlines: THT_GROUPS };
+}
+
+/** The parts the art writes a reference for: every part out of the table, and the through-hole groups. */
+const labelledParts = () => [...BACK_PLACED.filter((q) => !LIVE.includes(q.part.ref)).map((q) => ({ ref: q.part.ref, box: q.box })), ...THT_GROUPS];
 
 export function renderBackArt({ refs = true }: { refs?: boolean } = {}): string {
   const out: string[] = [];
@@ -223,36 +296,25 @@ export function renderBackArt({ refs = true }: { refs?: boolean } = {}): string 
   if (refs) {
     const engrave = (x: number, y: number, size: number, text: string, colour = ENGRAVE, rotate = 0) =>
       push(`<text x="${r1(x)}" y="${r1(y)}" fill="${colour}" font-family="${MONO}" font-size="${size}" text-anchor="middle"${rotate ? ` transform="rotate(${rotate} ${r1(x)} ${r1(y)})"` : ''}>${text}</text>`);
-    for (const q of BACK_PLACED) {
-      const b = bodyOf(q);
-      const [cx, cy] = [b.x + b.w / 2, b.y + b.h / 2];
-      const mark = MARKINGS[q.part.ref];
-      if (q.part.ref === 'U10') {
-        // A generic radio glyph: a dot and three arcs, no maker's logo.
-        const [gx, gy] = [cx, cy - 26];
-        push(`<g fill="none" stroke="${ENGRAVE}" stroke-width="2" stroke-linecap="round">${[6, 11, 16].map((r) => `<path d="M${r1(gx - r * 0.71)} ${r1(gy - r * 0.71)}A${r} ${r} 0 0 1 ${r1(gx + r * 0.71)} ${r1(gy - r * 0.71)}"/>`).join('')}</g><circle cx="${gx}" cy="${gy}" r="2" fill="${ENGRAVE}"/>`);
-        engrave(cx, cy + 8, 16, 'U10');
-        engrave(cx, cy + 26, 12, 'ESP32-S3');
-      } else if (mark) {
-        const vertical = b.h > b.w * 1.4 && mark.length * 3.6 > b.w - 4;
-        engrave(cx, cy + 3, mark.length > 8 ? 6 : 8, mark, q.fp.look === 'can' || q.fp.look === 'xtal' ? '#55554f' : ENGRAVE, vertical ? -90 : 0);
-      }
+    const u10 = BACK_PLACED.find((q) => q.part.ref === 'U10');
+    if (u10) {
+      // A generic radio glyph on the chip: a dot and three arcs, no maker's logo.
+      const b = bodyOf(u10);
+      const [gx, gy] = [b.x + b.w / 2, b.y + b.h / 2 - 26];
+      push(`<g fill="none" stroke="${ENGRAVE}" stroke-width="2" stroke-linecap="round">${[6, 11, 16].map((r) => `<path d="M${r1(gx - r * 0.71)} ${r1(gy - r * 0.71)}A${r} ${r} 0 0 1 ${r1(gx + r * 0.71)} ${r1(gy - r * 0.71)}"/>`).join('')}</g><circle cx="${gx}" cy="${gy}" r="2" fill="${ENGRAVE}"/>`);
     }
+    for (const m of markings()) engrave(m.x, m.y, m.size, m.text, m.colour, m.vertical ? -90 : 0);
   }
   // Their references, and the pin names of the debug header J6.
   if (refs) {
     push(`<g fill="${SILK}" font-family="${MONO}" font-size="8" letter-spacing=".3">`);
-    const labelled = [...drawn.map((q) => ({ ref: q.part.ref, box: q.box })), ...THT_GROUPS];
+    const labelled = labelledParts();
     const at = refsAt(labelled);
     for (const q of labelled) {
       const { x, y, anchor } = at.get(q.ref) ?? { x: 0, y: 0, anchor: 'start' };
       push(`<text x="${r1(x)}" y="${r1(y)}"${anchor === 'start' ? '' : ` text-anchor="${anchor}"`}>${q.ref}</text>`);
     }
-    const j6 = BACK_PLACED.find((q) => q.part.ref === 'J6');
-    if (j6) {
-      const names = ['3V3', 'EN', 'IO0', 'TX', 'RX', 'GND'];
-      for (const pad of placedPads(j6)) push(`<text x="${pad.x}" y="${j6.box.y + j6.box.h + 12}" text-anchor="middle">${names[Number(pad.pin) - 1] ?? ''}</text>`);
-    }
+    for (const n of j6Names()) push(`<text x="${n.x}" y="${n.y}" text-anchor="middle">${n.text}</text>`);
     push('</g>');
   }
   push('</svg>');

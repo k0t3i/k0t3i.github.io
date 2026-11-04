@@ -45,8 +45,10 @@ export function labels(size: { w: number; h: number } = { w: 17, h: 36 }): Map<s
     const within = (b: Box) => b.x >= CIRCUIT.x && b.y >= CIRCUIT.y && b.x + b.w <= CIRCUIT.x + CIRCUIT.w && b.y + b.h <= CIRCUIT.y + CIRCUIT.h;
     const order = ['n', 'e', 'w', 's'] as const;
     const free = (k: (typeof order)[number], boxes: Box[]) => within(sides[k]) && ![...boxes, ...pads, ...taken].some((b) => meets(sides[k], b));
-    // Clear of every part if it can; else clear of the parts of the table (over a small passive).
-    const side = order.find((k) => free(k, others)) ?? order.find((k) => free(k, live)) ?? 'n';
+    // Clear of every part if it can; else clear of the parts of the table (over a small passive). No
+    // side free is an error of the layout, never a reference printed over another.
+    const side = order.find((k) => free(k, others)) ?? order.find((k) => free(k, live));
+    if (!side) throw new Error(`the reference of ${ref} has no free side`);
     taken.push(sides[side]);
     out.set(ref, { side, box: sides[side] });
   }
@@ -60,11 +62,6 @@ export interface LivePart {
   look: string;
   /** The side its reference is printed on: above it, under it, at its left or at its right. */
   label: 'n' | 's' | 'w' | 'e';
-  /**
-   * On a narrow circuit (a phone), its reference drawn in the live layer: its baseline in units, and
-   * whether it ends there (at the left of the part: user text spacing then widens it away from it).
-   */
-  tag: [number, number, 'start' | 'end'];
   /** Its pads, body and mark of pin 1, from the top-left corner of its box. */
   pads: [number, number, number, number][];
   body: [number, number, number, number];
@@ -198,7 +195,6 @@ export function liveLayer(): Live {
       box: [p.box.x, p.box.y, p.box.w, p.box.h],
       look: p.fp.look,
       label: labels().get(ref)?.side ?? 'n',
-      tag: tagOf(ref),
       // Its pads as seen: the exposed pad of a QFN is under its body.
       pads: placedPads(p)
         .filter((q) => !(q.w > 30 && q.h > 30))
@@ -213,14 +209,6 @@ export function liveLayer(): Live {
     nets: [...by.values()].map((e) => ({ d: pointsPath(e.t.pts), by: [...e.by].join(' '), rev: [...e.rev].join(' ') })),
     marks: [...marks.values()].map(({ set, ...m }) => ({ ...m, by: [...set].join(' ') })),
   };
-}
-
-/** The silkscreen of the reference on a narrow circuit: 20 units high, 12 a character, beside the part. */
-export const TAG = { size: 20, advance: 12 };
-function tagOf(ref: string): [number, number, 'start' | 'end'] {
-  const l = labels({ w: TAG.advance + 2, h: TAG.size + 14 }).get(ref);
-  if (!l) return [0, 0, 'start'];
-  return l.side === 'w' ? [l.box.x + l.box.w - 2, l.box.y + TAG.size + 4, 'end'] : [l.box.x + 2, l.box.y + TAG.size + 4, 'start'];
 }
 
 /** The mark of pin 1, turned with the part. */

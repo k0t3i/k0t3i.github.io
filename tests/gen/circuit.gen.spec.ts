@@ -10,11 +10,11 @@ it('routes the back face', () => {
   const order = [
     'USB_DP', 'USB_DN', 'USB_DP_C', 'USB_DN_C', 'XTAL_P', 'XTAL_N', 'LNA_IN', 'RF', 'VDD_SPI',
     'FLASH_CLK', 'FLASH_IO0', 'FLASH_IO3', 'FLASH_CS', 'FLASH_IO1', 'FLASH_IO2',
-    // Nested fans from the innermost line out: DISP1's from SCK (its nearest pad) to CS; then ONEWIRE,
-    // SD_CS and J1's from EXT1 to EXT4.
-    'SPI_SCK', 'SPI_MOSI', 'DISP_DC', 'DISP_CS',
+    // Nested fans from the innermost line out: the SPI bus from SCK (its nearest pad), MISO beside MOSI
+    // (both run to J3), then DISP1's DC and CS; then ONEWIRE, SD_CS and J1's from EXT1 to EXT4.
+    'SPI_SCK', 'SPI_MOSI', 'SPI_MISO', 'DISP_DC', 'DISP_CS',
     'ONEWIRE', 'SD_CS', 'EXT1', 'EXT2', 'EXT3', 'EXT4', 'LED_DRV', 'RTC_INT',
-    'SPI_MISO', 'EXP_INT', 'EN', 'IO0', 'TXD', 'RXD',
+    'EXP_INT', 'EN', 'IO0', 'TXD', 'RXD',
   ];
   // Several passes: each puts the nets that failed in the best pass so far first, in a seeded order
   // of the rest; every pass runs, and the one with the fewest failures, then the fewest hops (the

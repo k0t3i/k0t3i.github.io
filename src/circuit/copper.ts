@@ -12,6 +12,8 @@ export const VIA = { through: 4, blind: 3, drill: 1 };
 /** The clearance of the board between copper of two nets, and of the pour. */
 export const DRC_CLEAR = 2;
 export const POUR_CLEAR = 4;
+/** The width of a hop, a signal trace on an inner layer. */
+export const HOP_W = 2;
 
 export interface Hop {
   net: string;
@@ -139,12 +141,20 @@ function STITCH_CANDIDATES(): { x: number; y: number }[] {
   return out;
 }
 
-/** The stitching vias of the pour: on the grid, wherever the pour has room for one and its clearance. */
+/**
+ * The stitching vias of the pour: on the grid, wherever the pour has room for one and its clearance.
+ * Each goes down to the ground plane (L2), crossing L3: so it keeps clear of every hop on either
+ * inner layer, and of the +3V3 vias of the front, which reach both.
+ */
 export function stitching(p: Pour = pour()): Point[] {
   const r = VIA.blind + 3;
+  const inner = (x: number, y: number) =>
+    HOPS.some((h) => h.path.slice(1).some((q, k) => segDist([x, y], h.path[k] as Point, q) < VIA.blind + HOP_W / 2 + DRC_CLEAR + 0.5)) ||
+    ALL_VIAS.some((v) => v.layer === 'F' && v.net !== 'GND' && Math.hypot(v.x - x, v.y - y) < 2 * VIA.blind + DRC_CLEAR + 0.5);
   return STITCH_CANDIDATES()
     .filter(({ x, y }) => {
       for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if (Math.hypot(dx, dy) <= r && !p.at(x + dx, y + dy)) return false;
+      if (inner(x, y)) return false;
       return !BACK_PLACED.some((q) => x > q.box.x - 4 && x < q.box.x + q.box.w + 4 && y > q.box.y - 4 && y < q.box.y + q.box.h + 4);
     })
     .map(({ x, y }): Point => [x, y]);
