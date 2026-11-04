@@ -138,7 +138,8 @@ describe('BoardPage reflects the state on the board', () => {
     await router.isReady();
     const html = await renderToString(createSSRApp({ render: () => h(BoardPage, { content: fr }) }).use(router));
     expect(html).toMatch(/<div class="board board--home"/);
-    expect(html).not.toMatch(/data-active|data-booting/);
+    // Attributes, not the words in a comment of the template.
+    expect(html).not.toMatch(/\sdata-(active|booting|lit)[=\s>]/);
   });
 
   it('data-active follows the part under the pointer', async () => {
@@ -155,6 +156,49 @@ describe('BoardPage reflects the state on the board', () => {
     // Reduced motion (this test): no power-on.
     expect(board.hasAttribute('data-booting')).toBe(false);
     wrapper.unmount();
+  });
+
+  it('data-lit marks the active part and its two traces, and nothing else', async () => {
+    const wrapper = mount(BoardPage, { props: { content: fr }, global: { stubs: { RouterLink: true } }, attachTo: document.body });
+    const lit = () =>
+      wrapper
+        .findAll('[data-lit]')
+        .map((w) => (w.attributes('id') ? `${w.element.tagName.toLowerCase()}#${w.attributes('id')}` : `${w.classes().join('.')}[${w.attributes('data-part')}]`))
+        .sort();
+    expect(lit()).toEqual([]);
+    for (const id of ['r1', 'j3'] as const) {
+      enter(wrapper.get(`button[popovertarget="sheet-${id}"]`).element);
+      await nextTick();
+      expect(lit()).toEqual([`li#part-${id}`, `trace-live[${id}]`, `trace-pulse[${id}]`]);
+      leave(wrapper.get(`button[popovertarget="sheet-${id}"]`).element);
+      await nextTick();
+      expect(lit()).toEqual([]);
+    }
+    wrapper.unmount();
+  });
+
+  it('the first part pointed at during the boot ends it', async () => {
+    stubMotion(false);
+    vi.useFakeTimers();
+    sessionStorage.clear();
+    document.documentElement.dataset.boot = '';
+    try {
+      const wrapper = mount(BoardPage, { props: { content: fr }, global: { stubs: { RouterLink: true } }, attachTo: document.body });
+      await nextTick();
+      const board = wrapper.get('div.board').element as HTMLElement;
+      expect(board.hasAttribute('data-booting')).toBe(true);
+      // Pointed at, the part takes the current at once: its trace never plays the sweep, so it is never cut.
+      enter(wrapper.get('button[popovertarget="sheet-c1"]').element);
+      await nextTick();
+      expect(board.hasAttribute('data-booting')).toBe(false);
+      expect(board.dataset.active).toBe('c1');
+      expect(sessionStorage.getItem('k0t3i.booted')).toBe('1');
+      wrapper.unmount();
+    } finally {
+      vi.useRealTimers();
+      sessionStorage.clear();
+      delete document.documentElement.dataset.boot;
+    }
   });
 
   it('data-booting is on the board while it powers on', async () => {

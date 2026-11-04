@@ -46,33 +46,15 @@
   }
 
   /*
-   * The active part (data-active: under the pointer, or with the keyboard focus): its trace is lit
-   * all the way, and its signal has run into it. motion.css draws the way there.
+   * The paths of the active part (data-lit, BoardSignal.vue: under the pointer, or with the keyboard
+   * focus): its trace is lit all the way, and its signal has run into it. motion.css draws the way there.
    */
-  .trace-live:is(
-      .board[data-active="r1"] [data-part="r1"],
-      .board[data-active="c1"] [data-part="c1"],
-      .board[data-active="led1"] [data-part="led1"],
-      .board[data-active="d1"] [data-part="d1"],
-      .board[data-active="u2"] [data-part="u2"],
-      .board[data-active="j1"] [data-part="j1"],
-      .board[data-active="j2"] [data-part="j2"],
-      .board[data-active="j3"] [data-part="j3"]
-    ) {
+  .trace-live[data-lit] {
     opacity: 1;
     stroke-dashoffset: 0;
   }
 
-  .trace-pulse:is(
-      .board[data-active="r1"] [data-part="r1"],
-      .board[data-active="c1"] [data-part="c1"],
-      .board[data-active="led1"] [data-part="led1"],
-      .board[data-active="d1"] [data-part="d1"],
-      .board[data-active="u2"] [data-part="u2"],
-      .board[data-active="j1"] [data-part="j1"],
-      .board[data-active="j2"] [data-part="j2"],
-      .board[data-active="j3"] [data-part="j3"]
-    ) {
+  .trace-pulse[data-lit] {
     opacity: 1;
     stroke-dashoffset: -101;
   }

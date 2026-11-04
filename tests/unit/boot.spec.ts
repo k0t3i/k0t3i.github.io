@@ -43,7 +43,7 @@ const standby = (): void => {
 };
 const inStandby = (): boolean => document.documentElement.hasAttribute('data-boot');
 
-function mountBoot(): { wrapper: VueWrapper; booting: () => boolean } {
+function mountBoot(): { wrapper: VueWrapper; booting: () => boolean; end: () => void } {
   let state: ReturnType<typeof useBoot> | undefined;
   const Harness = defineComponent({
     setup() {
@@ -52,7 +52,7 @@ function mountBoot(): { wrapper: VueWrapper; booting: () => boolean } {
     },
   });
   const wrapper = mount(Harness, { attachTo: document.body });
-  return { wrapper, booting: () => Boolean(state?.booting.value) };
+  return { wrapper, booting: () => Boolean(state?.booting.value), end: () => state?.end() };
 }
 
 beforeEach(() => {
@@ -166,6 +166,37 @@ describe('useBoot', () => {
     expect(sessionStorage.getItem(BOOT_KEY)).toBe('1');
   });
 
+  it('no boot in a tab in the background: it would play unseen', () => {
+    stubMotion(false);
+    standby();
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' });
+    try {
+      const { booting } = mountBoot();
+      expect(booting()).toBe(false);
+      expect(inStandby()).toBe(false);
+      expect(vi.getTimerCount()).toBe(0);
+      // Not seen: the next page of the session may still power the board on.
+      expect(sessionStorage.getItem(BOOT_KEY)).toBeNull();
+    } finally {
+      delete (document as unknown as { visibilityState?: string }).visibilityState;
+    }
+    expect(document.visibilityState).toBe('visible');
+  });
+
+  it('end() ends the boot at once, as seen', () => {
+    stubMotion(false);
+    standby();
+    const { booting, end } = mountBoot();
+    expect(booting()).toBe(true);
+    end();
+    expect(booting()).toBe(false);
+    expect(vi.getTimerCount()).toBe(0);
+    expect(sessionStorage.getItem(BOOT_KEY)).toBe('1');
+    // Once ended, nothing more: no error.
+    end();
+    expect(booting()).toBe(false);
+  });
+
   it('a blocked storage means no boot, and no error', () => {
     stubMotion(false);
     standby();
@@ -182,9 +213,10 @@ describe('useBoot', () => {
 
 describe('the standby of the head script', () => {
   /** Runs the head script against a fake page: the attributes it set on <html>, and its timers. */
-  function run(opts: { booted?: string | null; reduced?: boolean; storage?: 'ok' | 'throws' }) {
+  function run(opts: { booted?: string | null; reduced?: boolean; storage?: 'ok' | 'throws' | 'read-only' }) {
     const dataset: Record<string, string> = {};
     const timers: { fn: () => void; ms: number }[] = [];
+    const stored: Record<string, string> = {};
     const sessionStorage =
       opts.storage === 'throws'
         ? {
@@ -192,7 +224,13 @@ describe('the standby of the head script', () => {
               throw new Error('SecurityError');
             },
           }
-        : { getItem: (key: string) => (key === BOOT_KEY ? (opts.booted ?? null) : null) };
+        : {
+            getItem: (key: string) => (key === BOOT_KEY ? (opts.booted ?? null) : null),
+            setItem: (key: string, value: string) => {
+              if (opts.storage === 'read-only') throw new Error('QuotaExceededError');
+              stored[key] = value;
+            },
+          };
     runInNewContext(THEME_SNIPPET, {
       localStorage: { getItem: () => null },
       sessionStorage,
@@ -202,7 +240,7 @@ describe('the standby of the head script', () => {
       setTimeout: (fn: () => void, ms: number) => timers.push({ fn, ms }),
       document: { documentElement: { dataset } },
     });
-    return { dataset, timers };
+    return { dataset, timers, stored };
   }
 
   it('puts the board in standby on the first visit of the session, with motion allowed', () => {
@@ -220,11 +258,32 @@ describe('the standby of the head script', () => {
     expect(run({ reduced: true }).dataset.boot).toBeUndefined();
   });
 
-  it('gives up the standby by itself, should the app never mount', () => {
-    const { dataset, timers } = run({});
+  it('gives up the standby by itself after about two seconds, should the app never mount', () => {
+    const { dataset, timers, stored } = run({});
     expect(timers.map((t) => t.ms)).toEqual([STANDBY_MS]);
     expect(STANDBY_MS).toBeGreaterThan(BOOT_MS);
+    expect(STANDBY_MS).toBe(2000);
+    expect(stored).toEqual({});
     timers[0]?.fn();
+    expect(dataset.boot).toBeUndefined();
+    // The session counts as booted: an app that mounts later, or the next page, finds no standby to
+    // take over and shows the board at rest, never the dark screen again.
+    expect(stored).toEqual({ [BOOT_KEY]: '1' });
+  });
+
+  it('leaves the session to the app once the app has taken the standby over', () => {
+    const { dataset, timers, stored } = run({});
+    // useBoot took it over: it plays the power-on, or (a tab in the background) decides not to.
+    delete dataset.boot;
+    timers[0]?.fn();
+    expect(stored).toEqual({});
+    expect(dataset.boot).toBeUndefined();
+  });
+
+  it('a storage that refuses the key at that moment changes nothing else', () => {
+    const { dataset, timers } = run({ storage: 'read-only' });
+    expect(dataset.boot).toBe('');
+    expect(() => timers[0]?.fn()).not.toThrow();
     expect(dataset.boot).toBeUndefined();
   });
 

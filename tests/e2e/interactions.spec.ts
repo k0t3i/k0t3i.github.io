@@ -300,7 +300,7 @@ test.describe('the power-on', () => {
         }),
     );
     for (const t of targets) expect(t).toMatch(/^(path|li::after|li::before|ul::after|ul::before|div::before|button::after)$/);
-    // Composited properties only.
+    // No layout property: the sweep repaints (stroke-dashoffset, the opacity of SVG children) or composites.
     const properties = await page.evaluate(() =>
       [
         ...new Set(
@@ -329,6 +329,57 @@ test.describe('the power-on', () => {
     const [s, p] = await Promise.all([sheet.boundingBox(), page.locator('#part-j1').boundingBox()]);
     if (!s || !p) throw new Error('no box for j1');
     expect(Math.min(s.x + s.width, p.x + p.width) - Math.max(s.x, p.x)).toBeGreaterThan(0);
+  });
+
+  test('a part pointed at during the boot ends it: its trace fades out when left, never cut', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'a mouse');
+    // The two attributes of the board, from before the first script: the power-on and the active part.
+    await page.addInitScript(() => {
+      const w = window as unknown as { log: { what: string; at: number }[] };
+      w.log = [];
+      new MutationObserver((records) => {
+        for (const r of records) {
+          const el = r.target as Element;
+          if (el.matches('div.board')) w.log.push({ what: `${r.attributeName} ${el.getAttribute(r.attributeName ?? '')}`, at: performance.now() });
+        }
+      }).observe(document, { subtree: true, attributes: true, attributeFilter: ['data-booting', 'data-active'] });
+    });
+    await page.setViewportSize(WIDE);
+    await page.goto('/');
+    await expect(board(page)).toHaveAttribute('data-booting', '');
+    // Straight onto the part while the board powers on.
+    const box = await trigger(page, 'r1').boundingBox();
+    if (!box) throw new Error('no box for r1');
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await expect(board(page)).toHaveAttribute('data-active', 'r1');
+    // The visitor acts: the board is on at once (in the same update), and the current runs to the part.
+    await expect(board(page)).not.toHaveAttribute('data-booting', /.*/);
+    const log = await page.evaluate(() => (window as unknown as { log: { what: string; at: number }[] }).log);
+    const on = log.find((e) => e.what === 'data-booting ');
+    const off = log.find((e) => e.what === 'data-booting null');
+    const active = log.find((e) => e.what === 'data-active r1');
+    if (!on || !off || !active) throw new Error(JSON.stringify(log));
+    expect(off.at - on.at).toBeLessThan(1150);
+    expect(Math.abs(off.at - active.at)).toBeLessThan(20);
+    expect(await page.evaluate(() => sessionStorage.getItem('k0t3i.booted'))).toBe('1');
+    await expect.poll(() => litTraces(page)).toEqual(onlyLit('r1'));
+
+    // Left: its light fades out (a transition of its opacity), and no sweep starts on it again.
+    await page.evaluate(() => {
+      const w = window as unknown as { events: string[] };
+      w.events = [];
+      const trace = document.querySelector('path.trace-live[data-part="r1"]') as Element;
+      trace.addEventListener('transitionrun', (e) => w.events.push(`transition ${(e as TransitionEvent).propertyName}`));
+      trace.addEventListener('animationstart', (e) => w.events.push(`animation ${(e as AnimationEvent).animationName}`));
+    });
+    await page.mouse.move(800, 2);
+    await expect.poll(() => litTraces(page)).toEqual(onlyLit(null));
+    // Past the moment the power-on would have ended.
+    await page.waitForTimeout(1300);
+    const events = await page.evaluate(() => (window as unknown as { events: string[] }).events);
+    expect(events).toContain('transition opacity');
+    expect(events.filter((e) => e.startsWith('animation'))).toEqual([]);
+    expect(await litTraces(page)).toEqual(onlyLit(null));
   });
 
   test('content readable during boot', async ({ page }) => {
@@ -431,5 +482,7 @@ test.describe('the power-on', () => {
     // Then the board shows at rest, on its own.
     await expect.poll(state, { timeout: 5000 }).toEqual({ standby: false, veil: 0, led: expect.any(Number) });
     expect((await state()).led).toBeGreaterThan(0);
+    // And the session counts as booted: the next page shows the board at rest, never the dark screen again.
+    expect(await page.evaluate(() => sessionStorage.getItem('k0t3i.booted'))).toBe('1');
   });
 });

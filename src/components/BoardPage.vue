@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, provide, ref } from 'vue';
+import { onBeforeUnmount, onMounted, provide, ref, watch } from 'vue';
 import { provideBoardState } from '../composables/useBoardState';
 import { useBoot } from '../composables/useBoot';
 import { FLIP, useFlip } from '../composables/useFlip';
@@ -30,9 +30,14 @@ useTilt(board);
  * The live state of the board, for the parts and DISP1: the part the current runs to, and the
  * power-on of the first visit. Both are reflected on the board for the CSS (data-active,
  * data-booting); neither is in the prerender, which renders the board at rest.
+ * The first part pointed at ends the power-on: the visitor acts, the board is on, and the current
+ * runs to that part (its trace never plays the sweep, so nothing is cut when the boot would end).
  */
-const { booting } = useBoot();
+const { booting, end: endBoot } = useBoot();
 const { activePart } = provideBoardState(booting);
+watch(activePart, (id) => {
+  if (id) endBoot();
+});
 
 /*
  * iOS Safari applies :active on a tap only when the page listens to touchstart: this passive no-op

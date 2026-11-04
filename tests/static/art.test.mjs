@@ -116,3 +116,18 @@ test('the wide stylesheet points to the hashed art, and the page preloads it for
   // The 404 page has no wide board.
   assert.doesNotMatch(readFileSync(join(DIST_ROOT, '404.html'), 'utf8'), /board-wide/);
 });
+
+test('the front lights its active part through one attribute, data-lit: no list of the eight parts kept by hand', () => {
+  const styles = ['board', 'parts', 'wide', 'motion', 'modes', 'depth', 'back', 'sheets', 'base'].map((f) => ({
+    f,
+    css: readFileSync(join(PUBLISHED_ROOT, `src/styles/${f}.css`), 'utf8').replace(/\/\*[\s\S]*?\*\//g, ''),
+  }));
+  const named = new RegExp(`data-active="(${PART_IDS.join('|')})"`);
+  for (const { f, css } of styles) assert.doesNotMatch(css, named, `${f}.css names a part of the front by hand`);
+  // The rules that light the trace, its signal and the stub of the active part.
+  const lit = (f, re) => assert.match(styles.find((s) => s.f === f)?.css ?? '', re, `${f}.css: ${re}`);
+  lit('wide', /\.trace-live\[data-lit\]\s*\{/);
+  lit('wide', /\.trace-pulse\[data-lit\]\s*\{/);
+  lit('motion', /\.board__live > \[data-lit\]\s*\{/);
+  lit('parts', /\.part\[data-lit\]\s*\{/);
+});

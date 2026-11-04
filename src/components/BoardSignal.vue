@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useBoardState } from '../composables/useBoardState';
 import type { PartId } from '../content/types';
 
 /*
@@ -19,13 +20,17 @@ const ROUTES: { part: PartId; d: string }[] = [
 /** The routes the ambient signal runs down now and then, one after the other. */
 const AMBIENT: PartId[] = ['r1', 'led1', 'u2', 'j3'];
 const ambient = AMBIENT.map((id) => ROUTES.find((r) => r.part === id)?.d ?? '');
+
+// The two paths of the active part are lit (data-lit: wide.css, motion.css). Client only.
+const { activePart } = useBoardState();
+const lit = (id: PartId): '' | undefined => (activePart.value === id ? '' : undefined);
 </script>
 
 <template>
   <!--
     The live layer of the wide board, drawn over its static art in the same 1600 x 900 units.
     - trace-live: the route of each part. Unlit at rest; the active part (under the pointer or the
-      focus) lights its own, drawn from DISP1 to the part, and the power-on lights all of them.
+      focus) lights its own (data-lit), drawn from DISP1 to the part, and the power-on lights all of them.
     - trace-pulse: the signal that runs ahead of it, a short bright dash on the same route.
     - signal: the ambient set, a short gold dash that runs down four of these routes now and then.
     pathLength="100" makes the dashes a share of each route, whatever its length.
@@ -42,6 +47,7 @@ const ambient = AMBIENT.map((id) => ROUTES.find((r) => r.part === id)?.d ?? '');
         :key="r.part"
         class="trace-live"
         :data-part="r.part"
+        :data-lit="lit(r.part)"
         pathLength="100"
         :d="r.d"
       />
@@ -50,6 +56,7 @@ const ambient = AMBIENT.map((id) => ROUTES.find((r) => r.part === id)?.d ?? '');
         :key="r.part"
         class="trace-pulse"
         :data-part="r.part"
+        :data-lit="lit(r.part)"
         pathLength="100"
         :d="r.d"
       />

@@ -20,10 +20,13 @@ function bootedBefore(): boolean {
  * (data-boot on <html>, lib/boot.ts), so it never hides what was already drawn: no standby means no
  * head script (the dev server), a session that has booted, reduced motion, or an app that mounted
  * after the standby gave up. The power-on takes the standby over, in the same frame.
- * Never with reduced motion; a switch to reduced motion, or a sheet opened, during the boot ends it at once.
+ * Never with reduced motion, nor in a tab in the background (it would play unseen: the board is then
+ * at rest, and a later page of the session may still power on). A switch to reduced motion, or a
+ * sheet opened, during the boot ends it at once; so does end(), called when the visitor points at a
+ * part (BoardPage): the board is on, and the current runs to that part.
  * Client only: `booting` is false on the server and in the first client render (hydration).
  */
-export function useBoot(): { booting: Readonly<Ref<boolean>> } {
+export function useBoot(): { booting: Readonly<Ref<boolean>>; end(): void } {
   const reduced = useReducedMotion();
   const booting = ref(false);
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -53,7 +56,7 @@ export function useBoot(): { booting: Readonly<Ref<boolean>> } {
     const root = document.documentElement;
     const standby = root.hasAttribute('data-boot');
     delete root.dataset.boot;
-    if (!standby || reduced.value || bootedBefore()) return;
+    if (!standby || reduced.value || document.visibilityState === 'hidden' || bootedBefore()) return;
     booting.value = true;
     timer = setTimeout(finish, BOOT_MS);
     document.addEventListener('beforetoggle', onToggle, { capture: true });
@@ -66,5 +69,5 @@ export function useBoot(): { booting: Readonly<Ref<boolean>> } {
   // Seen, if only in part: a later page of the session does not play it again.
   onBeforeUnmount(finish);
 
-  return { booting: readonly(booting) };
+  return { booting: readonly(booting), end: finish };
 }

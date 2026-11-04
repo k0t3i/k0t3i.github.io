@@ -200,8 +200,9 @@
      * The current that follows the pointer and the focus (wide board, wide.css): the trace of the
      * active part draws itself from DISP1 to the part in 540ms, its signal running just ahead of it
      * on the same course. Left, the trace fades out, and goes back to the start of its route once
-     * dark: a part lit again meanwhile simply brightens. Each path follows only its own part, so a
-     * fast sweep across the parts ends on the last one. The power-on leaves the active part alone.
+     * dark: a part lit again meanwhile simply brightens. Each path follows only its own part (data-lit),
+     * so a fast sweep across the parts ends on the last one. The power-on never meets it: the first
+     * part pointed at ends the boot (BoardPage), so a lit trace never plays the sweep, to be cut later.
      */
     .trace-live,
     .trace-pulse {
@@ -210,20 +211,10 @@
         stroke-dashoffset 0s linear 220ms;
     }
 
-    .board__live > :is(
-        .board[data-active="r1"] [data-part="r1"],
-        .board[data-active="c1"] [data-part="c1"],
-        .board[data-active="led1"] [data-part="led1"],
-        .board[data-active="d1"] [data-part="d1"],
-        .board[data-active="u2"] [data-part="u2"],
-        .board[data-active="j1"] [data-part="j1"],
-        .board[data-active="j2"] [data-part="j2"],
-        .board[data-active="j3"] [data-part="j3"]
-      ) {
+    .board__live > [data-lit] {
       transition:
         opacity 120ms ease-out,
         stroke-dashoffset 540ms cubic-bezier(0.3, 0.45, 0.2, 1);
-      animation: none;
     }
 
     /*
