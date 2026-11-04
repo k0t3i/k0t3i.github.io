@@ -35,9 +35,14 @@ export function useGame(screen: Ref<HTMLElement | null>): GameMode {
   /** The game mode now on: a game that loads for an earlier one never starts. */
   let round = 0;
 
-  function retro(set: boolean, fade: boolean): void {
+  /**
+   * The page takes the colours of the state of the game mode, as it is when they are applied: a view
+   * transition applies them a frame later, and an exit without a fade (SW2, a language switch, leaving)
+   * may come meanwhile.
+   */
+  function retro(fade: boolean): void {
     const apply = (): void => {
-      document.documentElement.toggleAttribute('data-retro', set);
+      document.documentElement.toggleAttribute('data-retro', on.value);
     };
     if (fade && !reduced.value && 'startViewTransition' in document) document.startViewTransition(apply);
     else apply();
@@ -51,7 +56,7 @@ export function useGame(screen: Ref<HTMLElement | null>): GameMode {
     on.value = false;
     view.value = null;
     news.value = null;
-    retro(false, fade);
+    retro(fade);
   }
 
   function start(): void {
@@ -59,7 +64,7 @@ export function useGame(screen: Ref<HTMLElement | null>): GameMode {
     const mine = ++round;
     on.value = true;
     news.value = { kind: 'intro' };
-    retro(true, true);
+    retro(true);
     import('../game/play')
       .then(({ play }) => {
         if (mine !== round) return;

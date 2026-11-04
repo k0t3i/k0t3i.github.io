@@ -194,6 +194,33 @@ describe('the game mode of DISP1', () => {
     });
   }
 
+  it('an exit while the colours are still to cross-fade in leaves them off', async () => {
+    // Motion welcome: the colours come in a view transition, whose update runs a frame later.
+    stubMotion(false);
+    const pending: (() => void)[] = [];
+    Object.defineProperty(document, 'startViewTransition', {
+      configurable: true,
+      value: (cb: () => void) => {
+        pending.push(cb);
+        return { finished: Promise.resolve(), ready: Promise.resolve(), updateCallbackDone: Promise.resolve(), skipTransition: () => {} };
+      },
+    });
+    try {
+      const m = mountBoard();
+      await nextTick();
+      type();
+      // SW2 in the same task: an exit without a fade.
+      m.flipped.value = true;
+      await nextTick();
+      for (const cb of pending.splice(0)) cb();
+      await flushPromises();
+      expect(root().hasAttribute('data-retro')).toBe(false);
+      m.wrapper.unmount();
+    } finally {
+      Reflect.deleteProperty(document, 'startViewTransition');
+    }
+  });
+
   it('leaving the page ends it, also when the browser keeps the page for its back button', async () => {
     const { wrapper } = mountBoard();
     await start(wrapper);
