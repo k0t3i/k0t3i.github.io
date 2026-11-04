@@ -51,7 +51,9 @@ export interface Copy {
   heroSub: string;
   avatarAlt: string;
   pins: string;
-  captions: { avatar: string; uptime: string; morse: string };
+  captions: { avatar: string; uptime: string; morse: string; game: string };
+  /** The mini-game of DISP1 (revision 8): said politely as it starts, and when a game is over. */
+  game: { intro: string; over: (pads: number) => string };
   switchRef: string;
   switchHidden: string;
   /** JP1, the jumper that switches the board between green and black. */
@@ -102,6 +104,12 @@ export const READOUTS = {
 
 export const BOOT_SCREENS = ['BOOT...', 'OK'];
 
+/**
+ * The pixel words of the mini-game « Routage » (revision 8), the same in both languages: its title,
+ * the key that plays (in a key cap), and the end of a game (a failed design rule check) with its score.
+ */
+export const GAME_WORDS = { title: 'ROUTE', key: 'A', over: 'DRC ERR' };
+
 /** SW1 (spec 4.9): the uptime in large pixel digits, followed by H; then « HELLO » in Morse code on LED1. */
 export const UPTIME_UNIT = 'H';
 export const MORSE_MESSAGE = 'HELLO';
@@ -139,7 +147,12 @@ export const FR: Copy = {
     'Ingénieur front-end principal. Des interfaces depuis 2004, des circuits depuis plus longtemps encore.',
   avatarAlt: 'Avatar pixel art d’Anthony',
   pins: 'GND VCC SCK MOSI DC CS',
-  captions: { avatar: 'DISP1 · avatar', uptime: 'DISP1 · uptime', morse: 'DISP1 · morse' },
+  captions: { avatar: 'DISP1 · avatar', uptime: 'DISP1 · uptime', morse: 'DISP1 · morse', game: 'DISP1 · routage' },
+  game: {
+    intro: 'Mini-jeu Routage. Flèches ou glisser sur l’écran pour diriger, A ou toucher l’écran pour jouer, Échap ou SW1 pour quitter.',
+    // 0 and 1 take the singular in French.
+    over: (n) => `Partie finie${NB}: ${n} ${n <= 1 ? 'pastille reliée' : 'pastilles reliées'}. A pour rejouer, Échap pour quitter.`,
+  },
   switchRef: 'SW1',
   switchHidden: 'changer l’écran',
   theme: { ref: 'JP1', green: 'VERT', dark: 'NOIR', switchHidden: 'carte noire' },
@@ -279,7 +292,11 @@ export const EN: Copy = {
   heroSub: 'Principal front-end engineer. Building interfaces since 2004, and circuits for even longer.',
   avatarAlt: 'Anthony’s pixel art avatar',
   pins: 'GND VCC SCK MOSI DC CS',
-  captions: { avatar: 'DISP1 · avatar', uptime: 'DISP1 · uptime', morse: 'DISP1 · morse' },
+  captions: { avatar: 'DISP1 · avatar', uptime: 'DISP1 · uptime', morse: 'DISP1 · morse', game: 'DISP1 · routing' },
+  game: {
+    intro: 'Routing mini-game. Arrow keys or swipe on the screen to steer, A or tap the screen to play, Escape or SW1 to quit.',
+    over: (n) => `Game over: ${n} ${n === 1 ? 'pad' : 'pads'} connected. A to play again, Escape to quit.`,
+  },
   switchRef: 'SW1',
   switchHidden: 'change screen',
   theme: { ref: 'JP1', green: 'GREEN', dark: 'BLACK', switchHidden: 'black board' },

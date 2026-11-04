@@ -1,0 +1,65 @@
+/*
+ * The retro mode of the mini-game (revision 8): from the code typed to the end of the game, <html>
+ * carries data-retro (useGame.ts, never in the prerender) and the board and the page take the greens
+ * of an old LCD, a palette of their own, over both boards. Every text stays AA on it. The gold, the
+ * traces, the sheets and the mat follow from the tokens; DISP1 becomes a reflective LCD, dark pixels
+ * on pale glass. After motion, before modes: more contrast and forced colours still win.
+ */
+@layer retro {
+  :root[data-retro] {
+    color-scheme: light;
+
+    --page: #c3cc9b;
+    --ink: #1d2a10;
+    --lamp: #dde5b8;
+    --mask: #1b2814;
+    --trace: #26371d;
+    --silk: #d7e0b0;
+    --silk-dim: #a7b583;
+    --sheet-bg: #131d0e;
+    --gold: #b4c564;
+    --pad-lit: #cad97e;
+    --led: #dbe88c;
+    --lens: #d3df9a;
+    --hole: #060904;
+    --fr4: #aab57d;
+    --tin: #7d8b62;
+    --body: #0e150a;
+    --body-edge: #2c3b22;
+    --body-edge-lit: #4b5e3a;
+    --ceramic: #5d6b3c;
+    --nylon: #a2ae7a;
+    --nylon-in: #6c784c;
+    --mark: #7f8c60;
+    --module: #10180b;
+    --glass: #a9b67f;
+    --cap: #0e150a;
+    --cap-top: #1f2b16;
+    --cap-edge: #5d6d45;
+    --board-shadow: 0 1.5rem 2.5rem -1.5rem rgb(20 30 10 / 0.45);
+  }
+
+  :root[data-retro] .disp__pixels {
+    --px-text: #1c2912;
+    --px-accent: #3a4f22;
+    --px-signal: #456018;
+    --px-grid: #7a8754;
+  }
+
+  /*
+   * The art of the wide board is a picture: its gold and its veils take the hue of the mode from a
+   * layer over the face, under everything placed on it (mix-blend-mode: color keeps their lightness).
+   * The hue and the saturation of the mask itself (99°, 33 %): the mask stays as on the flowing board.
+   */
+  @media (min-width: 79rem) {
+    :root[data-retro] .board--home .board__face--front::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: #73aa55;
+      mix-blend-mode: color;
+      pointer-events: none;
+    }
+  }
+}

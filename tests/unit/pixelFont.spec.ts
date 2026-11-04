@@ -3,14 +3,16 @@
 import { describe, expect, it } from 'vitest';
 import { GLYPHS, layoutText, pixelPath, textWidth } from '../../src/lib/pixelFont';
 import { formatHours, uptimeHours } from '../../src/lib/uptime';
-import { BOOT_SCREENS, EN, FR, MORSE_MESSAGE, READOUTS, UPTIME_UNIT } from '../helpers/copy';
+import { BOOT_SCREENS, EN, FR, GAME_WORDS, MORSE_MESSAGE, READOUTS, UPTIME_UNIT } from '../helpers/copy';
 
 /** Every string DISP1 draws in pixels: the readouts with the reference of their part, the boot, the uptime, the Morse. */
 const REFS = [...FR.principles, ...FR.connectors, ...EN.principles, ...EN.connectors].map((p) => p.ref);
 /** The uptime as DISP1 draws it: the digits of formatHours, without the thousands separator. */
 const hours = (date: string, locale: 'fr' | 'en') => formatHours(uptimeHours(new Date(date)), locale).replace(/\D/g, '');
 const UPTIMES = ['2026-11-04', '2040-01-01'].flatMap((d) => [hours(d, 'fr'), hours(d, 'en')]);
-const SCALE_1 = [...Object.values(READOUTS), ...BOOT_SCREENS, ...REFS, ...MORSE_MESSAGE, UPTIME_UNIT];
+/** The mini-game (revision 8): DRC ERR and the key A at scale 1; its title and its scores, up to 3 digits, at scale 2. */
+const SCALE_1 = [...Object.values(READOUTS), ...BOOT_SCREENS, ...REFS, ...MORSE_MESSAGE, UPTIME_UNIT, GAME_WORDS.over, GAME_WORDS.key];
+const GAME_LARGE = [GAME_WORDS.title, '0', '9', '42', '225'];
 
 describe('pixel font', () => {
   it('every glyph is 5x7', () => {
@@ -30,7 +32,7 @@ describe('pixel font', () => {
   });
 
   it('font covers every screen string', () => {
-    const missing = [...SCALE_1, ...UPTIMES].flatMap((s) => [...s].filter((ch) => !(ch in GLYPHS)).map((ch) => `${ch} in ${s}`));
+    const missing = [...SCALE_1, ...UPTIMES, ...GAME_LARGE].flatMap((s) => [...s].filter((ch) => !(ch in GLYPHS)).map((ch) => `${ch} in ${s}`));
     expect(missing).toEqual([]);
     expect(UPTIMES[0]).toMatch(/^\d{5}$/);
   });
@@ -64,6 +66,8 @@ describe('pixel font', () => {
     for (const s of UPTIMES) expect(fits(s, 2), s).toBe(true);
     // The references are drawn large too, over their readout.
     for (const s of REFS) expect(fits(s, 2), s).toBe(true);
+    // The title of the game and its scores (225 cells: never more pads than that), large.
+    for (const s of GAME_LARGE) expect(fits(s, 2), s).toBe(true);
   });
 
   it('draws pixels as one path of squares, a run of lit pixels as one rectangle', () => {

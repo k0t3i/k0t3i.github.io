@@ -33,7 +33,12 @@ export const fr: SiteContent = {
   display: {
     alt: 'Avatar pixel art d’Anthony',
     pins: 'GND VCC SCK MOSI DC CS',
-    captions: { avatar: 'DISP1 · avatar', uptime: 'DISP1 · uptime', morse: 'DISP1 · morse' },
+    captions: { avatar: 'DISP1 · avatar', uptime: 'DISP1 · uptime', morse: 'DISP1 · morse', game: 'DISP1 · routage' },
+    game: {
+      intro: 'Mini-jeu Routage. Flèches ou glisser sur l’écran pour diriger, A ou toucher l’écran pour jouer, Échap ou SW1 pour quitter.',
+      over: { one: `Partie finie${NB}: {n} pastille reliée.`, other: `Partie finie${NB}: {n} pastilles reliées.` },
+      again: 'A pour rejouer, Échap pour quitter.',
+    },
     switchRef: 'SW1',
     switchHidden: 'changer l’écran',
   },

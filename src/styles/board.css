@@ -433,18 +433,32 @@
     fill: var(--px-text);
   }
 
+  /* The mini-game (game/play.ts): its trace and its words like the references, its vias like a signal, its frame faint. */
   .px--ref,
   .px--unit,
-  .px--letters {
+  .px--letters,
+  .px--trace,
+  .px--word {
     fill: var(--px-accent);
   }
 
-  .px--grid {
+  .px--grid,
+  .px--frame {
     fill: var(--px-grid);
   }
 
-  .px--sending {
+  .px--sending,
+  .px--pad {
     fill: var(--px-signal);
+  }
+
+  .px--glass {
+    fill: var(--glass);
+  }
+
+  /* While the game runs, a swipe on the glass of DISP1 steers it: the page does not scroll under it. */
+  .disp--game .disp__screen {
+    touch-action: none;
   }
 
   /* Through the centres of the pixels, with square ends and corners: it lights whole pixels. */

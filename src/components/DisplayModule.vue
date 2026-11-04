@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useDisplay } from '../composables/useDisplay';
 import type { Locale, PartId, SiteContent } from '../content/types';
 import PixelScreen from './PixelScreen.vue';
@@ -20,22 +20,42 @@ const pins = computed(() => props.display.pins.split(' '));
  * The caption names only the screens chosen with SW1, politely. While the Morse code is being sent,
  * DISP1 keys LED1 (data-led, on or off: motion.css; the LED is a part of the principles, after DISP1).
  */
-const { screen, chosen, part, cycle, ledOn, sending } = useDisplay(() => props.locale);
+const glass = ref<HTMLElement | null>(null);
+const { screen, chosen, part, cycle, ledOn, sending, game } = useDisplay(() => props.locale, glass);
 const led = computed(() => (sending.value === null ? undefined : ledOn.value ? 'on' : 'off'));
 // The avatar is out of sight under the other screens, still in the figure with its text alternative;
 // under the boot, the veil of the power-on lifts onto it.
 const avatarOff = computed(() => screen.value !== 'avatar' && screen.value !== 'boot');
+
+/*
+ * The game mode (revision 8): the caption names it, and what it says is said politely by a
+ * visually hidden live text, empty otherwise (so a game over is said even with the same score
+ * twice: a new game clears it). The count of pads takes the plural of the language.
+ */
+const said = computed(() => {
+  const news = game.news.value;
+  const copy = props.display.game;
+  if (!news) return '';
+  if (news.kind === 'intro') return copy.intro;
+  const form = new Intl.PluralRules(props.locale).select(news.pads) === 'one' ? 'one' : 'other';
+  return `${copy.over[form].replace('{n}', String(news.pads))} ${copy.again}`;
+});
 </script>
 
 <template>
   <!-- figcaption must be the first or the last child of figure, hence SW1 before it. -->
+  <!-- disp--game: the game runs on DISP1, its swipes steer it (touch-action: none, board.css). -->
   <figure
     id="disp1"
     class="disp"
+    :class="{ 'disp--game': game.on.value }"
     aria-labelledby="disp1-caption"
     :data-led="led"
   >
-    <div class="disp__screen">
+    <div
+      ref="glass"
+      class="disp__screen"
+    >
       <img
         class="disp__avatar"
         :class="{ 'disp__avatar--off': avatarOff }"
@@ -49,6 +69,7 @@ const avatarOff = computed(() => screen.value !== 'avatar' && screen.value !== '
         :part="part"
         :designator="part ? props.refs[part] : ''"
         :sending="sending"
+        :game="game.view.value"
       />
     </div>
     <p
@@ -62,6 +83,12 @@ const avatarOff = computed(() => screen.value !== 'avatar' && screen.value !== '
         {{ i ? ' ' : '' }}<span class="disp__pin">{{ pin }}</span>
       </template>
     </p>
+    <p
+      class="vh"
+      aria-live="polite"
+    >
+      {{ said }}
+    </p>
     <TactileSwitch
       :designator="props.display.switchRef"
       :hidden="props.display.switchHidden"
@@ -72,7 +99,7 @@ const avatarOff = computed(() => screen.value !== 'avatar' && screen.value !== '
       class="disp__caption"
       aria-live="polite"
     >
-      {{ props.display.captions[chosen] }}
+      {{ props.display.captions[game.on.value ? 'game' : chosen] }}
     </figcaption>
   </figure>
 </template>

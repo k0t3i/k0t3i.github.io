@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { Screen } from '../composables/useDisplay';
+import type { GameView } from '../game/play';
 import { BOOT_LINES, MORSE_MESSAGE, READOUTS, UPTIME_UNIT } from '../content/readouts';
 import type { PartId } from '../content/types';
 import { encodeMorse } from '../lib/morse';
@@ -14,6 +15,8 @@ const props = defineProps<{
   designator: string;
   /** The signal of the Morse code being sent, lit on the screen as on LED1 (useDisplay). */
   sending: number | null;
+  /** What the mini-game draws (game/play.ts): one path a part of it, its class from the part. */
+  game: GameView | null;
 }>();
 
 /*
@@ -191,6 +194,14 @@ const readout = computed(() =>
       <path
         class="px px--unit"
         :d="uptime.unit"
+      />
+    </template>
+    <template v-else-if="props.screen === 'game'">
+      <path
+        v-for="layer in props.game ?? []"
+        :key="layer.part"
+        :class="`px px--${layer.part}`"
+        :d="layer.d"
       />
     </template>
     <template v-else-if="props.screen === 'morse'">

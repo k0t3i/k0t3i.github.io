@@ -78,9 +78,10 @@
       outline: 1px solid CanvasText;
     }
 
-    /* The edge is a drawing of colour only: it goes with the mask; so does the mat of the page. */
+    /* The edge is a drawing of colour only: it goes with the mask; so do the mat of the page and the tint of the retro mode. */
     .board__edge,
-    .mat {
+    .mat,
+    .board__face--front::before {
       display: none;
     }
 

@@ -20,5 +20,11 @@ export const BOOT_LINES: readonly [string, string] = ['BOOT...', 'OK'];
 /** The unit after the uptime in large digits (SW1). */
 export const UPTIME_UNIT = 'H';
 
+/**
+ * The pixel words of the mini-game « Routage » (revision 8), the same in both languages: its title,
+ * the key that plays (drawn in a key cap), and the end of a game, a failed design rule check.
+ */
+export const GAME_WORDS = { title: 'ROUTE', key: 'A', over: 'DRC ERR' } as const;
+
 /** What SW1 sends in Morse code on LED1, its dots and dashes on DISP1. */
 export const MORSE_MESSAGE = 'HELLO';

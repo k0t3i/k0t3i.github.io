@@ -523,8 +523,8 @@ test.describe('the current', () => {
     await page.setViewportSize(WIDE);
     await showBack(page);
     // At rest, nothing runs on the back face: the front face (and its ambient set) is not drawn. The
-    // wave of the page runs on, it is not the board's.
-    const ambient = ['led-breathe part-led1::after', 'signal signal', 'mat-dots app::before', 'mat-wave app'];
+    // wave of the page runs on, and the glow of the page fades in under the mouse: they are not the board's.
+    const ambient = ['led-breathe part-led1::after', 'signal signal', 'mat-dots app::before', 'mat-wave app', 'transition:opacity app'];
     for (const a of await running(page)) expect(ambient).toContain(a);
     await part(page, 'U14').hover();
     // One pass of the signal along each of its traces, leaving from it: N7 and N10 start at U14,

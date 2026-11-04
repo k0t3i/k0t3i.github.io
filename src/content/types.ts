@@ -30,7 +30,12 @@ export interface SiteContent {
   display: {
     alt: string;
     pins: string;
-    captions: { avatar: string; uptime: string; morse: string };
+    captions: { avatar: string; uptime: string; morse: string; game: string };
+    /**
+     * The mini-game of DISP1 (revision 8), said politely: its rules as it starts, then at the end of a
+     * game the pads connected ({n}, the plural as the language counts) and what comes next.
+     */
+    game: { intro: string; over: { one: string; other: string }; again: string };
     /** Board reference of the tactile switch, e.g. SW1. */
     switchRef: string;
     switchHidden: string;
