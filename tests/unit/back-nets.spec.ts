@@ -2,8 +2,8 @@
 // Node, not happy-dom: the oracle (tests/helpers/copy.ts) reads site.json from a file URL.
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { BACK_NETS as ORACLE_NETS, EN, FR } from '../helpers/copy';
-import { BACK_NETS, BACK_PARTS, BACK_REFS, CIRCUIT_VIEW, linkedTo, netPoints, type BackPart } from '../../src/content/backNets';
+import { BACK_NETS as ORACLE_NETS } from '../helpers/copy';
+import { BACK_NETS, BACK_PARTS, BACK_REFS, CIRCUIT_VIEW, netPoints, type BackPart } from '../../src/content/backNets';
 import { FIDUCIALS, FRONT_PADS, HOLES, POUR, SPOKES, STITCH, VIA, labelRoom } from '../../src/content/backCopper';
 import { BACK_PASSIVES, PASSIVE_REF, passiveBox, passiveRef, passiveUse } from '../../src/content/backPassives';
 import { PACKAGES, padCenter } from '../../src/lib/packages';
@@ -56,15 +56,12 @@ function crosses([[ax, ay], [bx, by]]: [Point, Point], box: Box): boolean {
 describe('the nets of the back face', () => {
   it('nets match the annex', () => {
     expect(BACK_NETS.map((n) => [n.id, n.from, n.to])).toEqual(ORACLE_NETS);
-    // The column « Relié à », derived from the nets: the neighbours of each part, in order.
-    for (const copy of [FR, EN]) {
-      expect(BACK_REFS.map((ref) => [ref, linkedTo(ref).join(' · ')])).toEqual(copy.back.rows.map((r) => [r[0], r[3]]));
-    }
+    // The column « Relié à » comes from the netlist now (revision 9): tests/unit/circuit-bom.spec.ts.
   });
 
   it('every BOM ref has one part and at least one net', () => {
     for (const content of [fr, en]) expect([...BACK_REFS]).toEqual(content.back.bom.rows.map((r) => r.ref));
-    expect(BACK_PARTS.map((p) => p.ref).sort()).toEqual([...BACK_REFS]);
+    expect(BACK_PARTS.map((p) => p.ref).sort()).toEqual([...BACK_REFS].sort());
     for (const ref of BACK_REFS) expect(BACK_NETS.some((n) => n.from === ref || n.to === ref), ref).toBe(true);
     // One package of each kind.
     expect(new Set(BACK_PARTS.map((p) => p.pkg)).size).toBe(BACK_PARTS.length);

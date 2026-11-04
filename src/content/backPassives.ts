@@ -44,7 +44,7 @@ export interface BackPassive {
 const TABLE = `
 C1 c0603 506 304 e ^
 C2 c0603 342 416 w ^
-Y1 xtal 324 334 n ^
+Y3 xtal 324 334 n ^
 C3 c0603 308 326 w ^
 C4 c0603 308 352 w ^
 C5 c0603 462 566 e ^

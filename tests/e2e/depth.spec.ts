@@ -1,5 +1,5 @@
 import { chromium, expect, test, type Locator, type Page } from '@playwright/test';
-import { EN, FR, type Copy } from '../helpers/copy';
+import { EN, FR, bomCells, type Copy } from '../helpers/copy';
 import { armFlatTiming, flatAfter, tiltStill } from '../helpers/still';
 
 /*
@@ -411,7 +411,7 @@ test.describe('without JavaScript', () => {
         await table.scrollIntoViewIfNeeded();
         await expect(table).toBeVisible();
         expect(await table.locator('caption').evaluate((el) => el.textContent?.trim())).toBe(copy.back.caption);
-        // Each row: the reference, the skill, its value and the parts it is linked to (the value cell
+        // Each row: the reference, the part, its two lines and the parts it is linked to (the value cell
         // also prints those links, for a narrow face: read without them).
         const rows = await table.locator('tbody tr').evaluateAll((trs) =>
           trs.map((tr) =>
@@ -422,7 +422,7 @@ test.describe('without JavaScript', () => {
             }),
           ),
         );
-        expect(rows).toEqual(copy.back.rows);
+        expect(rows).toEqual(copy.back.rows.map(bomCells));
       });
     }
   }

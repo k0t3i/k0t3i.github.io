@@ -104,13 +104,14 @@ function isLists(css) {
 }
 
 test('every list that lights a part of the back face names all eleven parts', () => {
-  const refs = Array.from({ length: 11 }, (_, i) => `U${10 + i}`);
+  // The eleven parts of the bill of materials of revision 9.
+  const refs = ['U10', 'U11', 'U12', 'U13', 'U14', 'U15', 'U16', 'U17', 'U18', 'Y1', 'J6'].sort();
   let lists = 0;
   for (const f of ['src/styles/back.css', 'src/styles/motion.css', 'src/styles/modes.css']) {
     const css = read(f).replace(/\/\*[\s\S]*?\*\//g, '');
-    for (const list of isLists(css).filter((l) => l.includes('data-active="U'))) {
+    for (const list of isLists(css).filter((l) => l.includes('data-active="'))) {
       lists++;
-      const named = [...new Set([...list.matchAll(/data-active="(U\d+)"/g)].map(([, r]) => r))].sort();
+      const named = [...new Set([...list.matchAll(/data-active="([A-Z]+\d+)"/g)].map(([, r]) => r))].sort();
       assert.deepEqual(named, refs, `${f}: ${list.slice(0, 80)}`);
     }
   }

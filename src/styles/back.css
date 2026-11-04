@@ -221,14 +221,14 @@
     --h: 34;
   }
 
-  .back-part[data-ref="U19"] {
+  .back-part[data-ref="Y1"] {
     --x: 700;
     --y: 430;
     --w: 48;
     --h: 48;
   }
 
-  .back-part[data-ref="U20"] {
+  .back-part[data-ref="J6"] {
     --x: 700;
     --y: 140;
     --w: 64;
@@ -443,8 +443,8 @@
       [data-active="U16"] [data-ref="U16"],
       [data-active="U17"] [data-ref="U17"],
       [data-active="U18"] [data-ref="U18"],
-      [data-active="U19"] [data-ref="U19"],
-      [data-active="U20"] [data-ref="U20"]
+      [data-active="Y1"] [data-ref="Y1"],
+      [data-active="J6"] [data-ref="J6"]
     ) {
     --pad: var(--pad-lit);
     --body-edge: var(--gold);
@@ -462,8 +462,8 @@
       [data-active="U16"] :is([data-from="U16"], [data-to="U16"]),
       [data-active="U17"] :is([data-from="U17"], [data-to="U17"]),
       [data-active="U18"] :is([data-from="U18"], [data-to="U18"]),
-      [data-active="U19"] :is([data-from="U19"], [data-to="U19"]),
-      [data-active="U20"] :is([data-from="U20"], [data-to="U20"])
+      [data-active="Y1"] :is([data-from="Y1"], [data-to="Y1"]),
+      [data-active="J6"] :is([data-from="J6"], [data-to="J6"])
     ) {
     opacity: 1;
   }
@@ -478,8 +478,8 @@
       [data-active="U16"] [data-ref="U16"],
       [data-active="U17"] [data-ref="U17"],
       [data-active="U18"] [data-ref="U18"],
-      [data-active="U19"] [data-ref="U19"],
-      [data-active="U20"] [data-ref="U20"]
+      [data-active="Y1"] [data-ref="Y1"],
+      [data-active="J6"] [data-ref="J6"]
     ) {
     --row: var(--row-lit);
     --row-ref: var(--gold);
@@ -498,8 +498,8 @@
       [data-active="U16"] [data-links~="U16"],
       [data-active="U17"] [data-links~="U17"],
       [data-active="U18"] [data-links~="U18"],
-      [data-active="U19"] [data-links~="U19"],
-      [data-active="U20"] [data-links~="U20"]
+      [data-active="Y1"] [data-links~="Y1"],
+      [data-active="J6"] [data-links~="J6"]
     ) {
     --pad: var(--pad-linked);
     --body-edge: var(--linked);
@@ -592,6 +592,17 @@
   /* The parts it is linked to, references like the first column. */
   .bom td.bom__linked {
     color: var(--silk);
+  }
+
+  /* Two lines to a part: the real part and its value, then the skill and its details. */
+  .bom__line {
+    display: block;
+  }
+
+  /* On a narrow face a long name may break inside a word (« Microcontrôleur »), hyphenated where it can. */
+  .bom td:nth-child(2) {
+    hyphens: auto;
+    overflow-wrap: anywhere;
   }
 
   /* Printed under the value on a narrow face only (below), in place of the last column. */
@@ -713,11 +724,44 @@
       border-radius: 0;
     }
 
+    /*
+     * Two lines of text to a row (revision 9): the table at the smallest silkscreen size, set a little
+     * tighter, so that its eleven rows keep to the height of the board.
+     */
     .board--home .bom {
       position: relative;
       z-index: 1;
       width: calc(664 * var(--u));
       margin: 0 0 0 calc(824 * var(--u));
+      font-size: var(--text-floor);
+      line-height: 1.3;
+    }
+
+    .board--home .bom tbody :is(th, td) {
+      padding-top: 0.3125rem;
+      padding-bottom: 0.3125rem;
+    }
+
+    /* « Relié à » narrow, its references wrapping: the room goes to the two lines of the value. */
+    .board--home .bom .bom__linked {
+      width: 8rem;
+    }
+
+    /*
+     * The details of each skill only where the table keeps to the 16:9 face (Anthony, 04/11/2026):
+     * measured, it fits from a face of about 89rem, so from 92rem. Below, line 2 is the skill alone;
+     * the details are visually hidden, still read in the description of the part (aria-describedby).
+     */
+    @container face (width < 92rem) {
+      .board--home .bom__details {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
     }
 
     .board--home .bom tbody {
