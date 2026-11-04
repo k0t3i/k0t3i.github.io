@@ -17,8 +17,8 @@
     --silk: #d7e0b0;
     --silk-dim: #a7b583;
     --sheet-bg: #131d0e;
-    --gold: #b4c564;
-    --pad-lit: #cad97e;
+    --gold: #8cc464;
+    --pad-lit: #9fd47a;
     --led: #dbe88c;
     --lens: #d3df9a;
     --hole: #060904;
@@ -47,9 +47,10 @@
   }
 
   /*
-   * The art of the wide board is a picture: its gold and its veils take the hue of the mode from a
-   * layer over the face, under everything placed on it (mix-blend-mode: color keeps their lightness).
-   * The hue and the saturation of the mask itself (99°, 33 %): the mask stays as on the flowing board.
+   * The art of the wide board is a picture: its gold takes the hue of the mode from a layer over the
+   * face, under everything placed on it. mix-blend-mode: hue keeps the saturation and the lightness of
+   * what is under it: the mask, already of that hue (99°), stays as on the flowing board, the veils
+   * stay grey, the gold turns green.
    */
   @media (min-width: 79rem) {
     :root[data-retro] .board--home .board__face--front::before {
@@ -58,7 +59,7 @@
       inset: 0;
       border-radius: inherit;
       background: #73aa55;
-      mix-blend-mode: color;
+      mix-blend-mode: hue;
       pointer-events: none;
     }
   }
