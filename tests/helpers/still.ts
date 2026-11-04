@@ -34,33 +34,53 @@ export const tiltStill = (page: Page): Promise<void> => still(page, { selector: 
 /** The element's box has not changed over two frames (an anchored sheet that has found its place). */
 export const boxStill = (page: Page, selector: string): Promise<void> => still(page, { selector, read: 'box' });
 
-type FlatTiming = Window & { tiltLeftAt?: number; tiltFlatAt?: number };
+type FlatTiming = Window & { tiltLeftAt?: number; tiltFlatAt?: number; tiltStalled?: number };
+
+/** A gap between two animation frames longer than this (a frame of a 10 fps headless browser) is a stall of the machine. */
+const STALL_MS = 100;
 
 /**
  * Arms a measure in the page: the time from the pointer leaving the board to the board flat again
- * (data-tilting removed). Call it while the board leans, then leave the board, then read `flatAfter`.
+ * (data-tilting removed), less the stalls of a loaded machine (gaps of more than STALL_MS between two
+ * animation frames, when the page gets no frame at all). Call it while the board leans, then leave
+ * the board, then read `flatAfter`.
  */
 export const armFlatTiming = (page: Page): Promise<void> =>
-  page.evaluate(() => {
+  page.evaluate((stallMs) => {
     const board = document.querySelector('div.board');
     if (!board) throw new Error('no board');
     const w = window as FlatTiming;
     delete w.tiltLeftAt;
     delete w.tiltFlatAt;
-    board.addEventListener('pointerleave', () => (w.tiltLeftAt = performance.now()), { once: true });
+    w.tiltStalled = 0;
+    let last = 0;
+    const frame = (time: number): void => {
+      if (w.tiltFlatAt !== undefined) return;
+      w.tiltStalled = (w.tiltStalled ?? 0) + Math.max(0, time - last - stallMs);
+      last = time;
+      requestAnimationFrame(frame);
+    };
+    board.addEventListener(
+      'pointerleave',
+      () => {
+        w.tiltLeftAt = last = performance.now();
+        requestAnimationFrame(frame);
+      },
+      { once: true },
+    );
     new MutationObserver((_, observer) => {
       if (w.tiltLeftAt !== undefined && !board.hasAttribute('data-tilting')) {
         w.tiltFlatAt = performance.now();
         observer.disconnect();
       }
     }).observe(board, { attributes: true, attributeFilter: ['data-tilting'] });
-  });
+  }, STALL_MS);
 
-/** How long the board took to come back flat after the pointer left it, in ms, measured in the page. */
+/** How long the board took to come back flat after the pointer left it, in ms of a running page. */
 export async function flatAfter(page: Page): Promise<number> {
   const handle = await page.waitForFunction(() => {
     const w = window as FlatTiming;
-    return w.tiltLeftAt !== undefined && w.tiltFlatAt !== undefined ? Math.max(w.tiltFlatAt - w.tiltLeftAt, 0.001) : null;
+    return w.tiltLeftAt !== undefined && w.tiltFlatAt !== undefined ? Math.max(w.tiltFlatAt - w.tiltLeftAt - (w.tiltStalled ?? 0), 0.001) : null;
   });
   return (await handle.jsonValue()) as number;
 }

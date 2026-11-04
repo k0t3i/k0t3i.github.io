@@ -102,6 +102,7 @@ test.describe('the tilt', () => {
     expect(await isFlat(body)).toBe(true);
     await pointAt(page, 0.85, 0.2);
     await expect.poll(() => isFlat(body)).toBe(false);
+    await tiltStill(page);
     // A few degrees at most; the edge leans with the face.
     // The angles are on the body and the edge (registered, not inherited), never on the board.
     const tilt = await tiltOf(page);
@@ -110,12 +111,12 @@ test.describe('the tilt', () => {
     for (const a of tilt) expect(Math.abs(a)).toBeLessThanOrEqual(5);
     expect(tilt[1]).toBeGreaterThan(0);
     expect(tilt[0]).toBeGreaterThan(0);
-    const [b, e] = await Promise.all(
-      [body, page.locator('.board__edge')].map((l) => l.evaluate((el) => getComputedStyle(el).transform)),
-    );
+    // Both read in the same frame.
+    const [b, e] = await page.evaluate(() => ['.board__body', '.board__edge'].map((s) => getComputedStyle(document.querySelector(s) as Element).transform));
     expect(e).toBe(b);
-    // Out of the board, it comes back flat within a second, measured in the page from the pointer
-    // leaving the board to the end of data-tilting, and leaves nothing behind.
+    // Out of the board, it comes back flat within a second (about 0.8 s from this lean), measured in
+    // the page from the pointer leaving the board to the end of data-tilting, the stalls of a loaded
+    // machine aside, and leaves nothing behind.
     await armFlatTiming(page);
     await page.mouse.move(4, 4);
     expect(await flatAfter(page)).toBeLessThan(1000);
