@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, ref } from 'vue';
+import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import type { PartContent } from '../content/types';
 
 const props = defineProps<{ part: PartContent; close: string }>();
@@ -22,14 +22,34 @@ async function onToggle(event: Event): Promise<void> {
   fallbackReady.value = true;
 }
 
+const id = `sheet-${props.part.id}`;
+
+/**
+ * A pointer pressed on the part of this sheet, until the next task. The press gives the part the
+ * focus (Chrome, Firefox): that is no keyboard leaving the sheet, and the click that follows toggles
+ * the sheet itself (closed), which closing it on the focus would turn into a reopening.
+ */
+let pressed = false;
+function onPointerDown(event: PointerEvent): void {
+  const part = (event.target as Element | null)?.closest?.(`[popovertarget="${id}"]`);
+  if (!part || part.closest('.sheet')) return;
+  pressed = true;
+  setTimeout(() => (pressed = false));
+}
+onMounted(() => document.addEventListener('pointerdown', onPointerDown, { capture: true, passive: true }));
+onBeforeUnmount(() => document.removeEventListener('pointerdown', onPointerDown, { capture: true }));
+
 /**
  * Focus that leaves an open sheet closes it: Tab past its Close button, or Shift+Tab back to its part.
  * On the flowing board the sheet would otherwise lie over the part that now has the focus. A focus
- * lost to another window (no related target) keeps it open.
+ * lost to another window (no related target), or given to its part by a press on it, keeps it open.
  */
 function onFocusOut(event: FocusEvent): void {
   const sheet = event.currentTarget as HTMLElement;
-  if (event.relatedTarget instanceof Node && !sheet.contains(event.relatedTarget) && sheet.matches(':popover-open')) sheet.hidePopover();
+  const to = event.relatedTarget;
+  if (!(to instanceof Element) || sheet.contains(to) || !sheet.matches(':popover-open')) return;
+  if (pressed && to.getAttribute('popovertarget') === id) return;
+  sheet.hidePopover();
 }
 
 const FORMATS = [
@@ -42,7 +62,7 @@ const srcset = (ext: string): string => `/img/kit-urgence-380.${ext} 380w, /img/
 
 <template>
   <div
-    :id="`sheet-${props.part.id}`"
+    :id="id"
     class="sheet"
     popover
     role="dialog"

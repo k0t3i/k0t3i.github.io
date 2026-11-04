@@ -118,6 +118,33 @@ for (const viewport of [
   });
 }
 
+for (const viewport of [
+  { width: 1600, height: 900 },
+  { width: 1024, height: 768 },
+]) {
+  test(`a second click on the part closes its sheet (${viewport.width}px)`, async ({ page, isMobile }) => {
+    test.skip(isMobile, 'a mouse: the press focuses the part (Chrome, Firefox)');
+    await page.setViewportSize(viewport);
+    await page.goto('/');
+    await expect(page.locator('button.jp1')).toBeVisible();
+    const sheet = page.locator('#sheet-r1');
+    await sheet.evaluate((el) => {
+      const w = window as unknown as { toggles: string[] };
+      w.toggles = [];
+      el.addEventListener('toggle', (e) => w.toggles.push((e as ToggleEvent).newState));
+    });
+    await trigger(page, 'r1').click();
+    await expect(sheet).toBeVisible();
+    await trigger(page, 'r1').click();
+    await expect(sheet).toBeHidden();
+    // Once the toggle events of both clicks are in (they are queued), and a frame later: open, closed, nothing else.
+    await expect.poll(() => page.evaluate(() => (window as unknown as { toggles: string[] }).toggles.length)).toBeGreaterThanOrEqual(2);
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+    expect(await page.evaluate(() => (window as unknown as { toggles: string[] }).toggles)).toEqual(['open', 'closed']);
+    expect(await isOpen(page, 'r1')).toBe(false);
+  });
+}
+
 test('one sheet at a time', async ({ page }) => {
   await trigger(page, 'r1').click();
   await expect(page.locator('#sheet-r1')).toBeVisible();
