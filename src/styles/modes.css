@@ -145,8 +145,8 @@
         [data-active="U16"] [data-ref="U16"],
         [data-active="U17"] [data-ref="U17"],
         [data-active="U18"] [data-ref="U18"],
-        [data-active="U19"] [data-ref="U19"],
-        [data-active="U20"] [data-ref="U20"]
+        [data-active="Y1"] [data-ref="Y1"],
+        [data-active="J6"] [data-ref="J6"]
       ) {
       --pad: Highlight;
       --body-edge: Highlight;
@@ -163,8 +163,8 @@
         [data-active="U16"] [data-ref="U16"],
         [data-active="U17"] [data-ref="U17"],
         [data-active="U18"] [data-ref="U18"],
-        [data-active="U19"] [data-ref="U19"],
-        [data-active="U20"] [data-ref="U20"]
+        [data-active="Y1"] [data-ref="Y1"],
+        [data-active="J6"] [data-ref="J6"]
       )
       > th {
       outline: 2px solid Highlight;
@@ -197,8 +197,8 @@
         [data-active="U16"] [data-links~="U16"],
         [data-active="U17"] [data-links~="U17"],
         [data-active="U18"] [data-links~="U18"],
-        [data-active="U19"] [data-links~="U19"],
-        [data-active="U20"] [data-links~="U20"]
+        [data-active="Y1"] [data-links~="Y1"],
+        [data-active="J6"] [data-links~="J6"]
       )
       > th {
       outline: 1px dashed CanvasText;

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useBackState } from '../composables/useBackState';
-import { BACK_NETS, BACK_PARTS, BACK_REFS, linkedTo, netPath, type BackRef } from '../content/backNets';
+import { bomRows } from '../circuit/bom';
+import { BACK_NETS, BACK_PARTS, BACK_REFS, netPath, type BackRef } from '../content/backNets';
 import type { SiteContent } from '../content/types';
 import BackCopper from './BackCopper.vue';
 
@@ -9,7 +10,8 @@ import BackCopper from './BackCopper.vue';
  * The back face: a circuit where every part is a skill of the bill of materials and every trace
  * links two skills that work together (content/backNets.ts), over the copper of a real bottom side
  * and its passive parts (BackCopper.vue); then the bill of materials itself, a real table that holds
- * all of it in text. A part under the pointer, the keyboard focus or a tap lights up with its row,
+ * all of it in text: one row per part, the real part and its value, then the skill and its details,
+ * and the parts it is linked to, computed from the netlist (circuit/bom.ts, which also names the parts). A part under the pointer, the keyboard focus or a tap lights up with its row,
  * its traces and the parts it is linked to (useBackState, back.css), and so does a row under the
  * pointer.
  */
@@ -22,33 +24,35 @@ const state = useBackState();
  * gives { text: "two ", glued: "words ·" }, { text: "c", glued: "" }. A line can break inside an item,
  * never before a dot; the text of the cell is unchanged.
  */
+const glue = (item: string): { text: string; glued: string } => {
+  const cut = item.lastIndexOf(' ') + 1;
+  return { text: item.slice(0, cut), glued: `${item.slice(cut)} ·` };
+};
 const items = (value: string): { text: string; glued: string }[] =>
-  value.split(' · ').map((item, i, all) => {
-    if (i === all.length - 1) return { text: item, glued: '' };
-    const cut = item.lastIndexOf(' ') + 1;
-    return { text: item.slice(0, cut), glued: `${item.slice(cut)} ·` };
-  });
+  value.split(' · ').map((item, i, all) => (i === all.length - 1 ? { text: item, glued: '' } : glue(item)));
 
 const NETS = BACK_NETS.map((n) => ({ ...n, d: netPath(n) }));
 
 /**
- * A row of the table: the part, and the parts it is linked to (« Relié à »), each reference but the
- * last followed by its dot.
+ * A row of the table (circuit/bom.ts): its two lines, the skill opening the second one, its dot glued
+ * to it; the parts it is linked to as printed in « Relié à », each reference (or range) but the last
+ * followed by its dot (`none` for a part with no signal link); and all of them, for what lights up.
  */
 const rows = computed(() =>
-  props.back.bom.rows.map((row) => {
-    const ref = row.ref as BackRef;
-    const linked = linkedTo(ref);
-    const linkedItems = linked.map((to, i) => ({ to, dot: i < linked.length - 1 }));
-    return { ...row, ref, linkedItems, links: linked.join(' ') };
+  bomRows(props.back.bom.rows).map((row) => {
+    const linkedItems = row.linked.length ? row.linked.map((to, i) => ({ to, dot: i < row.linked.length - 1 })) : [{ to: props.back.bom.none, dot: false }];
+    return { ...row, lead: glue(row.skill), linkedItems, dataLinks: row.links.join(' ') };
   }),
 );
-/** The parts drawn on the circuit, in the order of the table, with their skill. */
+/**
+ * The parts drawn on the circuit, in the order of the table: each named « {repère}, {composant},
+ * {compétence} », the visible reference first, the rest of the name visually hidden (nameTail).
+ */
 const parts = computed(() =>
   rows.value.map((row) => {
     const part = BACK_PARTS.find((p) => p.ref === row.ref);
     if (!part) throw new Error(`no part for ${row.ref}`);
-    return { ...part, name: row.part, links: row.links };
+    return { ...part, nameTail: row.name.slice(row.ref.length), links: row.dataLinks };
   }),
 );
 
@@ -63,7 +67,7 @@ onMounted(() => {
 
 /*
  * The group is one stop of the tab order (a roving tabindex): the part last focused or pressed.
- * The arrows go from part to part in the order of the table (U10 to U20, round), Home and End to
+ * The arrows go from part to part in the order of the table (U10 to J6, round), Home and End to
  * its ends; Enter and Space pin a part (the button's click), Escape unpins it.
  */
 const current = ref<BackRef>(BACK_REFS[0]);
@@ -152,7 +156,7 @@ function onClick(ref: BackRef): void {
         :disabled="!ready"
         :tabindex="ready ? (current === p.ref ? 0 : -1) : undefined"
         :aria-pressed="ready ? (state.pinned.value === p.ref ? 'true' : 'false') : undefined"
-        :aria-describedby="ready ? `value-${p.ref} links-${p.ref}` : undefined"
+        :aria-describedby="ready ? `value-${p.ref} details-${p.ref} links-${p.ref}` : undefined"
         @pointerenter="point($event, p.ref)"
         @pointerleave="point($event, null)"
         @focus="onFocus($event, p.ref)"
@@ -164,7 +168,7 @@ function onClick(ref: BackRef): void {
           aria-hidden="true"
           focusable="false"
         ><use :href="`#pkg-${p.pkg}`" /></svg>
-        <span class="part__ref">{{ p.ref }}</span><span class="vh">, {{ p.name }}</span>
+        <span class="part__ref">{{ p.ref }}</span><span class="vh">{{ p.nameTail }}</span>
       </button>
     </div>
   </div>
@@ -197,7 +201,7 @@ function onClick(ref: BackRef): void {
         :id="`row-${row.ref}`"
         :key="row.ref"
         :data-ref="row.ref"
-        :data-links="row.links"
+        :data-links="row.dataLinks"
         @pointerenter="point($event, row.ref)"
         @pointerleave="point($event, null)"
       >
@@ -205,9 +209,15 @@ function onClick(ref: BackRef): void {
           {{ row.ref }}
         </th>
         <td>{{ row.part }}</td>
-        <!-- The last word of each item is glued to its dot: a line never starts with a dot. -->
+        <!--
+          Two lines: the value of the part, then its skill and the details of it. The last word of each
+          item is glued to its dot: a line never starts with a dot.
+        -->
         <td>
-          <span :id="`value-${row.ref}`"><template
+          <span
+            :id="`value-${row.ref}`"
+            class="bom__line"
+          ><template
             v-for="(item, i) in items(row.value)"
             :key="i"
           >
@@ -215,10 +225,18 @@ function onClick(ref: BackRef): void {
               v-if="item.glued"
               class="bom__glue"
             >{{ item.glued }}</span>
-          </template></span>
+          </template></span>{{ ' ' }}<span class="bom__line">{{ row.lead.text }}<span class="bom__glue">{{ row.lead.glued }}</span>{{ ' ' }}<span :id="`details-${row.ref}`"><template
+            v-for="(item, i) in items(row.details)"
+            :key="i"
+          >
+            {{ i ? ' ' : '' }}{{ item.text }}<span
+              v-if="item.glued"
+              class="bom__glue"
+            >{{ item.glued }}</span>
+          </template></span></span>
           <!--
             A narrow face has no room for the last column: the links are printed here instead. Labelled,
-            this copy is also the end of the description of the part (with its value), at every size.
+            this copy is also the end of the description of the part (after its value and details), at every size.
           -->
           <span
             :id="`links-${row.ref}`"

@@ -67,8 +67,8 @@ export interface Copy {
     title: string;
     caption: string;
     columns: string[];
-    /** Each row: reference, part, value, and the parts it is linked to (the column « Relié à »). */
-    rows: [string, string, string, string][];
+    /** The rows of the bill of materials (revision 9), see BomRow. */
+    rows: BomRow[];
     /** The accessible name of the group of the parts drawn on the back face. */
     group: string;
   };
@@ -82,6 +82,44 @@ export interface Copy {
   principles: CopyPart[];
   connectors: (CopyPart & { link?: { text: string; href: string }; mediaAlt?: string; contacts?: string[] })[];
 }
+
+/**
+ * A row of the bill of materials of revision 9 (spec 4.10, approved by Anthony on 04/11/2026): the
+ * reference, the part, line 1 of the value cell (the real part and its value), line 2 (the skill, then
+ * its details), the column « Relié à » as printed (ranges with an en dash), and the accessible name
+ * of the part drawn on the circuit, « {repère}, {composant}, {compétence} ».
+ */
+export interface BomRow {
+  ref: string;
+  part: string;
+  value: string;
+  skill: string;
+  linked: string;
+  name: string;
+}
+
+/** « Relié à » of a part with no signal link. */
+export const BOM_NONE = '—';
+
+/** The cells of a row as the table prints them: the value cell holds its two lines. */
+export const bomCells = (r: BomRow): string[] => [r.ref, r.part, `${r.value} ${r.skill}`, r.linked];
+
+/** The details of the skill: line 2 without the skill itself. */
+export const bomDetails = (r: BomRow): string => r.skill.slice(r.skill.indexOf(' · ') + 3);
+
+/** Every reference of a « Relié à », its ranges spelt out: « U10 · D2–D5 » gives U10, D2, D3, D4, D5. */
+export function bomRefs(linked: string): string[] {
+  if (linked === BOM_NONE) return [];
+  return linked.split(' · ').flatMap((item) => {
+    const m = /^([A-Z]+)(\d+)–\1(\d+)$/.exec(item);
+    if (!m) return [item];
+    const [, letters, from, to] = m;
+    return Array.from({ length: Number(to) - Number(from) + 1 }, (_, i) => `${letters}${Number(from) + i}`);
+  });
+}
+
+const bom = (rows: [string, string, string, string, string, string][]): BomRow[] =>
+  rows.map(([ref, part, value, skill, linked, name]) => ({ ref, part, value, skill, linked, name }));
 
 export const LANG_LINKS = [
   // The accessible name starts with the visible code (WCAG 2.5.3, label in name).
@@ -116,7 +154,8 @@ export const MORSE_MESSAGE = 'HELLO';
 
 /**
  * The nets of the back face (annex A, « Carte des liaisons », approved by Anthony on 03/11/2026):
- * each one a trace between two parts, the same in both languages.
+ * each one a trace between two parts, the same in both languages. Revision 9: Y1 and J6 take the places
+ * of U19 and U20 in this drawing, until the copper of revision 9 replaces it.
  */
 export const BACK_NETS: [string, string, string][] = [
   ['N1', 'U10', 'U11'],
@@ -127,9 +166,9 @@ export const BACK_NETS: [string, string, string][] = [
   ['N6', 'U13', 'U15'],
   ['N7', 'U14', 'U17'],
   ['N8', 'U15', 'U18'],
-  ['N9', 'U16', 'U19'],
-  ['N10', 'U14', 'U19'],
-  ['N11', 'U18', 'U20'],
+  ['N9', 'U16', 'Y1'],
+  ['N10', 'U14', 'Y1'],
+  ['N11', 'U18', 'J6'],
 ];
 
 export const FR: Copy = {
@@ -163,20 +202,20 @@ export const FR: Copy = {
     switchHidden: 'face arrière',
     title: 'Face arrière · nomenclature',
     caption: `Nomenclature${NB}: les composants de la carte`,
-    columns: ['Repère', 'Composant', 'Valeur', 'Relié à'],
-    rows: [
-      ['U10', 'Vue.js', '2 → 3 · Composition API · SSR', 'U11 · U16'],
-      ['U11', 'TypeScript / JavaScript', 'strict · ES modules', 'U10 · U17'],
-      ['U12', 'HTML sémantique', 'landmarks · ARIA juste', 'U13 · U14'],
-      ['U13', 'CSS', 'layers · container queries · motion', 'U12 · U15'],
-      ['U14', 'Accessibilité', 'WCAG 2.2 AA · guidelines produit', 'U12 · U17 · U19'],
-      ['U15', 'Performance web', 'audits · Core Web Vitals', 'U13 · U18'],
-      ['U16', 'Architecture front', 'composants · migrations', 'U10 · U19'],
-      ['U17', 'Tests', 'unitaires · e2e · a11y', 'U11 · U14'],
-      ['U18', 'Debug', 'navigateurs · réseau · mémoire', 'U15 · U20'],
-      ['U19', 'Équipe', 'recrutement · formation · coaching', 'U14 · U16'],
-      ['U20', 'Électronique', 'Arduino · Raspberry Pi · IoT', 'U18'],
-    ],
+    columns: ['Repère', 'Composant', 'Valeur / compétence', 'Relié à'],
+    rows: bom([
+      ['U10', 'Microcontrôleur', 'ESP32-S3 · 240 MHz · USB', 'Vue.js · 2 → 3 · Composition API · SSR', 'U11 · U13–U18 · Y1 · J6 · J7 · R1 · LED1 · D1 · U2 · J1–J5 · DISP1', 'U10, microcontrôleur, Vue.js'],
+      ['U11', 'Mémoire flash', 'W25Q128 · 16 Mo QSPI', 'TypeScript / JavaScript · strict · ES modules', 'U10', 'U11, mémoire flash, TypeScript / JavaScript'],
+      ['U12', 'Régulateur 3,3 V', 'AP2112K · LDO 600 mA', 'Performance web · audits · Core Web Vitals', '—', 'U12, régulateur 3,3 V, performance web'],
+      ['U13', 'Protection USB', 'USBLC6-2 · ESD', 'Accessibilité · WCAG 2.2 AA · guidelines produit', 'U10 · J5', 'U13, protection USB, accessibilité'],
+      ['U14', 'Extenseur d’E/S', 'TCA9554 · 8 E/S I²C', 'HTML sémantique · landmarks · ARIA juste', 'U10 · SW1 · SW2 · JP1', 'U14, extenseur d’E/S, HTML sémantique'],
+      ['U15', 'Pilote de LED', 'PCA9633 · 4 canaux PWM', 'CSS · layers · container queries · motion', 'U10 · D2–D5', 'U15, pilote de LED, CSS'],
+      ['U16', 'Horloge temps réel', 'PCF8563 · uptime', 'Architecture front · composants · migrations', 'U10 · Y2', 'U16, horloge temps réel, architecture front'],
+      ['U17', 'Superviseur de reset', 'APX803 · 2,93 V', 'Tests · unitaires · e2e · a11y', 'U10 · J6', 'U17, superviseur de reset, tests'],
+      ['U18', 'Capteur de lumière', 'BH1750 · I²C', 'Électronique · Arduino · Raspberry Pi · IoT', 'U10', 'U18, capteur de lumière, électronique'],
+      ['Y1', 'Quartz', '40 MHz · ±10 ppm', 'Équipe · recrutement · formation · coaching', 'U10', 'Y1, quartz, équipe'],
+      ['J6', 'Connecteur de debug', 'UART + boot · 6 broches', 'Debug · navigateurs · réseau · mémoire', 'U10 · U17', 'J6, connecteur de debug, debug'],
+    ]),
     group: 'Composants de la face arrière',
   },
   marks: [
@@ -307,20 +346,20 @@ export const EN: Copy = {
     switchHidden: 'back side',
     title: 'Back side · bill of materials',
     caption: 'Bill of materials: the parts on this board',
-    columns: ['Ref', 'Part', 'Value', 'Linked to'],
-    rows: [
-      ['U10', 'Vue.js', '2 → 3 · Composition API · SSR', 'U11 · U16'],
-      ['U11', 'TypeScript / JavaScript', 'strict · ES modules', 'U10 · U17'],
-      ['U12', 'Semantic HTML', 'landmarks · ARIA done right', 'U13 · U14'],
-      ['U13', 'CSS', 'layers · container queries · motion', 'U12 · U15'],
-      ['U14', 'Accessibility', 'WCAG 2.2 AA · product guidelines', 'U12 · U17 · U19'],
-      ['U15', 'Web performance', 'audits · Core Web Vitals', 'U13 · U18'],
-      ['U16', 'Front-end architecture', 'components · migrations', 'U10 · U19'],
-      ['U17', 'Testing', 'unit · e2e · a11y', 'U11 · U14'],
-      ['U18', 'Debugging', 'browsers · network · memory', 'U15 · U20'],
-      ['U19', 'Team', 'hiring · training · coaching', 'U14 · U16'],
-      ['U20', 'Electronics', 'Arduino · Raspberry Pi · IoT', 'U18'],
-    ],
+    columns: ['Ref', 'Part', 'Value / skill', 'Linked to'],
+    rows: bom([
+      ['U10', 'Microcontroller', 'ESP32-S3 · 240 MHz · USB', 'Vue.js · 2 → 3 · Composition API · SSR', 'U11 · U13–U18 · Y1 · J6 · J7 · R1 · LED1 · D1 · U2 · J1–J5 · DISP1', 'U10, microcontroller, Vue.js'],
+      ['U11', 'Flash memory', 'W25Q128 · 16 MB QSPI', 'TypeScript / JavaScript · strict · ES modules', 'U10', 'U11, flash memory, TypeScript / JavaScript'],
+      ['U12', '3.3 V regulator', 'AP2112K · LDO 600 mA', 'Web performance · audits · Core Web Vitals', '—', 'U12, 3.3 V regulator, web performance'],
+      ['U13', 'USB protection', 'USBLC6-2 · ESD', 'Accessibility · WCAG 2.2 AA · product guidelines', 'U10 · J5', 'U13, USB protection, accessibility'],
+      ['U14', 'I/O expander', 'TCA9554 · 8 I/O I²C', 'Semantic HTML · landmarks · ARIA done right', 'U10 · SW1 · SW2 · JP1', 'U14, I/O expander, semantic HTML'],
+      ['U15', 'LED driver', 'PCA9633 · 4 PWM channels', 'CSS · layers · container queries · motion', 'U10 · D2–D5', 'U15, LED driver, CSS'],
+      ['U16', 'Real-time clock', 'PCF8563 · uptime', 'Front-end architecture · components · migrations', 'U10 · Y2', 'U16, real-time clock, front-end architecture'],
+      ['U17', 'Reset supervisor', 'APX803 · 2.93 V', 'Testing · unit · e2e · a11y', 'U10 · J6', 'U17, reset supervisor, testing'],
+      ['U18', 'Light sensor', 'BH1750 · I²C', 'Electronics · Arduino · Raspberry Pi · IoT', 'U10', 'U18, light sensor, electronics'],
+      ['Y1', 'Crystal', '40 MHz · ±10 ppm', 'Team · hiring · training · coaching', 'U10', 'Y1, crystal, team'],
+      ['J6', 'Debug header', 'UART + boot · 6 pins', 'Debugging · browsers · network · memory', 'U10 · U17', 'J6, debug header, debugging'],
+    ]),
     group: 'Back-side components',
   },
   marks: [

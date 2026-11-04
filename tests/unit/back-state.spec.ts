@@ -24,8 +24,8 @@ describe('useBackState', () => {
     s.toggle('U12');
     s.focus('U15');
     expect(s.active.value).toBe('U15');
-    s.hover('U20');
-    expect(s.active.value).toBe('U20');
+    s.hover('J6');
+    expect(s.active.value).toBe('J6');
     s.hover(null);
     expect(s.active.value).toBe('U15');
     s.focus(null);
@@ -75,9 +75,9 @@ describe('BackFace, the parts group', () => {
       ['ArrowDown', 'U12'],
       ['ArrowLeft', 'U11'],
       ['ArrowUp', 'U10'],
-      ['ArrowLeft', 'U20'],
+      ['ArrowLeft', 'J6'],
       ['ArrowRight', 'U10'],
-      ['End', 'U20'],
+      ['End', 'J6'],
       ['Home', 'U10'],
     ] as const) {
       await group.trigger('keydown', { key });

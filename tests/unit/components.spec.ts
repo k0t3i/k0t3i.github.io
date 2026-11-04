@@ -17,11 +17,12 @@ import TactileSwitch from '../../src/components/TactileSwitch.vue';
 import ThemeJumper from '../../src/components/ThemeJumper.vue';
 import UptimeCounter from '../../src/components/UptimeCounter.vue';
 import { FLIP, type Flip } from '../../src/composables/useFlip';
-import { BACK_NETS, BACK_PARTS, linkedTo, type BackRef } from '../../src/content/backNets';
+import { bomRows } from '../../src/circuit/bom';
+import { BACK_NETS, BACK_PARTS } from '../../src/content/backNets';
 import { en } from '../../src/content/en';
 import { fr } from '../../src/content/fr';
 import { SITE } from '../../src/content/site';
-import { EN as ORACLE_EN, FR as ORACLE_FR, SITE as ORACLE_SITE, absolute } from '../helpers/copy';
+import { EN as ORACLE_EN, FR as ORACLE_FR, SITE as ORACLE_SITE, absolute, bomCells, bomDetails } from '../helpers/copy';
 import type { PartContent, PartId } from '../../src/content/types';
 import { BACK_PASSIVES } from '../../src/content/backPassives';
 import { PACKAGES, PACKAGE_IDS } from '../../src/lib/packages';
@@ -457,18 +458,22 @@ describe('PartSprite', () => {
 });
 
 describe('BackFace', () => {
-  // The exact copy of Annex A is checked by the e2e suite, against the oracle tests/helpers/copy.ts.
   for (const content of [fr, en]) {
-    it(`is a real table, one row per part, with the parts it is linked to (${content.locale})`, () => {
+    const oracle = (content.locale === 'fr' ? ORACLE_FR : ORACLE_EN).back;
+    // The text of an element, its runs of white space as one space.
+    const text = (el: Element): string => (el.textContent ?? '').replace(/\s+/g, ' ').trim();
+
+    it(`is a real table, one row per part, its value cell on two lines, with the parts it is linked to (${content.locale})`, () => {
       const { bom } = content.back;
+      const rows = bomRows(bom.rows);
       const wrapper = mount(BackFace, { props: { back: content.back } });
       const table = wrapper.get('table.bom');
       expect(table.get('caption').text()).toBe(bom.caption);
       const heads = table.findAll('thead th');
-      expect(heads.map((th) => th.text())).toEqual([bom.columns.ref, bom.columns.part, bom.columns.value, bom.columns.linked]);
+      expect(heads.map((th) => th.text())).toEqual(oracle.columns);
       expect(heads.map((th) => th.attributes('scope'))).toEqual(['col', 'col', 'col', 'col']);
       const trs = table.findAll('tbody tr');
-      expect(trs.map((tr) => [tr.attributes('id'), tr.attributes('data-ref')])).toEqual(bom.rows.map((r) => [`row-${r.ref}`, r.ref]));
+      expect(trs.map((tr) => [tr.attributes('id'), tr.attributes('data-ref')])).toEqual(oracle.rows.map((r) => [`row-${r.ref}`, r.ref]));
       // The reference heads its row. The value cell also prints the links for a narrow face (shown
       // there instead of the last column, never both): it is read here without them.
       const cells = trs.map((tr) =>
@@ -478,10 +483,24 @@ describe('BackFace', () => {
           return `${c.tagName}${c.getAttribute('scope') ?? ''} ${copy.textContent?.trim()}`;
         }),
       );
-      expect(cells).toEqual(bom.rows.map((r) => [`THrow ${r.ref}`, `TD ${r.part}`, `TD ${r.value}`, `TD ${linkedTo(r.ref as BackRef).join(' · ')}`]));
+      expect(cells).toEqual(oracle.rows.map((r) => bomCells(r).map((c, i) => `${i ? 'TD' : 'THrow'} ${c}`)));
       for (const [i, tr] of trs.entries()) {
-        const ref = bom.rows[i]?.ref as BackRef;
-        expect(tr.get('.bom__links').text().replace(/\s+/g, ' ')).toBe(`${bom.columns.linked} ${linkedTo(ref).join(' · ')}`);
+        const r = oracle.rows[i];
+        const row = rows[i];
+        if (!r || !row) throw new Error('a row too many');
+        // Two lines: the real part and its value, then the skill and its details.
+        expect(tr.findAll('.bom__line').map((l) => text(l.element))).toEqual([r.value, r.skill]);
+        expect(tr.findAll('.bom__line').map((l) => text(l.element))).toEqual([row.value, `${row.skill} · ${row.details}`]);
+        // « Relié à », computed from the netlist: printed in its column, and under the value for a narrow face.
+        expect(text(tr.get('td.bom__linked').element)).toBe(r.linked);
+        expect(text(tr.get('td.bom__linked').element)).toBe(row.linked.join(' · ') || bom.none);
+        expect(text(tr.get('.bom__links').element)).toBe(`${bom.columns.linked} ${r.linked}`);
+        // What lights up: every part it is linked to, the ranges spelt out.
+        expect(tr.attributes('data-links')).toBe(row.links.join(' '));
+        // Its description: the value, the details of the skill, then « Relié à », labelled; never its name.
+        expect(text(wrapper.get(`#value-${r.ref}`).element)).toBe(r.value);
+        expect(text(wrapper.get(`#details-${r.ref}`).element)).toBe(bomDetails(r));
+        expect(text(wrapper.get(`#links-${r.ref}`).element)).toBe(`${bom.columns.linked} ${r.linked}`);
       }
       // The copper of the bottom side is decoration only, its passive parts with it.
       const decor = wrapper.get('.back__circuit > svg.back__copper');
@@ -490,28 +509,38 @@ describe('BackFace', () => {
       expect(decor.findAll('use.back__psv').map((u) => u.attributes('href'))).toEqual(BACK_PASSIVES.map((p) => `#psv-${p.pkg}`));
       expect(decor.findAll('text.back__psv-ref').map((t) => t.text())).toEqual(BACK_PASSIVES.map((p) => p.ref));
       expect(wrapper.findAll('.back__psv, .back__psv-ref').every((el) => decor.element.contains(el.element))).toBe(true);
-      // The description of a part: its value, then the parts it is linked to, labelled; never its name again.
-      for (const r of bom.rows) {
-        expect(wrapper.get(`#value-${r.ref}`).text().replace(/\s+/g, ' ')).toBe(r.value);
-        expect(wrapper.get(`#links-${r.ref}`).text().replace(/\s+/g, ' ')).toBe(`${bom.columns.linked} ${linkedTo(r.ref as BackRef).join(' · ')}`);
-      }
     });
 
-    it(`draws a part for each row, named by its reference and its skill (${content.locale})`, async () => {
+    it(`draws a part for each row, named « {repère}, {composant}, {compétence} » (${content.locale})`, async () => {
+      const rows = bomRows(content.back.bom.rows);
       const wrapper = mount(BackFace, { props: { back: content.back } });
       await nextTick();
       const parts = wrapper.findAll('.back__parts > button.back-part');
-      expect(parts.map((b) => b.attributes('data-ref'))).toEqual(content.back.bom.rows.map((r) => r.ref));
+      expect(parts.map((b) => b.attributes('data-ref'))).toEqual(oracle.rows.map((r) => r.ref));
       for (const [i, b] of parts.entries()) {
-        const r = content.back.bom.rows[i];
+        const r = oracle.rows[i];
+        const row = rows[i];
+        if (!r || !row) throw new Error('a part too many');
         expect(b.attributes('type')).toBe('button');
-        expect(b.attributes('aria-describedby')).toBe(`value-${r?.ref} links-${r?.ref}`);
-        // « {repère}, {composant} »: the visible reference first (label in name).
-        expect(b.text().replace(/\s+/g, ' ')).toBe(`${r?.ref}, ${r?.part}`);
-        expect(b.get('.part__ref').text()).toBe(r?.ref);
+        expect(b.attributes('aria-describedby')).toBe(`value-${r.ref} details-${r.ref} links-${r.ref}`);
+        // The visible reference first (label in name), then the part and the skill, visually hidden.
+        expect(text(b.element)).toBe(r.name);
+        expect(b.get('.part__ref').text()).toBe(r.ref);
         expect(b.get('svg').attributes('aria-hidden')).toBe('true');
-        const pkg = BACK_PARTS.find((p) => p.ref === r?.ref)?.pkg;
+        const pkg = BACK_PARTS.find((p) => p.ref === r.ref)?.pkg;
         expect(b.get('svg use').attributes('href')).toBe(`#pkg-${pkg}`);
+      }
+      // One source: each part and its row carry the same links, and its name the part and the skill
+      // its row prints (with a capital there), from the same row of the content.
+      for (const [i, row] of rows.entries()) {
+        const src = content.back.bom.rows[i];
+        const tr = wrapper.get(`#row-${row.ref}`);
+        const b = wrapper.get(`button.back-part[data-ref="${row.ref}"]`);
+        expect(b.attributes('data-links')).toBe(tr.attributes('data-links'));
+        expect(text(b.element)).toBe(row.name);
+        expect(row.name).toBe(`${src?.ref}, ${src?.part}, ${src?.skill}`);
+        expect(text(tr.findAll('td')[0]?.element as Element)).toBe(row.part);
+        expect(text(tr.findAll('.bom__line')[1]?.element as Element).startsWith(`${row.skill} · `)).toBe(true);
       }
       // One path per net, its two ends named, and the signal that runs along it.
       const nets = wrapper.findAll('path.back-net');

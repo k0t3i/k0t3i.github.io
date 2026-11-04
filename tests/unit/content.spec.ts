@@ -103,8 +103,8 @@ describe('content', () => {
     expect(en.marks.map((m) => m.visible)).toEqual(['a11y AA', 'INTJ-A', 'Vue 3']);
   });
 
-  it('the bill of materials lists U10 to U20, the same parts in both languages', () => {
-    const refs = Array.from({ length: 11 }, (_, i) => `U${10 + i}`);
+  it('the bill of materials lists U10 to U18, Y1 and J6, the same parts in both languages', () => {
+    const refs = ['U10', 'U11', 'U12', 'U13', 'U14', 'U15', 'U16', 'U17', 'U18', 'Y1', 'J6'];
     expect(fr.back.bom.rows.map((r) => r.ref)).toEqual(refs);
     expect(en.back.bom.rows.map((r) => r.ref)).toEqual(refs);
     // The marks a11y AA, INTJ-A and Vue 3 belong to the PCB marks only.

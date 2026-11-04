@@ -1,3 +1,4 @@
+import { BOM_REFS, type BomRef } from '../circuit/bom';
 import { padCenter, type PackageId } from '../lib/packages';
 
 /**
@@ -9,8 +10,13 @@ import { padCenter, type PackageId } from '../lib/packages';
  * on a pad of its two parts, and the clearances.
  */
 
-export const BACK_REFS = ['U10', 'U11', 'U12', 'U13', 'U14', 'U15', 'U16', 'U17', 'U18', 'U19', 'U20'] as const;
-export type BackRef = (typeof BACK_REFS)[number];
+/**
+ * The interactive parts of the back face: the eleven parts of the bill of materials of revision 9
+ * (circuit/bom.ts, U10 to U18, Y1 and J6). Until the copper of revision 9 replaces this drawing, Y1
+ * and J6 take the places of the former U19 and U20.
+ */
+export const BACK_REFS = BOM_REFS;
+export type BackRef = BomRef;
 
 export type NetId = 'N1' | 'N2' | 'N3' | 'N4' | 'N5' | 'N6' | 'N7' | 'N8' | 'N9' | 'N10' | 'N11';
 export type Point = [number, number];
@@ -53,8 +59,8 @@ export const BACK_PARTS: readonly BackPart[] = [
   { ref: 'U16', pkg: 'soic16', x: 600, y: 300, label: 'n' },
   { ref: 'U17', pkg: 'tssop14', x: 480, y: 700, label: 's' },
   { ref: 'U18', pkg: 'sot23-6', x: 560, y: 150, label: 'n' },
-  { ref: 'U19', pkg: 'soic8', x: 700, y: 430, label: 'w' },
-  { ref: 'U20', pkg: 'sot223', x: 700, y: 140, label: 'n' },
+  { ref: 'Y1', pkg: 'soic8', x: 700, y: 430, label: 'w' },
+  { ref: 'J6', pkg: 'sot223', x: 700, y: 140, label: 'n' },
 ];
 
 export const BACK_NETS: readonly BackNet[] = [
@@ -66,9 +72,9 @@ export const BACK_NETS: readonly BackNet[] = [
   { id: 'N6', from: 'U13', to: 'U15', pins: [9, 1], bends: [[226, 376], [296, 306]] },
   { id: 'N7', from: 'U14', to: 'U17', pins: [6, 8], bends: [[549, 674], [529, 694]] },
   { id: 'N8', from: 'U15', to: 'U18', pins: [6, 1], bends: [[324, 240], [334, 230], [540, 230], [566, 204]] },
-  { id: 'N9', from: 'U16', to: 'U19', pins: [8, 8], bends: [[678, 394], [709, 425]] },
-  { id: 'N10', from: 'U14', to: 'U19', pins: [19, 2], bends: [] },
-  { id: 'N11', from: 'U18', to: 'U20', pins: [3, 1], bends: [[586, 226], [606, 246], [690, 246], [710, 226]] },
+  { id: 'N9', from: 'U16', to: 'Y1', pins: [8, 8], bends: [[678, 394], [709, 425]] },
+  { id: 'N10', from: 'U14', to: 'Y1', pins: [19, 2], bends: [] },
+  { id: 'N11', from: 'U18', to: 'J6', pins: [3, 1], bends: [[586, 226], [606, 246], [690, 246], [710, 226]] },
 ];
 
 /** What the flowing board shows of the circuit (it has no room for the whole face): every part and net. */
@@ -107,9 +113,3 @@ export function pointsPath(pts: readonly Point[]): string {
 
 /** The path of a net, from its first part to its second one. */
 export const netPath = (net: BackNet): string => pointsPath(netPoints(net));
-
-/** The parts a part is linked to, in order: the column « Relié à » of the bill of materials. */
-export function linkedTo(ref: BackRef): BackRef[] {
-  const linked = BACK_NETS.flatMap((n) => (n.from === ref ? [n.to] : n.to === ref ? [n.from] : []));
-  return BACK_REFS.filter((r) => linked.includes(r));
-}
