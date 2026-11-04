@@ -77,6 +77,12 @@ describe('the routes of the front', () => {
       if (via?.kind === 'through') expect(1600 - via.x, `${id}: its via, at x ${1600 - via.x} on the back`).toBeGreaterThanOrEqual(CIRCUIT.x);
       if (via?.kind === 'through') expect(1600 - via.x, `${id}: its via, at x ${1600 - via.x} on the back`).toBeLessThanOrEqual(CIRCUIT.x + CIRCUIT.w);
     }
+    // Each route long enough for its current to be seen running on it (50 units at least).
+    for (const id of PART_IDS) {
+      const pts = FRONT_ROUTES[id].pts;
+      const length = pts.slice(1).reduce((sum, [x, y], k) => sum + Math.hypot(x - (pts[k]?.[0] ?? x), y - (pts[k]?.[1] ?? y)), 0);
+      expect(length, `${id}: ${length.toFixed(0)} units`).toBeGreaterThanOrEqual(50);
+    }
     // LED1 is lit through R1, on the front; C1 takes the 3.3 V from its plane.
     expect(padsAt(FRONT_ROUTES.led1.pts[0] as Point, 'LED_A').map((p) => `${p.ref}.${p.pin}`)).toEqual(['R1.2']);
     expect(viaAt(FRONT_ROUTES.c1.pts[0] as Point, '+3V3')?.kind).toBe('blind');

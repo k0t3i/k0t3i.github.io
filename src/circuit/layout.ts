@@ -276,7 +276,7 @@ export const VIAS: readonly Via[] = [
   blind('GND', 992, 606),
   blind('+3V3', 956, 606),
   blind('GND', 1000, 647),
-  blind('+3V3', 300, 634),
+  blind('+3V3', 276, 660),
   blind('GND', 372, 634),
   blind('GND', 584, 634),
   blind('+3V3', 794, 634),

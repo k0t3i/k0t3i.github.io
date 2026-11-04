@@ -12,7 +12,7 @@
 </defs>
 <g fill="none" stroke="#fff" stroke-opacity=".055" stroke-linecap="round" stroke-linejoin="round">
 <path stroke-width="2" d="M1046 522H108L96 534V618L112 634H119"/>
-<path stroke-width="2" d="M300 634H326"/>
+<path stroke-width="2" d="M276 660L302 634H326"/>
 <path stroke-width="2" d="M158 634V618L164 612H519L535 628V634"/>
 <path stroke-width="2" d="M1100 600L1034 534H732L720 546V618L736 634H742"/>
 <path stroke-width="2" d="M1020 570L1012 562H950L936 576V633L950 647H962"/>
@@ -52,7 +52,7 @@
 <use href="#b" x="992" y="606"/>
 <use href="#b" x="956" y="606"/>
 <use href="#b" x="1000" y="647"/>
-<use href="#b" x="300" y="634"/>
+<use href="#b" x="276" y="660"/>
 <use href="#b" x="372" y="634"/>
 <use href="#b" x="584" y="634"/>
 <use href="#b" x="794" y="634"/>
