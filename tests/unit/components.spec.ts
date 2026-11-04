@@ -114,7 +114,7 @@ describe('PartSheet', () => {
     expect(img.attributes('height')).toBe('475');
     expect(img.attributes('alt')).toBe(part(fr, 'j1').media?.alt);
     expect(wrapper.findAll('picture source').map((s) => s.attributes('type'))).toEqual(['image/avif', 'image/webp']);
-    expect(wrapper.get('a.sheet__link').attributes('href')).toBe(`${SITE.baseUrl}kit-urgence/`);
+    expect(wrapper.get('a.sheet__link').attributes('href')).toBe(absolute(ORACLE_SITE.projects.kitUrgence.href));
   });
 
   it('J1 sheet gives the link to the project before its picture', async () => {

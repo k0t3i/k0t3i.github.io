@@ -1,7 +1,7 @@
 // @vitest-environment node
 // Node: the oracle of the copy (tests/helpers/copy.ts) reads site.json from the disk.
 import { readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, relative, sep } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { READOUTS as ORACLE_READOUTS, SITE as ORACLE_SITE, absolute } from '../helpers/copy';
 import { en } from '../../src/content/en';
@@ -11,6 +11,7 @@ import { SITE } from '../../src/content/site';
 import type { PartContent } from '../../src/content/types';
 
 const SRC = join(process.cwd(), 'src');
+const TESTS = join(process.cwd(), 'tests');
 
 /** Every string of a value, with its path. */
 function strings(value: unknown, path = ''): [string, string][] {
@@ -39,6 +40,34 @@ const sources = (): { file: string; text: string }[] =>
     .filter((d) => d.isFile() && /\.(ts|vue|json|css|svg|html)$/.test(d.name) && d.name !== 'site.json')
     .map((d) => join(d.parentPath, d.name))
     .map((file) => ({ file, text: readFileSync(file, 'utf8') }));
+
+/**
+ * Every test file, path from the root, and text; but the oracle (tests/helpers/copy.ts), which reads
+ * site.json, and this file, which holds the allowances below.
+ */
+const testFiles = (): { file: string; text: string }[] =>
+  readdirSync(TESTS, { recursive: true, withFileTypes: true })
+    .filter((d) => d.isFile() && /\.(ts|mjs|js|json)$/.test(d.name))
+    .map((d) => relative(process.cwd(), join(d.parentPath, d.name)).split(sep).join('/'))
+    .filter((file) => file !== 'tests/helpers/copy.ts' && file !== 'tests/unit/content.spec.ts')
+    .map((file) => ({ file, text: readFileSync(file, 'utf8') }));
+
+/*
+ * What a test may write that looks like a link of site.json, and is not one, file by file, as
+ * written: the ban on a kit-urgence/ FOLDER in the build (it would hide the site of that project,
+ * served by another repository at that path), named as a folder by deploy.mjs and its tests; and the
+ * git remote of this repository, which starts like the GitHub profile.
+ */
+const NOT_LINKS: Record<string, string[]> = {
+  'tests/static/dist.test.mjs': ["f.startsWith('kit-urgence/')"],
+  'tests/unit/deploy.spec.ts': [
+    "'kit-urgence/index.html'",
+    "'img/kit-urgence/a.jpg'",
+    'kit-urgence/ must not exist: https://k0t3i.github.io/kit-urgence/ is another repository',
+    "'kit-urgence/ must not exist'",
+    "'https://github.com/k0t3i/k0t3i.github.io.git'",
+  ],
+};
 
 describe('content', () => {
   it('fr and en share the same shape', () => {
@@ -131,6 +160,15 @@ describe('content', () => {
     expect(Object.keys(ORACLE_SITE.projects)).toHaveLength(4);
     const hits = sources().flatMap(({ file, text }) => written.filter((w) => text.includes(w)).map((w) => `${file}: ${w}`));
     expect(hits).toEqual([]);
+    // The tests too: they read them from site.json through the oracle, never write them by hand.
+    const inTests = testFiles().flatMap(({ file, text }) => {
+      const allowed = NOT_LINKS[file] ?? [];
+      // An allowance is only what it says: each one is in its file.
+      for (const a of allowed) expect(text.includes(a), `${file}: ${a}`).toBe(true);
+      const rest = allowed.reduce((t, a) => t.split(a).join(''), text);
+      return written.filter((w) => rest.includes(w)).map((w) => `${file}: ${w}`);
+    });
+    expect(inTests).toEqual([]);
     // The copy reads them: each name is on the board and each link in a sheet, in both languages.
     for (const c of [fr, en]) {
       const labels = c.connectors.map((p) => p.label);
