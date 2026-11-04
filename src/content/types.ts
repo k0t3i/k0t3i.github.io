@@ -20,6 +20,22 @@ export interface PartContent {
   contacts?: { label: string; href: string; text: string }[];
 }
 
+/**
+ * A row of the bill of materials of the back face (spec 4.10, revision 9): a real part and a skill.
+ * The part and the skill are written as they read inside a sentence (the accessible name « {repère},
+ * {composant}, {compétence} »); the table prints them with a capital (circuit/bom.ts).
+ */
+export interface BomRowContent {
+  ref: string;
+  /** The kind of part, e.g. « régulateur 3,3 V ». */
+  part: string;
+  /** Line 1: its manufacturer part and value, items separated by « · ». */
+  value: string;
+  /** Line 2: the skill, then its details (items separated by « · »). */
+  skill: string;
+  details: string;
+}
+
 export interface SiteContent {
   locale: Locale;
   meta: { title: string; description: string; ogImageAlt: string };
@@ -45,8 +61,9 @@ export interface SiteContent {
   /**
    * The back side of the board, and SW2, the slide switch that turns the board over: its reference,
    * its two positions and its hidden text; the title of the back side with its bill of materials
-   * (one row per skill, ref U10 to U20; the column « Relié à » is derived from the nets of the
-   * circuit, content/backNets.ts), and the name of the group of the parts drawn on it.
+   * (one row per part of the circuit and skill, U10 to U18, Y1 and J6; the column « Relié à » is
+   * computed from the netlist, circuit/bom.ts, and `none` printed when a part has no signal link),
+   * and the name of the group of the parts drawn on it.
    */
   back: {
     ref: string;
@@ -57,7 +74,8 @@ export interface SiteContent {
     bom: {
       caption: string;
       columns: { ref: string; part: string; value: string; linked: string };
-      rows: { ref: string; part: string; value: string }[];
+      rows: BomRowContent[];
+      none: string;
     };
     group: string;
   };
