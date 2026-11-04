@@ -17,6 +17,13 @@ const TEXT_SPACING = `
 
 const trigger = (page: Page, id: string): Locator => page.locator(`.part__trigger[popovertarget="sheet-${id}"]`);
 
+/**
+ * WebKit with the settings of a phone: Playwright's WebKit then stops responding after several
+ * sheets opened in a row on the wide board, with motion on (the fixme « ten sheets in a row »). The
+ * tests that open many sheets give it a fresh page for each; the other engines open them in a row.
+ */
+const phoneWebKit = ({ browserName, isMobile }: { browserName: string; isMobile: boolean }): boolean => browserName === 'webkit' && isMobile;
+
 /** Resolves once the element's own transitions and animations are over (none under reduced motion). */
 const settled = (locator: Locator): Promise<unknown> =>
   locator.evaluate((el) => Promise.all(el.getAnimations().map((a) => a.finished)));
@@ -804,12 +811,14 @@ test.describe('wide board', () => {
     }
   });
 
-  test('a sheet opens next to its part, inside the viewport', async ({ page }) => {
+  test('a sheet opens next to its part, inside the viewport', async ({ page, browserName, isMobile }) => {
     await page.setViewportSize({ width: 1600, height: 900 });
     await page.goto('/');
     const anchored = await page.evaluate(() => CSS.supports('position-area: center'));
     const rem = 16;
+    const fresh = phoneWebKit({ browserName, isMobile });
     for (const id of ['r1', 'u2', ...FR.connectors.map((p) => p.id)]) {
+      if (fresh) await page.goto('/');
       await trigger(page, id).click();
       const sheet = page.locator(`#sheet-${id}`);
       await expect(sheet).toBeVisible();
@@ -905,9 +914,7 @@ test.describe('wide board', () => {
 
   test('on a short window every link of a sheet is in view when it opens, clear of the Close bar', async ({ page, browserName, isMobile }) => {
     await page.setViewportSize({ width: 1264, height: 800 });
-    // WebKit with the settings of a phone gets a fresh page for each sheet (the fixme below); the
-    // other engines open them one after the other on one page.
-    const fresh = browserName === 'webkit' && isMobile;
+    const fresh = phoneWebKit({ browserName, isMobile });
     await page.goto('/');
     for (const id of IDS) {
       if (fresh) await page.goto('/');
@@ -938,7 +945,7 @@ test.describe('wide board', () => {
    * wide or more): open ten sheets in a row. If it holds there, this is Playwright's WebKit only.
    */
   test('ten sheets in a row on the wide board, motion on, with WebKit on a phone', async ({ page, browserName, isMobile }) => {
-    const phone = browserName === 'webkit' && isMobile;
+    const phone = phoneWebKit({ browserName, isMobile });
     test.skip(!phone, 'the test above opens the sheets in a row on one page in the other projects');
     test.fixme(phone, 'Playwright WebKit with the settings of a phone hangs after about nine sheets: check on a real iPad');
     await page.emulateMedia({ reducedMotion: 'no-preference' });
