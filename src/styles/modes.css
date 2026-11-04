@@ -69,7 +69,6 @@
     .part__body,
     .disp__screen::before,
     .disp__screen::after,
-    .disp::after,
     #part-led1 .part__trigger::after {
       background: none;
     }

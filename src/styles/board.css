@@ -20,7 +20,7 @@
     --pad-x: 1.75rem;
     --keep-out: 1rem;
     /*
-     * Geometry of the buses, shared by the parts and the trace from DISP1: x of a bus, length of the
+     * Geometry of the buses, shared by the parts: x of a bus, length of the
      * stubs, radius of the vias, gap between two columns, and the space above a block of parts.
      */
     --bus: 0.5rem;
@@ -601,16 +601,16 @@
   /*
    * Tablet: the title and the subtitle over the full width, then DISP1 at the left with the
    * principles beside it on their own bus, then the connectors over the full width. DOM order is
-   * reading order. DISP1 and the principles share the top of their row, so a trace from the DISP1
-   * header can land in the top via of that bus. Scoped to the flowing board: the wide board places
-   * these blocks itself.
+   * reading order. DISP1 and the principles share the top of their row; no trace runs between them:
+   * the header of DISP1 is wired from the back (spec 4.10). Scoped to the flowing board: the wide
+   * board places these blocks itself.
    */
   @media (46rem <= width < 79rem) {
     main {
       display: grid;
       grid-template-columns: auto minmax(0, 1fr);
       column-gap: var(--gap);
-      /* A stacking context: the trace below passes under DISP1 and under the via it lands in. */
+      /* A stacking context: what a block draws under itself (z-index: -1) stays on the board. */
       isolation: isolate;
     }
 
@@ -641,39 +641,6 @@
 
     .disp + .parts + .parts {
       grid-column: 1 / -1;
-    }
-
-    /*
-     * The trace from DISP1 to the principles. It starts at the CS pad (the last of the six equal
-     * pin cells, the header being inset 0.75rem in the module; the pad centre 0.75rem + 0.3125rem
-     * down), runs right from under the module across the column gap, bends at 45° and drops into
-     * the top via of the principles bus: the bus line ends 0.5rem (--bus) into the column, the via
-     * centre is under the heading (0.75rem x 1.2) and its margin (1.25rem), --via-r + 1px down.
-     * It goes 0.25rem past the via centre, under the bus line drawn over it: a taller heading
-     * (user text spacing) still lands in the via.
-     */
-    .disp::after {
-      --bend: 0.75rem;
-      --pad-y: calc(0.75rem + 0.3125rem - 1px);
-
-      content: "";
-      position: absolute;
-      z-index: -1;
-      top: var(--pad-y);
-      left: calc(100% - 0.75rem - (100% - 1.5rem) / 12);
-      right: calc(-1 * (var(--gap) + var(--bus)));
-      height: calc(var(--text-floor) * 1.2 + 1.25rem + var(--via-r) + 1px + 0.25rem - var(--pad-y));
-      background:
-        linear-gradient(var(--trace), var(--trace)) left top / calc(100% - var(--bend)) 2px no-repeat,
-        linear-gradient(
-            to top right,
-            transparent calc(50% - 1.5px),
-            var(--trace) calc(50% - 0.5px) calc(50% + 0.5px),
-            transparent calc(50% + 1.5px)
-          )
-          right top / calc(var(--bend) + 2px) calc(var(--bend) + 2px) no-repeat,
-        linear-gradient(var(--trace), var(--trace)) right bottom / 2px calc(100% - var(--bend) - 1px) no-repeat;
-      pointer-events: none;
     }
   }
 }

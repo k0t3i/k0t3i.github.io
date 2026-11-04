@@ -185,10 +185,6 @@
       border-radius: calc(6 * var(--u));
     }
 
-    .board--home .disp::after {
-      display: none;
-    }
-
     .board--home .disp__pins {
       position: absolute;
       top: 0;
