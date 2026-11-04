@@ -1,3 +1,7 @@
+<script setup lang="ts">
+import { PACKAGES, PACKAGE_IDS } from '../lib/packages';
+</script>
+
 <template>
   <!--
     The parts seen from above, drawn at 1 unit = 1/16 rem (1 CSS px at the default root size): 64 x 32,
@@ -635,6 +639,51 @@
           rx="0.5"
         />
       </g>
+    </symbol>
+
+    <!--
+      The packages of the parts of the back face (lib/packages.ts), in the units of the wide board:
+      gold pads, the tin of the leads over them, the moulded body, the dimple of pin 1.
+    -->
+    <symbol
+      v-for="id in PACKAGE_IDS"
+      :id="`pkg-${id}`"
+      :key="id"
+      :viewBox="`0 0 ${PACKAGES[id].w} ${PACKAGES[id].h}`"
+    >
+      <rect
+        v-for="pad in PACKAGES[id].pads"
+        :key="`pad-${pad.n}`"
+        class="pcb-pad"
+        :x="pad.x"
+        :y="pad.y"
+        :width="pad.w"
+        :height="pad.h"
+        rx="0.5"
+      />
+      <rect
+        v-for="(lead, i) in PACKAGES[id].leads"
+        :key="`lead-${i}`"
+        class="pcb-tin"
+        :x="lead.x"
+        :y="lead.y"
+        :width="lead.w"
+        :height="lead.h"
+      />
+      <rect
+        class="pcb-body"
+        :x="PACKAGES[id].body.x + 0.5"
+        :y="PACKAGES[id].body.y + 0.5"
+        :width="PACKAGES[id].body.w - 1"
+        :height="PACKAGES[id].body.h - 1"
+        rx="1.5"
+      />
+      <circle
+        class="pcb-mark"
+        :cx="PACKAGES[id].mark.x"
+        :cy="PACKAGES[id].mark.y"
+        :r="PACKAGES[id].mark.r"
+      />
     </symbol>
   </svg>
 </template>

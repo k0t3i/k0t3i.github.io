@@ -59,6 +59,22 @@ for (const scheme of ['light', 'dark'] as const) {
         expect(await violations(page, FRONT_ONLY)).toEqual([]);
       });
 
+      // A part of the back face pinned: the part, its row, its traces and its neighbours lit.
+      for (const viewport of [null, { width: 390, height: 844 }]) {
+        test(`back face shown, a part pinned${viewport ? ' on a phone-sized window' : ''}`, async ({ page }) => {
+          if (viewport) await page.setViewportSize(viewport);
+          await showBack(page);
+          const u14 = page.locator('button.back-part[data-ref="U14"]');
+          await u14.click();
+          await expect(u14).toHaveAttribute('aria-pressed', 'true');
+          await page.mouse.move(1, 1);
+          await expect(page.locator('section.board__face--back')).toHaveAttribute('data-active', 'U14');
+          // Wait for the light to settle: a half-lit row would lower the measured contrast.
+          await page.locator('section.board__face--back').evaluate((el) => Promise.all(el.getAnimations({ subtree: true }).map((a) => a.finished)));
+          expect(await violations(page, FRONT_ONLY)).toEqual([]);
+        });
+      }
+
       for (const id of ids) {
         test(`sheet ${id} open`, async ({ page }) => {
           const sheet = page.locator(`#sheet-${id}`);

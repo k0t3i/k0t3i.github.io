@@ -95,7 +95,7 @@ test.describe('no preference', () => {
     }
   });
 
-  test('the turn of SW2 is one transition of 600ms, then only the ambient set runs', async ({ page }) => {
+  test('the turn of SW2 is one transition of 600ms, then the face that is up runs only its own set', async ({ page }) => {
     await page.addInitScript(() => sessionStorage.setItem('k0t3i.booted', '1'));
     await page.setViewportSize({ width: 1600, height: 900 });
     await page.goto('/');
@@ -119,6 +119,16 @@ test.describe('no preference', () => {
     const turn = ['board-recede 600 linear', 'transform 600 cubic-bezier(0.2, 0.7, 0.2, 1)'];
     expect(turning).toEqual([turn, turn]);
     await expect(page.locator('.board')).not.toHaveAttribute('data-turning', /.*/);
+    // The back face up and at rest: nothing runs. The front face is not drawn, its ambient set with it,
+    // and the back face moves only when a part lights up.
+    await page.mouse.move(1, 1);
+    expect(await running(page)).toEqual([]);
+    // Back on the front face, its ambient set again, and nothing else (WebKit runs the transitions of
+    // its traces once as the face is drawn again: invisible, 220ms, they end at once).
+    await page.locator('.board__face--back button.sw2').click();
+    await expect(page.locator('.board')).not.toHaveAttribute('data-flipped', /.*/);
+    await expect(page.locator('.board')).not.toHaveAttribute('data-turning', /.*/);
+    await expect.poll(async () => (await running(page)).filter((a) => a.startsWith('transition')), { timeout: 1000 }).toEqual([]);
     expect((await running(page)).sort()).toEqual([
       'led-breathe part-led1::after',
       'signal signal',

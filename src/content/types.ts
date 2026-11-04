@@ -41,7 +41,8 @@ export interface SiteContent {
   /**
    * The back side of the board, and SW2, the slide switch that turns the board over: its reference,
    * its two positions and its hidden text; the title of the back side with its bill of materials
-   * (one row per skill, ref U10 to U20).
+   * (one row per skill, ref U10 to U20; the column « Relié à » is derived from the nets of the
+   * circuit, content/backNets.ts), and the name of the group of the parts drawn on it.
    */
   back: {
     ref: string;
@@ -51,9 +52,10 @@ export interface SiteContent {
     title: string;
     bom: {
       caption: string;
-      columns: { ref: string; part: string; value: string };
+      columns: { ref: string; part: string; value: string; linked: string };
       rows: { ref: string; part: string; value: string }[];
     };
+    group: string;
   };
   marks: { visible: string; hidden: string }[];
   sections: { principles: { id: string; title: string }; connectors: { id: string; title: string } };

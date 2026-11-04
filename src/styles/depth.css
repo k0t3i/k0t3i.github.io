@@ -95,8 +95,9 @@
 
   /*
    * With JavaScript, from the first paint: the two faces share one place, the one that is down is
-   * hidden (and inert once mounted). The page is as tall as one face, so no scrollbar comes and goes
-   * when the app mounts. Should the app never mount, the front face is all there is, and works.
+   * not drawn (and inert once mounted). The page is as tall as the face that is up, so no scrollbar
+   * comes and goes when the app mounts. Should the app never mount, the front face is all there is,
+   * and works.
    */
   :root[data-js] .board--home {
     perspective: 2400px;
@@ -108,14 +109,20 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
+  /* Each face as tall as its content: on the flowing board the back face is shorter than the front. */
   :root[data-js] .board--home .board__face {
     grid-area: 1 / 1;
+    align-self: start;
   }
 
-  /* At rest only: during the turn both faces are drawn (below). */
+  /*
+   * At rest only (during the turn both faces are drawn, below): the face that is down takes no room,
+   * so the board is as tall as the face that is up, and its edge follows; nothing of it runs either
+   * (its ambient signals wait until it is up again).
+   */
   :root[data-js] .board--home:not([data-flipped], [data-turning]) .board__face--back,
   :root[data-js] .board--home[data-flipped]:not([data-turning]) .board__face--front {
-    visibility: hidden;
+    display: none;
   }
 
   /*
@@ -173,7 +180,6 @@
 
   /* During the turn both faces are drawn, each only from its front. */
   .board[data-turning] .board__face {
-    visibility: visible;
     backface-visibility: hidden;
   }
 

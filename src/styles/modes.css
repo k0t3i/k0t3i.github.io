@@ -8,6 +8,11 @@
       /* JP1 and SW2 keep their off position dimmer than the on one (still above 6:1): their state stays readable. */
       --pos-off: color-mix(in srgb, var(--silk) 72%, var(--mask));
     }
+
+    /* The traces of the back face carry its meaning: drawn clearly. */
+    .back__trace {
+      stroke-opacity: 0.32;
+    }
   }
 
   /*
@@ -36,7 +41,9 @@
     .part__body,
     .sw1__body,
     .jp1__body,
-    .sw2__body {
+    .sw2__body,
+    .back-part__body,
+    .back__copper {
       forced-color-adjust: none;
     }
 
@@ -55,14 +62,67 @@
       outline: 1px solid CanvasText;
     }
 
-    /* The edge and the copper of the back face are drawings of colour only: they go with the mask. */
-    .board__edge,
-    .bom__copper {
+    /* The edge is a drawing of colour only: it goes with the mask. */
+    .board__edge {
       display: none;
     }
 
-    .board__face--back::after {
-      background: none;
+    /*
+     * The back face: its pour, its cuts, its stitching and its signals go; its traces stay, in grey,
+     * and the pads in the text colour. A lit part, its traces and its row are in Highlight.
+     */
+    .back__pour,
+    .back__clear,
+    .back__veil:not(.back__trace),
+    .back__copper use,
+    .back-pulse {
+      display: none;
+    }
+
+    .back__trace {
+      stroke: GrayText;
+      stroke-opacity: 1;
+    }
+
+    .back-net {
+      stroke: Highlight;
+      stroke-opacity: 1;
+    }
+
+    .back-part:is(
+        [data-active="U10"] [data-ref="U10"],
+        [data-active="U11"] [data-ref="U11"],
+        [data-active="U12"] [data-ref="U12"],
+        [data-active="U13"] [data-ref="U13"],
+        [data-active="U14"] [data-ref="U14"],
+        [data-active="U15"] [data-ref="U15"],
+        [data-active="U16"] [data-ref="U16"],
+        [data-active="U17"] [data-ref="U17"],
+        [data-active="U18"] [data-ref="U18"],
+        [data-active="U19"] [data-ref="U19"],
+        [data-active="U20"] [data-ref="U20"]
+      ) {
+      --pad: Highlight;
+      --body-edge: Highlight;
+      --mark: Highlight;
+    }
+
+    .bom tr:is(
+        [data-active="U10"] [data-ref="U10"],
+        [data-active="U11"] [data-ref="U11"],
+        [data-active="U12"] [data-ref="U12"],
+        [data-active="U13"] [data-ref="U13"],
+        [data-active="U14"] [data-ref="U14"],
+        [data-active="U15"] [data-ref="U15"],
+        [data-active="U16"] [data-ref="U16"],
+        [data-active="U17"] [data-ref="U17"],
+        [data-active="U18"] [data-ref="U18"],
+        [data-active="U19"] [data-ref="U19"],
+        [data-active="U20"] [data-ref="U20"]
+      )
+      > th {
+      outline: 2px solid Highlight;
+      outline-offset: -2px;
     }
 
     /* The fan-out of U2 would lead to a bus that is not drawn. */

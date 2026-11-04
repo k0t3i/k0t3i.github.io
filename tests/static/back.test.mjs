@@ -60,15 +60,51 @@ test('every rule of the back face is in back.css, in its own layer between wide 
   }
 });
 
-test('the back face ships its copper inline, a static drawing', () => {
+test('the back face ships its circuit inline: a static drawing, its eleven nets and their signals', () => {
   for (const page of ['index.html', 'en/index.html']) {
     const html = readFileSync(join(DIST_ROOT, page), 'utf8');
-    const copper = html.match(/<svg class="bom__copper"[\s\S]*?<\/svg>/)?.[0];
+    const copper = html.match(/<svg class="back__copper"[\s\S]*?<\/svg>/)?.[0];
     assert.ok(copper, `${page}: no copper`);
     assert.match(copper, /aria-hidden="true"/);
     assert.match(copper, /focusable="false"/);
     assert.match(copper, /viewBox="0 0 1600 900"/);
     assertStaticDrawing(copper, `${page} copper`);
+    const paths = tags(copper, 'path');
+    const nets = paths.filter((t) => t.class === 'back-net');
+    assert.deepEqual(nets.map((t) => t['data-net']), Array.from({ length: 11 }, (_, i) => `N${i + 1}`));
+    for (const t of nets) assert.equal(t.pathLength, '100', `${t['data-net']} pathLength`);
+    const pulses = paths.filter((t) => t.class === 'back-pulse');
+    assert.deepEqual(pulses.map((t) => t.d), nets.map((t) => t.d));
     assert.match(html, /<table class="bom">/);
   }
+});
+
+/** The contents of every `:is(...)` of some CSS, nested parentheses included. */
+function isLists(css) {
+  const out = [];
+  for (let at = css.indexOf(':is('); at >= 0; at = css.indexOf(':is(', at + 4)) {
+    let depth = 0;
+    for (let i = at + 3; i < css.length; i++) {
+      if (css[i] === '(') depth++;
+      else if (css[i] === ')' && --depth === 0) {
+        out.push(css.slice(at + 4, i));
+        break;
+      }
+    }
+  }
+  return out;
+}
+
+test('every list that lights a part of the back face names all eleven parts', () => {
+  const refs = Array.from({ length: 11 }, (_, i) => `U${10 + i}`);
+  let lists = 0;
+  for (const f of ['src/styles/back.css', 'src/styles/motion.css', 'src/styles/modes.css']) {
+    const css = read(f).replace(/\/\*[\s\S]*?\*\//g, '');
+    for (const list of isLists(css).filter((l) => l.includes('data-active="U'))) {
+      lists++;
+      const named = [...new Set([...list.matchAll(/data-active="(U\d+)"/g)].map(([, r]) => r))].sort();
+      assert.deepEqual(named, refs, `${f}: ${list.slice(0, 80)}`);
+    }
+  }
+  assert.ok(lists >= 4, `${lists} lists`);
 });

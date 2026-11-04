@@ -41,7 +41,7 @@ export const fr: SiteContent = {
     title: 'Face arrière · nomenclature',
     bom: {
       caption: `Nomenclature${NB}: les composants de la carte`,
-      columns: { ref: 'Repère', part: 'Composant', value: 'Valeur' },
+      columns: { ref: 'Repère', part: 'Composant', value: 'Valeur', linked: 'Relié à' },
       rows: [
         { ref: 'U10', part: 'Vue.js', value: '2 → 3 · Composition API · SSR' },
         { ref: 'U11', part: 'TypeScript / JavaScript', value: 'strict · ES modules' },
@@ -56,6 +56,7 @@ export const fr: SiteContent = {
         { ref: 'U20', part: 'Électronique', value: 'Arduino · Raspberry Pi · IoT' },
       ],
     },
+    group: 'Composants de la face arrière',
   },
   marks: [
     { visible: 'a11y AA', hidden: 'Accessibilité WCAG 2.2, niveau AA' },

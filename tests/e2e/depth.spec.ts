@@ -250,7 +250,17 @@ test.describe('without JavaScript', () => {
         await table.scrollIntoViewIfNeeded();
         await expect(table).toBeVisible();
         expect(await table.locator('caption').evaluate((el) => el.textContent?.trim())).toBe(copy.back.caption);
-        const rows = await table.locator('tbody tr').evaluateAll((trs) => trs.map((tr) => [...tr.children].map((c) => c.textContent?.trim())));
+        // Each row: the reference, the skill, its value and the parts it is linked to (the value cell
+        // also prints those links, for a narrow face: read without them).
+        const rows = await table.locator('tbody tr').evaluateAll((trs) =>
+          trs.map((tr) =>
+            [...tr.children].map((c) => {
+              const cell = c.cloneNode(true) as Element;
+              cell.querySelector('.bom__links')?.remove();
+              return cell.textContent?.trim();
+            }),
+          ),
+        );
         expect(rows).toEqual(copy.back.rows);
       });
     }
@@ -293,17 +303,28 @@ test.describe('no layout shift', () => {
     expect(button.x).toBeGreaterThanOrEqual(slot.x - 0.5);
     expect(button.x + button.width).toBeLessThanOrEqual(slot.x + slot.width + 0.5);
 
-    // A turn moves nothing: the board and its faces keep their boxes.
+    // A turn moves nothing: the board keeps its place and its width, the face that is up starts where
+    // the board does, and the edge stays under it. The board is as tall as the face that is up: on the
+    // wide board both faces are 16:9; on the flowing board the back face is as tall as its content.
     const faces = () =>
-      page.evaluate(() =>
-        ['.board', '.board__face--front', '.board__face--back', '.board__edge'].map((s) => {
-          const el = document.querySelector(s) as HTMLElement;
-          return `${s} ${el.offsetLeft} ${el.offsetTop} ${el.offsetWidth} ${el.offsetHeight}`;
-        }),
-      );
+      page.evaluate(() => {
+        const board = document.querySelector('.board') as HTMLElement;
+        const up = document.querySelector(board.hasAttribute('data-flipped') ? '.board__face--back' : '.board__face--front') as HTMLElement;
+        const edge = document.querySelector('.board__edge') as HTMLElement;
+        return {
+          board: [board.offsetLeft, board.offsetTop, board.offsetWidth],
+          face: [up.offsetLeft, up.offsetTop, up.offsetWidth],
+          tall: board.offsetHeight - up.offsetHeight,
+          edge: [edge.offsetLeft, edge.offsetTop, edge.offsetWidth, edge.offsetHeight - board.offsetHeight],
+          height: board.offsetHeight,
+        };
+      });
     const rest = await faces();
+    expect(rest.tall).toBe(0);
     await turn(page, 'front');
-    expect(await faces()).toEqual(rest);
+    const back = await faces();
+    expect({ ...back, height: 0 }).toEqual({ ...rest, height: 0 });
+    if (viewport.width >= 1264) expect(back.height).toBe(rest.height);
     await turn(page, 'back');
     expect(await faces()).toEqual(rest);
     await page.waitForTimeout(100);
@@ -314,11 +335,13 @@ test.describe('no layout shift', () => {
 });
 
 test.describe('the back face', () => {
-  test('the back face holds the bill of materials and its copper, no image', async ({ page }) => {
+  test('the back face holds its circuit, a part for each skill, and the bill of materials, no image', async ({ page }) => {
     await open(page);
     const back = face(page, 'back');
+    await expect(back.locator('.back__circuit > svg.back__copper')).toHaveCount(1);
+    await expect(back.locator('.back__circuit button.back-part')).toHaveCount(11);
+    await expect(back.locator('path.back-net')).toHaveCount(11);
     await expect(back.locator('table.bom')).toHaveCount(1);
-    await expect(back.locator('svg.bom__copper')).toHaveCount(1);
     await expect(back.locator('img')).toHaveCount(0);
   });
 
@@ -390,17 +413,19 @@ test.describe('the back face with user text settings', () => {
 /**
  * Problems of the back face: blocks or lines of text out of the face, a block overflowing, the
  * heading running into SW2, the table beside SW2 or out of the width of the header (flowing board)
- * or into the keep-out of the bottom holes (wide board), horizontal scroll. Empty when it holds.
+ * or into the keep-out of the mounting holes (wide board); a part or its reference out of its
+ * circuit, under the table, or on another part or reference; horizontal scroll. Empty when it holds.
  */
 function backFaceProblems(page: Page): Promise<string[]> {
   return face(page, 'back').evaluate((faceEl) => {
     const out: string[] = [];
     const f = faceEl.getBoundingClientRect();
     const inside = (r: DOMRect) => r.left >= f.left - 0.5 && r.right <= f.right + 0.5 && r.top >= f.top - 0.5 && r.bottom <= f.bottom + 0.5;
-    const blocks = [...faceEl.querySelectorAll<HTMLElement>('#back-title, .board__sw2, table.bom')];
+    const blocks = [...faceEl.querySelectorAll<HTMLElement>('#back-title, .board__sw2, .back__circuit, table.bom')];
     for (const b of blocks) {
       if (!inside(b.getBoundingClientRect())) out.push(`${b.className || b.id} leaves the face`);
-      if (b.scrollWidth > b.clientWidth + 1) out.push(`${b.className || b.id} overflows`);
+      // The circuit is a window onto the copper of the face: it clips it on purpose.
+      if (!b.matches('.back__circuit') && b.scrollWidth > b.clientWidth + 1) out.push(`${b.className || b.id} overflows`);
     }
     // The heading and SW2 never meet; the table starts under them.
     const [title, slot, table] = ['#back-title', '.board__sw2', 'table.bom'].map((s) => faceEl.querySelector(s)?.getBoundingClientRect());
@@ -411,11 +436,32 @@ function backFaceProblems(page: Page): Promise<string[]> {
       // On the flowing board the table keeps to the width of the header (the content of the face).
       if (table.left < header.left - 0.5 || table.right > header.right + 0.5) out.push('the table leaves the width of the header');
     } else if (table) {
-      // On the wide board it stays clear of the bottom holes: their ring (art y 848, radius 15) and 0.75rem.
+      // On the wide board it stays clear of the mounting holes, in the corners of the face (art 56, 52
+      // from each corner): their ring (radius 15) and 0.75rem.
       const u = f.width / 1600;
       const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
-      const limit = f.top + (848 - 15) * u - 0.75 * rem;
-      if (table.bottom > limit) out.push(`the table runs into the keep-out of the bottom holes (${Math.round(table.bottom)} > ${Math.round(limit)})`);
+      for (const [x, y] of [
+        [f.left + 56 * u, f.top + 52 * u],
+        [f.right - 56 * u, f.top + 52 * u],
+        [f.left + 56 * u, f.bottom - 52 * u],
+        [f.right - 56 * u, f.bottom - 52 * u],
+      ] as const) {
+        const dx = Math.max(table.left - x, 0, x - table.right);
+        const dy = Math.max(table.top - y, 0, y - table.bottom);
+        if (Math.hypot(dx, dy) < 15 * u + 0.75 * rem) out.push(`the table runs into the keep-out of the hole at ${Math.round(x)}, ${Math.round(y)}`);
+      }
+    }
+    // The parts: in their circuit, apart from each other, their references too, none under the table.
+    const circuit = faceEl.querySelector('.back__circuit')?.getBoundingClientRect();
+    const drawn = [...faceEl.querySelectorAll<HTMLElement>('.back-part')].flatMap((p) => [
+      { name: `${p.dataset.ref}`, r: (p.querySelector('svg') as Element).getBoundingClientRect() },
+      { name: `${p.dataset.ref} ref`, r: (p.querySelector('.part__ref') as Element).getBoundingClientRect() },
+    ]);
+    const meet = (a: DOMRect, b: DOMRect) => Math.min(a.right, b.right) - Math.max(a.left, b.left) > 0.5 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 0.5;
+    for (const [i, a] of drawn.entries()) {
+      if (circuit && !(a.r.left >= circuit.left - 0.5 && a.r.right <= circuit.right + 0.5 && a.r.top >= circuit.top - 0.5 && a.r.bottom <= circuit.bottom + 0.5)) out.push(`${a.name} leaves the circuit`);
+      if (table && meet(a.r, table)) out.push(`${a.name} is under the table`);
+      for (const b of drawn.slice(i + 1)) if (meet(a.r, b.r)) out.push(`${a.name} meets ${b.name}`);
     }
     const walker = document.createTreeWalker(faceEl, NodeFilter.SHOW_TEXT);
     for (let n = walker.nextNode(); n; n = walker.nextNode()) {

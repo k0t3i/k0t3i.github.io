@@ -46,8 +46,10 @@ export interface Copy {
     title: string;
     caption: string;
     columns: string[];
-    /** Each row: reference, part, value. */
-    rows: [string, string, string][];
+    /** Each row: reference, part, value, and the parts it is linked to (the column « Relié à »). */
+    rows: [string, string, string, string][];
+    /** The accessible name of the group of the parts drawn on the back face. */
+    group: string;
   };
   marks: { visible: string; hidden: string }[];
   sections: { principles: { id: string; title: string }; connectors: { id: string; title: string } };
@@ -77,6 +79,24 @@ export const READOUTS = {
 
 export const BOOT_SCREENS = ['BOOT...', 'OK'];
 
+/**
+ * The nets of the back face (annex A, « Carte des liaisons », approved by Anthony on 03/11/2026):
+ * each one a trace between two parts, the same in both languages.
+ */
+export const BACK_NETS: [string, string, string][] = [
+  ['N1', 'U10', 'U11'],
+  ['N2', 'U10', 'U16'],
+  ['N3', 'U11', 'U17'],
+  ['N4', 'U12', 'U13'],
+  ['N5', 'U12', 'U14'],
+  ['N6', 'U13', 'U15'],
+  ['N7', 'U14', 'U17'],
+  ['N8', 'U15', 'U18'],
+  ['N9', 'U16', 'U19'],
+  ['N10', 'U14', 'U19'],
+  ['N11', 'U18', 'U20'],
+];
+
 export const FR: Copy = {
   lang: 'fr',
   path: '/',
@@ -103,20 +123,21 @@ export const FR: Copy = {
     switchHidden: 'face arrière',
     title: 'Face arrière · nomenclature',
     caption: `Nomenclature${NB}: les composants de la carte`,
-    columns: ['Repère', 'Composant', 'Valeur'],
+    columns: ['Repère', 'Composant', 'Valeur', 'Relié à'],
     rows: [
-      ['U10', 'Vue.js', '2 → 3 · Composition API · SSR'],
-      ['U11', 'TypeScript / JavaScript', 'strict · ES modules'],
-      ['U12', 'HTML sémantique', 'landmarks · ARIA juste'],
-      ['U13', 'CSS', 'layers · container queries · motion'],
-      ['U14', 'Accessibilité', 'WCAG 2.2 AA · guidelines produit'],
-      ['U15', 'Performance web', 'audits · Core Web Vitals'],
-      ['U16', 'Architecture front', 'composants · migrations'],
-      ['U17', 'Tests', 'unitaires · e2e · a11y'],
-      ['U18', 'Debug', 'navigateurs · réseau · mémoire'],
-      ['U19', 'Équipe', 'recrutement · formation · coaching'],
-      ['U20', 'Électronique', 'Arduino · Raspberry Pi · IoT'],
+      ['U10', 'Vue.js', '2 → 3 · Composition API · SSR', 'U11 · U16'],
+      ['U11', 'TypeScript / JavaScript', 'strict · ES modules', 'U10 · U17'],
+      ['U12', 'HTML sémantique', 'landmarks · ARIA juste', 'U13 · U14'],
+      ['U13', 'CSS', 'layers · container queries · motion', 'U12 · U15'],
+      ['U14', 'Accessibilité', 'WCAG 2.2 AA · guidelines produit', 'U12 · U17 · U19'],
+      ['U15', 'Performance web', 'audits · Core Web Vitals', 'U13 · U18'],
+      ['U16', 'Architecture front', 'composants · migrations', 'U10 · U19'],
+      ['U17', 'Tests', 'unitaires · e2e · a11y', 'U11 · U14'],
+      ['U18', 'Debug', 'navigateurs · réseau · mémoire', 'U15 · U20'],
+      ['U19', 'Équipe', 'recrutement · formation · coaching', 'U14 · U16'],
+      ['U20', 'Électronique', 'Arduino · Raspberry Pi · IoT', 'U18'],
     ],
+    group: 'Composants de la face arrière',
   },
   marks: [
     { visible: 'a11y AA', hidden: 'Accessibilité WCAG 2.2, niveau AA' },
@@ -228,20 +249,21 @@ export const EN: Copy = {
     switchHidden: 'back side',
     title: 'Back side · bill of materials',
     caption: 'Bill of materials: the parts on this board',
-    columns: ['Ref', 'Part', 'Value'],
+    columns: ['Ref', 'Part', 'Value', 'Linked to'],
     rows: [
-      ['U10', 'Vue.js', '2 → 3 · Composition API · SSR'],
-      ['U11', 'TypeScript / JavaScript', 'strict · ES modules'],
-      ['U12', 'Semantic HTML', 'landmarks · ARIA done right'],
-      ['U13', 'CSS', 'layers · container queries · motion'],
-      ['U14', 'Accessibility', 'WCAG 2.2 AA · product guidelines'],
-      ['U15', 'Web performance', 'audits · Core Web Vitals'],
-      ['U16', 'Front-end architecture', 'components · migrations'],
-      ['U17', 'Testing', 'unit · e2e · a11y'],
-      ['U18', 'Debugging', 'browsers · network · memory'],
-      ['U19', 'Team', 'hiring · training · coaching'],
-      ['U20', 'Electronics', 'Arduino · Raspberry Pi · IoT'],
+      ['U10', 'Vue.js', '2 → 3 · Composition API · SSR', 'U11 · U16'],
+      ['U11', 'TypeScript / JavaScript', 'strict · ES modules', 'U10 · U17'],
+      ['U12', 'Semantic HTML', 'landmarks · ARIA done right', 'U13 · U14'],
+      ['U13', 'CSS', 'layers · container queries · motion', 'U12 · U15'],
+      ['U14', 'Accessibility', 'WCAG 2.2 AA · product guidelines', 'U12 · U17 · U19'],
+      ['U15', 'Web performance', 'audits · Core Web Vitals', 'U13 · U18'],
+      ['U16', 'Front-end architecture', 'components · migrations', 'U10 · U19'],
+      ['U17', 'Testing', 'unit · e2e · a11y', 'U11 · U14'],
+      ['U18', 'Debugging', 'browsers · network · memory', 'U15 · U20'],
+      ['U19', 'Team', 'hiring · training · coaching', 'U14 · U16'],
+      ['U20', 'Electronics', 'Arduino · Raspberry Pi · IoT', 'U18'],
     ],
+    group: 'Back-side components',
   },
   marks: [
     { visible: 'a11y AA', hidden: 'Accessibility WCAG 2.2, level AA' },

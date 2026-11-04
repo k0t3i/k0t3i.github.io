@@ -44,7 +44,9 @@ test('focusable elements are in the DOM order, with no positive tabindex', async
       .map((el) => (el.matches('.skip-link') ? 'skip' : (el.getAttribute('hreflang') ?? el.getAttribute('popovertarget') ?? el.className))),
   );
   expect(order).toEqual(['skip', 'fr', 'en', 'jp1', 'sw2', 'sw1', ...IDS.map((id) => `sheet-${id}`)]);
-  expect(await page.locator('[tabindex]:not([tabindex="-1"])').count()).toBe(0);
+  // Only the roving tab stop of the parts of the back face sets a tabindex, and never above 0.
+  expect(await page.evaluate(() => [...document.querySelectorAll<HTMLElement>('[tabindex]')].filter((el) => el.tabIndex > 0).length)).toBe(0);
+  expect(await page.locator('[tabindex="0"]').evaluateAll((els) => els.map((el) => el.matches('button.back-part')))).toEqual([true]);
 });
 
 test('enter opens the sheet and focuses its title', async ({ page, isMobile }) => {

@@ -52,6 +52,12 @@ for (const copy of [FR, EN] as Copy[]) {
       expect(await page.locator('.board__face--back').evaluate((el) => getComputedStyle(el).transform)).toBe('none');
       expect(await page.locator('.board__face--front').evaluate((el) => el.hasAttribute('inert'))).toBe(false);
       expect(await page.locator('.board__face--back').evaluate((el) => el.hasAttribute('inert'))).toBe(false);
+      // Its table holds everything, the column « Relié à » included; its parts are drawn, never live.
+      expect(await page.locator('table.bom thead th').allTextContents()).toEqual(copy.back.columns);
+      await expect(page.locator('table.bom tbody tr')).toHaveCount(11);
+      await expect(page.locator('button.back-part')).toHaveCount(11);
+      await expect(page.locator('button.back-part:not([disabled])')).toHaveCount(0);
+      await expect(page.locator('.back__parts')).toHaveAttribute('aria-hidden', 'true');
     });
 
     test('the uptime has its static value', async ({ page }) => {

@@ -39,7 +39,7 @@ export const en: SiteContent = {
     title: 'Back side · bill of materials',
     bom: {
       caption: 'Bill of materials: the parts on this board',
-      columns: { ref: 'Ref', part: 'Part', value: 'Value' },
+      columns: { ref: 'Ref', part: 'Part', value: 'Value', linked: 'Linked to' },
       rows: [
         { ref: 'U10', part: 'Vue.js', value: '2 → 3 · Composition API · SSR' },
         { ref: 'U11', part: 'TypeScript / JavaScript', value: 'strict · ES modules' },
@@ -54,6 +54,7 @@ export const en: SiteContent = {
         { ref: 'U20', part: 'Electronics', value: 'Arduino · Raspberry Pi · IoT' },
       ],
     },
+    group: 'Back-side components',
   },
   marks: [
     { visible: 'a11y AA', hidden: 'Accessibility WCAG 2.2, level AA' },

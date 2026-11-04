@@ -1,42 +1,20 @@
 /*
- * The back face of the board (BoardBack.vue, BackBom.vue): its silkscreen title and its SW2, the
- * bill of materials, and on the wide board the copper of the bottom layer. Its own layer, after the
- * two layouts of the front face (board, wide) and before depth, motion and modes: the stacking of
- * the two faces and the turn are in depth.css, the motion in motion.css, the user modes in modes.css.
+ * The back face of the board (BoardBack.vue, BackFace.vue): its silkscreen title and its SW2, its
+ * circuit (the parts are the skills, the traces link the skills that work together) and its bill
+ * of materials. Its own layer, after the two layouts of the front face (board, wide) and before
+ * depth, motion and modes: the stacking of the faces and the turn are in depth.css, the current that
+ * runs along the traces in motion.css, the user modes in modes.css.
  */
 @layer back {
   /*
-   * The back face (BoardBack.vue): its silkscreen title, and its SW2 exactly where the one of the
-   * front face is (the same rows as the front header up to 46rem, one row from there), then the
-   * bill of materials. The copper of the bottom layer is drawn on the wide board only (below).
-   */
-  /*
-   * On the flowing board the back face is as tall as the front one: under its content, the rest of
-   * the face is its ground pour, stitched with tented vias (as on most bottom sides).
+   * The flowing board: the header (its SW2 exactly where the one of the front face is: the same rows
+   * up to 46rem, one row from there), the circuit, compact, then the table. The face is as tall as
+   * its content (depth.css): nothing to fill under the table.
    */
   .board__face--back {
     display: flex;
     flex-direction: column;
-  }
-
-  .board__face--back::after {
-    --stitch: radial-gradient(
-      circle,
-      var(--hole) 0 0.09375rem,
-      var(--tented) calc(0.09375rem + 0.5px) var(--via-r),
-      transparent calc(var(--via-r) + 0.5px)
-    );
-
-    content: "";
-    flex: 1 0 4rem;
-    margin: 2.5rem 0 calc(var(--hole-at) + var(--ring) + var(--keep-out) - 0.375rem);
-    border-radius: 0.5rem;
-    background-color: var(--trace);
-    background-image: var(--stitch), var(--stitch);
-    background-position:
-      0.75rem 0.75rem,
-      2.25rem 2.25rem;
-    background-size: 3rem 3rem;
+    padding-bottom: calc(var(--hole-at) + var(--ring) + 0.5rem);
   }
 
   .back__header {
@@ -52,6 +30,7 @@
 
   .back__title {
     grid-area: title;
+    margin: 0;
   }
 
   /* As on the front face: SW2 under the row of JP1. */
@@ -72,14 +51,350 @@
     }
   }
 
-  .bom__copper {
-    display: none;
+  /*
+   * The circuit is a window onto the copper of the face, drawn in the 1600 x 900 units of the wide
+   * board: --view-* is the part of the face it shows (all of it on the wide board; on the flowing
+   * board the area of the parts, content/backNets.ts CIRCUIT_VIEW), --cu one unit at its width.
+   * Everything in it is placed in those units, so the traces land on the pads at every size; the
+   * references stay in rem.
+   */
+  .back__circuit {
+    --view-x: 120;
+    --view-y: 80;
+    --view-w: 664;
+    --view-h: 736;
+    /* Used by its content only: 100cqi is the width of the circuit there. */
+    --cu: calc(100cqi / var(--view-w));
+
+    container-type: inline-size;
+    position: relative;
+    width: 100%;
+    max-width: 32rem;
+    margin: 2rem auto 0;
+    overflow: hidden;
+    border-radius: 0.375rem;
+    aspect-ratio: var(--view-w) / var(--view-h);
+  }
+
+  /* The copper, the whole face, seen through the window. */
+  .back__copper {
+    position: absolute;
+    top: calc(var(--view-y) * -1 * var(--cu));
+    left: calc(var(--view-x) * -1 * var(--cu));
+    width: calc(1600 * var(--cu));
+    height: calc(900 * var(--cu));
+    pointer-events: none;
+  }
+
+  .back__parts {
+    position: absolute;
+    inset: 0;
+  }
+
+  /*
+   * A part: its footprint at --x, --y (its top-left corner), --w x --h, in the units of the face, as
+   * in content/backNets.ts (tests/unit/back-nets.spec.ts keeps the two the same).
+   */
+  .back-part {
+    position: absolute;
+    top: calc((var(--y) - var(--view-y)) * var(--cu));
+    left: calc((var(--x) - var(--view-x)) * var(--cu));
+    width: calc(var(--w) * var(--cu));
+    height: calc(var(--h) * var(--cu));
+    border-radius: 1px;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .back-part:disabled {
+    cursor: default;
+  }
+
+  .back-part:focus-visible {
+    outline-offset: 0.25rem;
+  }
+
+  .back-part__body {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+
+  /* Its reference, in silkscreen beside it: dim at rest, bright on a neighbour, gold when it is lit. */
+  .back-part .part__ref {
+    position: absolute;
+    color: var(--ref, var(--silk-dim));
+    font: 500 var(--text-silk) / 1 var(--font-mono);
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+  }
+
+  .back-part[data-label="n"] .part__ref {
+    bottom: 100%;
+    left: 0;
+    padding-bottom: 0.3125rem;
+  }
+
+  .back-part[data-label="s"] .part__ref {
+    top: 100%;
+    left: 0;
+    padding-top: 0.3125rem;
+  }
+
+  .back-part[data-label="w"] .part__ref {
+    top: 50%;
+    right: 100%;
+    padding-right: 0.375rem;
+    translate: 0 -50%;
+  }
+
+  .back-part[data-label="e"] .part__ref {
+    top: 50%;
+    left: 100%;
+    padding-left: 0.375rem;
+    translate: 0 -50%;
+  }
+
+  .back-part[data-ref="U10"] {
+    --x: 360;
+    --y: 300;
+    --w: 140;
+    --h: 140;
+  }
+
+  .back-part[data-ref="U11"] {
+    --x: 379;
+    --y: 560;
+    --w: 77;
+    --h: 42;
+  }
+
+  .back-part[data-ref="U12"] {
+    --x: 180;
+    --y: 640;
+    --w: 76;
+    --h: 48;
+  }
+
+  .back-part[data-ref="U13"] {
+    --x: 170;
+    --y: 380;
+    --w: 63;
+    --h: 42;
+  }
+
+  .back-part[data-ref="U14"] {
+    --x: 665;
+    --y: 620;
+    --w: 68;
+    --h: 68;
+  }
+
+  .back-part[data-ref="U15"] {
+    --x: 290;
+    --y: 240;
+    --w: 40;
+    --h: 40;
+  }
+
+  .back-part[data-ref="U16"] {
+    --x: 600;
+    --y: 300;
+    --w: 86;
+    --h: 48;
+  }
+
+  .back-part[data-ref="U17"] {
+    --x: 480;
+    --y: 700;
+    --w: 56;
+    --h: 42;
+  }
+
+  .back-part[data-ref="U18"] {
+    --x: 560;
+    --y: 150;
+    --w: 32;
+    --h: 34;
+  }
+
+  .back-part[data-ref="U19"] {
+    --x: 700;
+    --y: 430;
+    --w: 48;
+    --h: 48;
+  }
+
+  .back-part[data-ref="U20"] {
+    --x: 700;
+    --y: 140;
+    --w: 64;
+    --h: 64;
+  }
+
+  /*
+   * The copper, in the materials of the art of the front: copper under the mask is a white veil, so
+   * it reads on both masks; the pour is cut back to the bare mask round what it does not connect.
+   */
+  .back__veil {
+    fill: none;
+    stroke: #fff;
+    stroke-opacity: 0.055;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .back__outline {
+    stroke-opacity: 0.05;
+    stroke-width: 2;
+  }
+
+  .back__spokes {
+    stroke-width: 3;
+    stroke-linecap: butt;
+  }
+
+  /* The traces of the nets carry the meaning of the circuit: a little brighter than the rest. */
+  .back__trace {
+    stroke-opacity: 0.12;
+  }
+
+  .back__pour {
+    fill: #fff;
+    fill-opacity: 0.035;
+  }
+
+  .back__clear {
+    fill: var(--mask);
+    stroke: none;
+  }
+
+  path.back__clear {
+    fill: none;
+    stroke: var(--mask);
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .back__via {
+    fill: #fff;
+    fill-opacity: 0.07;
+  }
+
+  /*
+   * The live layer: each net in fine gold over its copper, unlit until one of its parts is; its
+   * signal, a short bright dash, waiting just before the start of the net (motion.css runs it).
+   */
+  .back-net,
+  .back-pulse {
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: 0;
+  }
+
+  .back-net {
+    stroke: var(--gold);
+    stroke-width: 2;
+  }
+
+  .back-pulse {
+    stroke: var(--pad-lit);
+    stroke-width: 4;
+    stroke-dasharray: 4 196;
+    stroke-dashoffset: 5;
+  }
+
+  /*
+   * The lit part (data-active on the face: under the pointer, with the focus, or pinned): its pads,
+   * the edge of its body and its reference in gold; its nets drawn; its neighbours (the parts whose
+   * links name it) lit softly; its row of the table marked.
+   */
+  .back-part:is(
+      [data-active="U10"] [data-ref="U10"],
+      [data-active="U11"] [data-ref="U11"],
+      [data-active="U12"] [data-ref="U12"],
+      [data-active="U13"] [data-ref="U13"],
+      [data-active="U14"] [data-ref="U14"],
+      [data-active="U15"] [data-ref="U15"],
+      [data-active="U16"] [data-ref="U16"],
+      [data-active="U17"] [data-ref="U17"],
+      [data-active="U18"] [data-ref="U18"],
+      [data-active="U19"] [data-ref="U19"],
+      [data-active="U20"] [data-ref="U20"]
+    ) {
+    --pad: var(--pad-lit);
+    --body-edge: var(--gold);
+    --mark: var(--gold);
+    --ref: var(--gold);
+  }
+
+  .back-part:is(
+      [data-active="U10"] [data-links~="U10"],
+      [data-active="U11"] [data-links~="U11"],
+      [data-active="U12"] [data-links~="U12"],
+      [data-active="U13"] [data-links~="U13"],
+      [data-active="U14"] [data-links~="U14"],
+      [data-active="U15"] [data-links~="U15"],
+      [data-active="U16"] [data-links~="U16"],
+      [data-active="U17"] [data-links~="U17"],
+      [data-active="U18"] [data-links~="U18"],
+      [data-active="U19"] [data-links~="U19"],
+      [data-active="U20"] [data-links~="U20"]
+    ) {
+    --pad: var(--pad-lit);
+    --ref: var(--silk);
+  }
+
+  .back-net:is(
+      [data-active="U10"] :is([data-from="U10"], [data-to="U10"]),
+      [data-active="U11"] :is([data-from="U11"], [data-to="U11"]),
+      [data-active="U12"] :is([data-from="U12"], [data-to="U12"]),
+      [data-active="U13"] :is([data-from="U13"], [data-to="U13"]),
+      [data-active="U14"] :is([data-from="U14"], [data-to="U14"]),
+      [data-active="U15"] :is([data-from="U15"], [data-to="U15"]),
+      [data-active="U16"] :is([data-from="U16"], [data-to="U16"]),
+      [data-active="U17"] :is([data-from="U17"], [data-to="U17"]),
+      [data-active="U18"] :is([data-from="U18"], [data-to="U18"]),
+      [data-active="U19"] :is([data-from="U19"], [data-to="U19"]),
+      [data-active="U20"] :is([data-from="U20"], [data-to="U20"])
+    ) {
+    opacity: 1;
+  }
+
+  .bom tr:is(
+      [data-active="U10"] [data-ref="U10"],
+      [data-active="U11"] [data-ref="U11"],
+      [data-active="U12"] [data-ref="U12"],
+      [data-active="U13"] [data-ref="U13"],
+      [data-active="U14"] [data-ref="U14"],
+      [data-active="U15"] [data-ref="U15"],
+      [data-active="U16"] [data-ref="U16"],
+      [data-active="U17"] [data-ref="U17"],
+      [data-active="U18"] [data-ref="U18"],
+      [data-active="U19"] [data-ref="U19"],
+      [data-active="U20"] [data-ref="U20"]
+    ) {
+    --row: var(--row-lit);
+    --row-ref: var(--gold);
+    --row-rule: var(--gold);
+  }
+
+  .bom tbody tr > * {
+    background-color: var(--row, transparent);
+  }
+
+  /* The rule of a lit row: a gold line just outside its first cell, 2px wide, inset from its rules. */
+  .bom tbody th {
+    box-shadow: -0.375rem 0 0 -0.25rem var(--row-rule, transparent);
+    color: var(--row-ref, var(--silk));
   }
 
   /* The bill of materials: a silkscreen table, mono, with fine rules, a reference per row. */
   .bom {
+    --row-lit: color-mix(in srgb, var(--gold) 12%, transparent);
+
     width: 100%;
-    margin-top: 2.5rem;
+    margin-top: 2rem;
     border-collapse: collapse;
     color: var(--silk);
     font: 400 var(--text-silk) / 1.4 var(--font-mono);
@@ -129,7 +444,40 @@
     color: var(--silk-dim);
   }
 
-  /* A phone: the table is set at the smallest silkscreen size, a little tighter, to fit the face. */
+  /* The parts it is linked to, references like the first column. */
+  .bom td.bom__linked {
+    color: var(--silk);
+  }
+
+  /* Printed under the value on a narrow face only (below), in place of the last column. */
+  .bom__links {
+    display: none;
+  }
+
+  .bom__links-label {
+    color: var(--silk-dim);
+  }
+
+  /*
+   * A phone: no room for a fourth column. The links of each part go under its value, in the same
+   * cell, labelled; the table is set at the smallest silkscreen size, a little tighter, to fit.
+   */
+  @container face (width < 30rem) {
+    .bom__linked {
+      display: none;
+    }
+
+    .bom__links {
+      display: block;
+      margin-top: 0.25rem;
+      color: var(--silk);
+    }
+
+    .bom td:nth-child(3) {
+      padding-right: 0;
+    }
+  }
+
   @container face (width < 21rem) {
     .bom {
       font-size: var(--text-floor);
@@ -168,64 +516,23 @@
     border-bottom: 0;
   }
 
-  /*
-   * The copper of the back face (BackBom.vue), in the materials of the art of the front: copper
-   * under the mask is a white veil, so it reads on both masks; the pour is cut back to the bare mask
-   * round what it does not connect.
-   */
-  .bom__veil {
-    fill: none;
-    stroke: #fff;
-    stroke-opacity: 0.055;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-  }
-
-  .bom__outline {
-    stroke-opacity: 0.05;
-    stroke-width: 2;
-  }
-
-  .bom__spokes {
-    stroke-width: 3;
-    stroke-linecap: butt;
-  }
-
-  .bom__pour {
-    fill: #fff;
-    fill-opacity: 0.035;
-  }
-
-  .bom__clear {
-    fill: var(--mask);
-    stroke: none;
-  }
-
-  path.bom__clear {
-    fill: none;
-    stroke: var(--mask);
-    stroke-linecap: round;
-    stroke-linejoin: round;
-  }
-
-  .bom__via {
-    fill: #fff;
-    fill-opacity: 0.07;
-  }
-
   @media (min-width: 79rem) {
-    /* The back face is drawn by its copper (BackBom.vue): only the grain of the mask here. */
+    /*
+     * The wide board: the circuit over the whole face, drawn at its scale (one unit is --u), and the
+     * table at its right, where the front has no through-hole part, on the top line of the pour. The
+     * table is in the flow: should the user's text settings make it taller than the board, the face
+     * grows (it is 16:9 at least) and its circuit stays at the top.
+     */
     .board--home .board__face--back {
+      display: flex;
+      flex-direction: column;
+      padding: max(calc(104 * var(--u)), calc(52 * var(--u) + 2.125rem)) 0 calc(52 * var(--u));
       background-image: var(--grain);
       background-position: 0 0;
       background-size: 160px 160px;
       background-repeat: repeat;
     }
 
-    /*
-     * The back face: its header on the line of the top holes, like the front one, so its SW2 is
-     * exactly where the front SW2 was; the bill of materials fills the face under it.
-     */
     .board--home .back__header {
       position: absolute;
       z-index: 1;
@@ -245,43 +552,39 @@
       align-self: start;
     }
 
-    /*
-     * The bill of materials: the copper of the bottom layer over the whole face (its through-hole
-     * pads and its pour on the left, under DISP1 and the connectors seen from behind), and the table
-     * in a silkscreen frame over the right of the face, where the front has no through-hole part.
-     */
-    .board--home .back-bom {
-      position: absolute;
-      inset: 0;
-    }
+    .board--home .back__circuit {
+      --view-x: 0;
+      --view-y: 0;
+      --view-w: 1600;
+      --view-h: 900;
 
-    .board--home .bom__copper {
       position: absolute;
-      inset: 0;
-      display: block;
-      width: 100%;
-      height: 100%;
-    }
-
-    /* The face is drawn by its copper: no pour of the flowing board. */
-    .board--home .board__face--back::after {
-      display: none;
+      top: 0;
+      left: 0;
+      max-width: none;
+      margin: 0;
+      overflow: visible;
+      border-radius: 0;
     }
 
     .board--home .bom {
-      position: absolute;
-      top: calc(150 * var(--u));
-      left: calc(568 * var(--u));
-      width: calc(920 * var(--u));
-      margin: 0;
+      position: relative;
+      z-index: 1;
+      width: calc(664 * var(--u));
+      margin: 0 0 0 calc(824 * var(--u));
     }
 
     .board--home .bom tbody {
       box-shadow: 0 0 0 1px var(--line);
     }
 
-    .board--home .bom th:first-child,
-    .board--home .bom td:first-child {
+    /* In the frame of the table, the rule of a lit row runs inside its first cell. */
+    .board--home .bom tbody th {
+      box-shadow: inset 2px 0 var(--row-rule, transparent);
+    }
+
+    .board--home .bom tbody th,
+    .board--home .bom thead th:first-child {
       padding-left: 1rem;
     }
 
@@ -292,6 +595,29 @@
 
     .board--home .bom thead th {
       padding-bottom: 0.625rem;
+    }
+
+    /* A board under 90rem: the table at the smallest silkscreen size, its rows tighter, so it fits. */
+    @container face (width < 90rem) {
+      .board--home .bom {
+        font-size: var(--text-floor);
+      }
+
+      .board--home .bom th,
+      .board--home .bom td {
+        padding-top: 0.375rem;
+        padding-bottom: 0.375rem;
+      }
+
+      .board--home .bom thead th {
+        padding-top: 0;
+        letter-spacing: 0.08em;
+      }
+
+      .board--home .bom tbody th,
+      .board--home .bom thead th:first-child {
+        padding-left: 0.75rem;
+      }
     }
   }
 }

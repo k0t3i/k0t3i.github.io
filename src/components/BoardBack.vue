@@ -1,19 +1,24 @@
 <script setup lang="ts">
+import { provideBackState } from '../composables/useBackState';
 import type { SiteContent } from '../content/types';
-import BackBom from './BackBom.vue';
+import BackFace from './BackFace.vue';
 import FlipSwitch from './FlipSwitch.vue';
 
 /**
  * The back face of the board: its silkscreen title and its own SW2 (in the same place as the one of
- * the front face), then the bill of materials.
+ * the front face), then its circuit and its bill of materials. The part that is lit is on the
+ * section (data-active), for the CSS; the prerender lights nothing.
  */
 const props = defineProps<{ back: SiteContent['back'] }>();
+
+const { active } = provideBackState();
 </script>
 
 <template>
   <section
     class="board__face board__face--back"
     aria-labelledby="back-title"
+    :data-active="active ?? undefined"
   >
     <div class="back__header">
       <h2
@@ -27,6 +32,6 @@ const props = defineProps<{ back: SiteContent['back'] }>();
         <FlipSwitch :back="props.back" />
       </div>
     </div>
-    <BackBom :back="props.back" />
+    <BackFace :back="props.back" />
   </section>
 </template>

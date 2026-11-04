@@ -1,8 +1,8 @@
 import { mount } from '@vue/test-utils';
-import { createSSRApp, h, readonly, ref } from 'vue';
+import { createSSRApp, h, nextTick, readonly, ref } from 'vue';
 import { renderToString } from 'vue/server-renderer';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import BackBom from '../../src/components/BackBom.vue';
+import BackFace from '../../src/components/BackFace.vue';
 import BoardBack from '../../src/components/BoardBack.vue';
 import BoardPage from '../../src/components/BoardPage.vue';
 import DisplayModule from '../../src/components/DisplayModule.vue';
@@ -16,10 +16,12 @@ import TactileSwitch from '../../src/components/TactileSwitch.vue';
 import ThemeJumper from '../../src/components/ThemeJumper.vue';
 import UptimeCounter from '../../src/components/UptimeCounter.vue';
 import { FLIP, type Flip } from '../../src/composables/useFlip';
+import { BACK_NETS, BACK_PARTS, linkedTo, type BackRef } from '../../src/content/backNets';
 import { en } from '../../src/content/en';
 import { fr } from '../../src/content/fr';
 import { SITE } from '../../src/content/site';
 import type { PartContent } from '../../src/content/types';
+import { PACKAGES, PACKAGE_IDS } from '../../src/lib/packages';
 
 const part = (content: typeof fr, id: string): PartContent => {
   const found = [...content.principles, ...content.connectors].find((p) => p.id === id);
@@ -362,41 +364,95 @@ describe('PartSprite', () => {
     expect(symbol.findAll('.pcb-slider--bot')).toHaveLength(1);
     expect(symbol.findAll('.pcb-pad').length).toBeGreaterThanOrEqual(3);
   });
+
+  it('draws the package of every part of the back face from its footprint, in the materials of the parts', () => {
+    const wrapper = mount(PartSprite);
+    for (const id of PACKAGE_IDS) {
+      const fp = PACKAGES[id];
+      const symbol = wrapper.get(`symbol#pkg-${id}`);
+      expect(symbol.attributes('viewBox'), id).toBe(`0 0 ${fp.w} ${fp.h}`);
+      expect(symbol.findAll('rect.pcb-pad'), id).toHaveLength(fp.pads.length);
+      expect(symbol.findAll('.pcb-body'), id).toHaveLength(1);
+      expect(symbol.findAll('.pcb-mark'), id).toHaveLength(1);
+      // Colours come from the CSS (the variables of parts.css), never from the drawing.
+      expect(symbol.html(), id).not.toMatch(/fill="#|stroke="#/);
+    }
+  });
 });
 
-describe('BackBom', () => {
+describe('BackFace', () => {
   // The exact copy of Annex A is checked by the e2e suite, against the oracle tests/helpers/copy.ts.
   for (const content of [fr, en]) {
-    it(`is a real table, one row per part (${content.locale})`, () => {
+    it(`is a real table, one row per part, with the parts it is linked to (${content.locale})`, () => {
       const { bom } = content.back;
-      const wrapper = mount(BackBom, { props: { back: content.back } });
+      const wrapper = mount(BackFace, { props: { back: content.back } });
       const table = wrapper.get('table.bom');
       expect(table.get('caption').text()).toBe(bom.caption);
       const heads = table.findAll('thead th');
-      expect(heads.map((th) => th.text())).toEqual([bom.columns.ref, bom.columns.part, bom.columns.value]);
-      expect(heads.map((th) => th.attributes('scope'))).toEqual(['col', 'col', 'col']);
-      const rows = table
-        .findAll('tbody tr')
-        .map((tr) => [...tr.element.children].map((c) => `${c.tagName}${c.getAttribute('scope') ?? ''} ${c.textContent?.trim()}`));
-      expect(rows).toEqual(bom.rows.map((r) => [`THrow ${r.ref}`, `TD ${r.part}`, `TD ${r.value}`]));
-      expect(rows).toHaveLength(11);
+      expect(heads.map((th) => th.text())).toEqual([bom.columns.ref, bom.columns.part, bom.columns.value, bom.columns.linked]);
+      expect(heads.map((th) => th.attributes('scope'))).toEqual(['col', 'col', 'col', 'col']);
+      const trs = table.findAll('tbody tr');
+      expect(trs.map((tr) => [tr.attributes('id'), tr.attributes('data-ref')])).toEqual(bom.rows.map((r) => [`row-${r.ref}`, r.ref]));
+      // The reference heads its row. The value cell also prints the links for a narrow face (shown
+      // there instead of the last column, never both): it is read here without them.
+      const cells = trs.map((tr) =>
+        [...tr.element.children].map((c) => {
+          const copy = c.cloneNode(true) as Element;
+          copy.querySelector('.bom__links')?.remove();
+          return `${c.tagName}${c.getAttribute('scope') ?? ''} ${copy.textContent?.trim()}`;
+        }),
+      );
+      expect(cells).toEqual(bom.rows.map((r) => [`THrow ${r.ref}`, `TD ${r.part}`, `TD ${r.value}`, `TD ${linkedTo(r.ref as BackRef).join(' · ')}`]));
+      for (const [i, tr] of trs.entries()) {
+        const ref = bom.rows[i]?.ref as BackRef;
+        expect(tr.get('.bom__links').text().replace(/\s+/g, ' ')).toBe(`${bom.columns.linked} ${linkedTo(ref).join(' · ')}`);
+      }
       // The copper of the bottom side is decoration only.
-      const decor = wrapper.get('svg.bom__copper');
+      const decor = wrapper.get('.back__circuit > svg.back__copper');
       expect(decor.attributes('aria-hidden')).toBe('true');
       expect(decor.attributes('focusable')).toBe('false');
+    });
+
+    it(`draws a part for each row, named by its reference and its skill (${content.locale})`, async () => {
+      const wrapper = mount(BackFace, { props: { back: content.back } });
+      await nextTick();
+      const parts = wrapper.findAll('.back__parts > button.back-part');
+      expect(parts.map((b) => b.attributes('data-ref'))).toEqual(content.back.bom.rows.map((r) => r.ref));
+      for (const [i, b] of parts.entries()) {
+        const r = content.back.bom.rows[i];
+        expect(b.attributes('type')).toBe('button');
+        expect(b.attributes('aria-describedby')).toBe(`row-${r?.ref}`);
+        // « {repère}, {composant} »: the visible reference first (label in name).
+        expect(b.text().replace(/\s+/g, ' ')).toBe(`${r?.ref}, ${r?.part}`);
+        expect(b.get('.part__ref').text()).toBe(r?.ref);
+        expect(b.get('svg').attributes('aria-hidden')).toBe('true');
+        const pkg = BACK_PARTS.find((p) => p.ref === r?.ref)?.pkg;
+        expect(b.get('svg use').attributes('href')).toBe(`#pkg-${pkg}`);
+      }
+      // One path per net, its two ends named, and the signal that runs along it.
+      const nets = wrapper.findAll('path.back-net');
+      expect(nets.map((n) => [n.attributes('data-net'), n.attributes('data-from'), n.attributes('data-to'), n.attributes('pathLength')])).toEqual(
+        BACK_NETS.map((n) => [n.id, n.from, n.to, '100']),
+      );
+      expect(wrapper.findAll('path.back-pulse').map((n) => n.attributes('d'))).toEqual(nets.map((n) => n.attributes('d')));
     });
   }
 });
 
 describe('BoardBack', () => {
-  it('is a section named by its heading, with its SW2 slot and the bill of materials', () => {
+  it('is a section named by its heading, with its SW2 slot, its circuit and the bill of materials', async () => {
     const wrapper = mount(BoardBack, { props: { back: fr.back }, global: { provide: { [FLIP as symbol]: flipState() } } });
     const section = wrapper.get('section.board__face.board__face--back');
     expect(section.attributes('aria-labelledby')).toBe('back-title');
     expect(section.get('h2#back-title.silk-heading').text()).toBe(fr.back.title);
     expect(section.findAll('.board__sw2 > button.sw2')).toHaveLength(1);
-    expect(section.findAll('table.bom')).toHaveLength(1);
+    expect(section.findAll(':scope > .back__circuit + table.bom')).toHaveLength(1);
     expect(section.findAll('img')).toHaveLength(0);
+    // The state of the face is on the section: the part that is lit, if any.
+    expect(section.attributes('data-active')).toBeUndefined();
+    await nextTick();
+    await section.get('button.back-part[data-ref="U16"]').trigger('pointerenter', { pointerType: 'mouse' });
+    expect(section.attributes('data-active')).toBe('U16');
   });
 });
 
