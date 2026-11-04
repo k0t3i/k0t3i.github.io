@@ -39,7 +39,8 @@ export function buildCsp(html) {
     "default-src 'none'",
     `script-src 'self'${hashes}`,
     "style-src 'self'",
-    "img-src 'self' data:",
+    // Images of the site only: the build holds no data: URL (tests/static/dist.test.mjs).
+    "img-src 'self'",
     "font-src 'self'",
     "connect-src 'self'",
     "manifest-src 'self'",

@@ -38,7 +38,7 @@ test('CSP is first after charset and hashes every inline script', () => {
     assert.ok(m, `${f}: the CSP meta does not directly follow <meta charset>`);
     const csp = m[1];
     assert.match(csp, /^default-src 'none'; script-src 'self'/);
-    assert.match(csp, /; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests$/);
+    assert.match(csp, /; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests$/);
     assert.equal(html.match(/http-equiv="Content-Security-Policy"/gi).length, 1, `${f}: more than one CSP`);
     for (const body of inlineScriptBodies(html)) {
       const hash = createHash('sha256').update(body, 'utf8').digest('base64');
@@ -102,4 +102,13 @@ test('one build date: the client bundle and the lastmod of the sitemap', () => {
   const lastmods = [...sitemap.matchAll(/<lastmod>([^<]*)<\/lastmod>/g)].map(([, d]) => d);
   assert.ok(lastmods.length >= 2);
   for (const d of lastmods) assert.equal(d, date.slice(0, 10));
+});
+
+test('no data: URL in the build: images come from the site only (CSP img-src self)', () => {
+  const DATA_URL = /\bdata:[a-z]+\/[\w.+-]+[;,]/i;
+  // The reader finds one when there is one.
+  assert.ok(DATA_URL.test('background:url("data:image/svg+xml;base64,PHN2Zy8+")'));
+  const text = distFiles().filter((f) => /\.(html|css|js|svg|xml|json|txt)$/.test(f));
+  assert.ok(text.length > 5);
+  assert.deepEqual(text.filter((f) => DATA_URL.test(readFileSync(at(f), 'utf8'))).sort(), []);
 });
