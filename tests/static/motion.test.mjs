@@ -50,21 +50,12 @@ test('no transition: all', () => {
 });
 
 /**
- * Awaiting a ruling of Anthony (Task 12 report): the trace of the active part on the wide board draws
- * itself from DISP1 by its dash offset, and keeps it while it fades out. The keyframes may animate the
- * dash offset (below), the transitions may not; no cheaper property draws a stroke. Each exception is
- * the rule and the property; one that no longer matches fails, so none outlives its code.
+ * stroke-dashoffset repaints a stroke, as fill and stroke do: the trace of the active part on the wide
+ * board draws itself from DISP1 by its dash offset, and keeps it while it fades out (motion.css).
  */
-const AWAITING_RULING = [
-  { rule: '.trace-live, .trace-pulse', property: 'stroke-dashoffset' },
-  { rule: '.board__live > [data-lit]', property: 'stroke-dashoffset' },
-];
-
 test('transitions only on cheap properties', () => {
-  const CHEAP = ['opacity', 'transform', 'translate', 'scale', 'color', 'background-color', 'border-color', 'outline-color', 'fill', 'stroke', 'display', 'overlay'];
-  const awaiting = (t) => AWAITING_RULING.find((a) => a.rule === t.parents.at(-1) && a.property === t.transitioned);
-  for (const t of TRANSITIONS) assert.ok(CHEAP.includes(t.transitioned) || awaiting(t), `${where(t)}: transition of ${t.transitioned}`);
-  for (const a of AWAITING_RULING) assert.ok(TRANSITIONS.some((t) => awaiting(t) === a), `${a.rule} no longer transitions ${a.property}: drop its exception`);
+  const CHEAP = ['opacity', 'transform', 'translate', 'scale', 'color', 'background-color', 'border-color', 'outline-color', 'fill', 'stroke', 'stroke-dashoffset', 'display', 'overlay'];
+  for (const t of TRANSITIONS) assert.ok(CHEAP.includes(t.transitioned), `${where(t)}: transition of ${t.transitioned}`);
 });
 
 test('keyframes only on opacity, transform, translate, stroke-dashoffset', () => {
