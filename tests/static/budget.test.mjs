@@ -8,8 +8,11 @@ import { firstLoad, jsLoadedBy, wireSize } from '../helpers/load.mjs';
 // page compatible with the Lighthouse scores (scripts/lighthouse.mjs). Never raised without Anthony.
 // JS raised from 60 to 62 KB with Anthony’s approval of 2026-11-04 (revision 7: two more projects
 // on the board, J3 and J4), once the savings found were not enough: 62 KB is the cap he approved.
+// CSS raised from 12 to 13 KB with Anthony’s approval of 2026-11-04 (revision 8: the workbench mat
+// of the page, its wave and its glow, then the retro mode of the mini-game), once the savings found
+// were not enough: 13 KB is the cap he approved.
 const KB = 1024;
-const BUDGET = { page: 20 * KB, css: 12 * KB, js: 62 * KB, wide: 170 * KB };
+const BUDGET = { page: 20 * KB, css: 13 * KB, js: 62 * KB, wide: 170 * KB };
 
 /** The two home pages: the JavaScript and the first load are the same budget for both languages. */
 const HOMES = ['/', '/en/'];
@@ -27,7 +30,7 @@ test('every HTML page under 20 KB', (t) => {
   }
 });
 
-test('all the CSS under 12 KB', (t) => {
+test('all the CSS under 13 KB', (t) => {
   const sheets = distFiles().filter((f) => f.endsWith('.css'));
   assert.ok(sheets.length > 0, 'no stylesheet built');
   const total = sum(sheets.map((f) => wireSize(`/${f}`)));
