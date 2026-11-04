@@ -97,7 +97,12 @@ const running = (page: Page) =>
     document.getAnimations().map((a) => {
       const target = (a.effect as KeyframeEffect | null)?.target as Element | null;
       const name = 'animationName' in a ? (a as CSSAnimation).animationName : `transition:${(a as CSSTransition).transitionProperty}`;
-      const what = target?.matches('path.signal') ? 'signal' : (target?.getAttribute('data-net') ?? target?.closest('[id]')?.id ?? target?.tagName ?? '?');
+      // The glow of the page under the mouse (App.vue) is named apart from the rest of the app.
+      const what = target?.matches('path.signal')
+        ? 'signal'
+        : target?.matches('.mat__glow')
+          ? 'glow'
+          : (target?.getAttribute('data-net') ?? target?.closest('[id]')?.id ?? target?.tagName ?? '?');
       return `${name} ${what}${(a.effect as KeyframeEffect | null)?.pseudoElement ?? ''}`;
     }),
   );
@@ -128,9 +133,12 @@ test.describe('the back face lights up', () => {
     await row(page, 'U10').hover();
     await expectLit(page, 'U10');
     expect((await lighting(page)).nets.sort()).toEqual(['N1', 'N2']);
-    // The same on the flowing board, the circuit above the table. The last row is at the bottom of
-    // the page: as the board leans towards the pointer, WebKit moves the page a little under it (its
-    // scroll range follows the leaning board). Once the board has leant, the row is pointed at again.
+    // The same on the flowing board, the circuit above the table. Known WebKit behaviour: the last row
+    // is at the bottom of the page, and as the board leans towards the still pointer WebKit moves the
+    // page a few pixels under it (its scroll range follows the leaning board). Measured before the mat
+    // of revision 8 too (at adff725: the scroll went 371, 368, 365, 348 while leaning), where this test
+    // still passed 3 times in 3 by its timing; the mat only shifted the timing. So, once the board has
+    // leant, the row is pointed at again.
     await page.setViewportSize({ width: 768, height: 1024 });
     await row(page, 'U20').hover();
     await page.waitForTimeout(800);
@@ -524,7 +532,7 @@ test.describe('the current', () => {
     await showBack(page);
     // At rest, nothing runs on the back face: the front face (and its ambient set) is not drawn. The
     // wave of the page runs on, and the glow of the page fades in under the mouse: they are not the board's.
-    const ambient = ['led-breathe part-led1::after', 'signal signal', 'mat-dots app::before', 'mat-wave app', 'transition:opacity app'];
+    const ambient = ['led-breathe part-led1::after', 'signal signal', 'mat-dots app::before', 'mat-wave app', 'transition:opacity glow'];
     for (const a of await running(page)) expect(ambient).toContain(a);
     await part(page, 'U14').hover();
     // One pass of the signal along each of its traces, leaving from it: N7 and N10 start at U14,

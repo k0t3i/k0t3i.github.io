@@ -233,6 +233,30 @@ test.describe('the code, by touch', () => {
   });
 });
 
+test.describe('the code on a phone, its B and A tapped', () => {
+  test.use({ reducedMotion: 'no-preference' });
+  test.beforeEach(async ({ isMobile }) => {
+    test.skip(!isMobile, 'a touch screen');
+  });
+
+  test('the eight arrows typed, then two real taps on DISP1 start it; a tap plays', async ({ page }) => {
+    // Real taps (Playwright's touch screen, in WebKit too): the touchend path of the code and of the game.
+    await booted(page);
+    await page.goto('/');
+    await expect(page.locator('h1')).toBeVisible();
+    for (const key of CODE.slice(0, 8)) await page.keyboard.press(key);
+    const glass = page.locator('.disp__screen');
+    await glass.scrollIntoViewIfNeeded();
+    await glass.tap();
+    await glass.tap();
+    await inGame(page);
+    await glass.tap();
+    await expect(pixels(page).locator('path.px--head')).toHaveCount(1);
+    await sw1(page).tap();
+    await atRest(page);
+  });
+});
+
 test.describe('every way out ends it, and puts the colours and DISP1 back', () => {
   test.use({ reducedMotion: 'no-preference' });
   test.beforeEach(async ({ isMobile }) => {
@@ -275,6 +299,59 @@ test.describe('every way out ends it, and puts the colours and DISP1 back', () =
       expect(prevented).toBe(false);
     });
   }
+
+  test('the code then SW2 in the same moment: the colours never come back once the game is over', async ({ page }) => {
+    await booted(page);
+    await page.setViewportSize({ width: 1600, height: 900 });
+    await open(page);
+    // With motion, the colours come in a view transition a frame later: SW2 is pressed before it.
+    await page.evaluate((code) => {
+      for (const key of code) document.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+      (document.querySelector('.board__face--front button.sw2') as HTMLElement).click();
+    }, CODE);
+    await expect(page.locator('.board')).toHaveAttribute('data-flipped', '');
+    await expect(page.locator('.board')).not.toHaveAttribute('data-turning', /.*/);
+    await page.waitForTimeout(600);
+    await expect(page.locator('html')).not.toHaveAttribute('data-retro', /.*/);
+    await expect(figure(page)).not.toHaveClass(/\bdisp--game\b/);
+  });
+
+  test('a sheet over the game: it pauses the game and keeps its keys; one Escape closes it, the next ends the game', async ({ page }) => {
+    await booted(page);
+    await page.setViewportSize({ width: 1600, height: 900 });
+    await open(page);
+    await typeCode(page);
+    await inGame(page);
+    await page.keyboard.press('a');
+    await expect(pixels(page).locator('path.px--head')).toHaveCount(1);
+    await page.locator('.part__trigger[popovertarget="sheet-j1"]').click();
+    const sheet = page.locator('#sheet-j1');
+    await expect(sheet).toBeVisible();
+    await expect(pixels(page).locator('path.px--pause')).toHaveCount(1);
+    const head = await headAt(page);
+    // The arrows are the sheet's: taken by no game, the signal still.
+    const taken = await sheet.evaluate((el) => {
+      const e = new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true });
+      (el.querySelector('h3') as HTMLElement).dispatchEvent(e);
+      return e.defaultPrevented;
+    });
+    expect(taken).toBe(false);
+    await page.keyboard.press('ArrowDown');
+    await page.waitForTimeout(600);
+    expect(await headAt(page)).toEqual(head);
+    // One Escape: the sheet goes, the game stays and goes on.
+    await page.keyboard.press('Escape');
+    await expect(sheet).toBeHidden();
+    await expect(page.locator('html')).toHaveAttribute('data-retro', '');
+    await expect(caption(page)).toHaveText(FR.captions.game);
+    await expect(pixels(page).locator('path.px--pause')).toHaveCount(0);
+    // The next one ends it (DISP1 then shows the readout of J1, which has the focus back).
+    await page.keyboard.press('Escape');
+    await expect(page.locator('html')).not.toHaveAttribute('data-retro', /.*/);
+    await expect(caption(page)).toHaveText(FR.captions.avatar);
+    await expect(pixels(page)).not.toHaveAttribute('data-screen', 'game');
+    await expect(said(page)).toHaveText('');
+  });
 
   test('the code does nothing with the back face up, nor on the open-circuit page', async ({ page }) => {
     await booted(page);
