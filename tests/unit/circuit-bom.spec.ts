@@ -1,6 +1,9 @@
 // @vitest-environment node
+import { readFileSync, writeFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { BOM_REFS, bomRows, capitalize, linkedTo, refRanges } from '../../src/circuit/bom';
+import { BOM_REFS, bomRows, capitalize, refRanges } from '../../src/circuit/bom';
+import { BOM_LINKS } from '../../src/circuit/bomLinks';
+import { linkedTo } from '../../src/circuit/links';
 import { DEVICES } from '../../src/circuit/devices';
 import { NETS, PARTS } from '../../src/circuit/netlist';
 import { en } from '../../src/content/en';
@@ -66,6 +69,29 @@ describe('the parts a part is linked to', () => {
       const at = linkedTo(ref).map((r) => order.indexOf(r));
       expect(at, ref).toEqual([...at].sort((x, y) => x - y));
     }
+  });
+});
+
+/** bomLinks.ts as it must be: the result of linkedTo() for each part of the table. */
+const BOM_LINKS_FILE = new URL('../../src/circuit/bomLinks.ts', import.meta.url);
+const bomLinksSource = (): string =>
+  [
+    '// Written by tests/unit/circuit-bom.spec.ts (UPDATE_BOM_LINKS=1 npx vitest run tests/unit/circuit-bom.spec.ts): never by hand.',
+    '// The parts each part of the bill of materials is linked to, computed from the netlist (links.ts): the',
+    '// page ships this, not the netlist.',
+    "import type { BomRef } from './bom';",
+    '',
+    'export const BOM_LINKS: Readonly<Record<BomRef, readonly string[]>> = {',
+    ...BOM_REFS.map((ref) => `  ${ref}: [${linkedTo(ref).map((r) => `'${r}'`).join(', ')}],`),
+    '};',
+    '',
+  ].join('\n');
+
+describe('the links the page ships', () => {
+  it('are the links computed from the netlist, written by this test', () => {
+    if (process.env.UPDATE_BOM_LINKS) writeFileSync(BOM_LINKS_FILE, bomLinksSource());
+    expect(readFileSync(BOM_LINKS_FILE, 'utf8'), 'run UPDATE_BOM_LINKS=1 npx vitest run tests/unit/circuit-bom.spec.ts').toBe(bomLinksSource());
+    for (const ref of BOM_REFS) expect(BOM_LINKS[ref]).toEqual(linkedTo(ref));
   });
 });
 
