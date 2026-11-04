@@ -5,11 +5,11 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, test } from 'vitest';
-import { compareTrees, parseArgs, pushNotice, refusal, validateDist } from '../../scripts/deploy.mjs';
+import { cleanUp, compareTrees, parseArgs, pushFailed, pushNotice, refusal, validateDist } from '../../scripts/deploy.mjs';
 
 /*
  * scripts/deploy.mjs publishes dist/ on master. Here it only ever runs in throwaway repositories of the
- * temporary folder, with no remote: nothing is pushed anywhere.
+ * temporary folder, with no remote or a local bare one, and never with --push: nothing is pushed anywhere.
  */
 
 const DEPLOY = fileURLToPath(new URL('../../scripts/deploy.mjs', import.meta.url));
@@ -116,6 +116,21 @@ describe('the options and the guards', () => {
     expect(notice).toContain('https://github.com/k0t3i/k0t3i.github.io.git');
     expect(notice).toContain('1234567890abcdef deploy: 66e3426');
   });
+
+  test('a failed push is retried as a plain push of the commit already made, never as a new deploy', () => {
+    const advice = pushFailed();
+    expect(advice).toContain('git push origin master');
+    expect(advice).not.toMatch(/--push|--yes-publish|deploy\.mjs/);
+  });
+
+  test('a failing clean-up never hides the error it follows', () => {
+    const boom = () => {
+      throw new Error('worktree locked');
+    };
+    expect(() => cleanUp(boom, new Error('the commit failed'))).toThrow(/the commit failed[\s\S]*worktree locked/);
+    expect(() => cleanUp(boom, null)).toThrow(/^worktree locked$/);
+    expect(() => cleanUp(() => {}, new Error('the commit failed'))).not.toThrow();
+  });
 });
 
 describe('compareTrees', () => {
@@ -129,14 +144,28 @@ describe('compareTrees', () => {
   });
 });
 
-describe('a deploy in a throwaway repository (no remote)', () => {
-  const git = (cwd: string, ...args: string[]): string => execFileSync('git', args, { cwd, encoding: 'utf8' }).trim();
+describe('a deploy in a throwaway repository', () => {
+  /** The environment of every command here, without the variables of a git that may run this test (a hook, a rebase). */
+  const clean = (): NodeJS.ProcessEnv => Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith('GIT_') && k !== 'DIST_DIR'));
+  const git = (cwd: string, ...args: string[]): string => execFileSync('git', args, { cwd, encoding: 'utf8', env: clean() }).trim();
+
+  /** A build that prints its date, as the real one does in the uptime and the sitemap. */
+  const STAMP = '{{BUILD_DATE}}';
+
+  interface Fixture {
+    /** What the build writes into dist/, as `npm run build` does; STAMP becomes the build date. */
+    build?: Record<string, string>;
+    /** More files of the old build on master. */
+    master?: Record<string, string>;
+    /** A local bare origin: master as it is, or one commit ahead (GitHub committing a CNAME). */
+    origin?: 'same' | 'ahead';
+  }
 
   /**
-   * A source repository: master holds an old build, the source branch a build script (writing the
-   * files of `build`, as `npm run build` does) and a copy of scripts/deploy.mjs.
+   * A source repository: master holds an old build, the source branch a build script and a copy of
+   * scripts/deploy.mjs. Its origin, if any, is a bare clone of it in the temporary folder.
    */
-  function repository(build: Record<string, string> = GOOD): string {
+  function repository({ build = GOOD, master = {}, origin }: Fixture = {}): string {
     const root = temp('k0t3i-deploy-');
     git(root, 'init', '--quiet', '--initial-branch=master');
     git(root, 'config', 'user.name', 'Builder');
@@ -144,37 +173,55 @@ describe('a deploy in a throwaway repository (no remote)', () => {
     // Files as written, whatever the machine's own setting (no line-ending warning in the output).
     git(root, 'config', 'core.autocrlf', 'false');
     // The old build: a page the new one changes, a page it keeps byte for byte, a file it drops.
-    write(root, { 'index.html': 'old', '404.html': GOOD['404.html'] ?? '', 'assets/old.js': 'old' });
+    write(root, { 'index.html': 'old', '404.html': GOOD['404.html'] ?? '', 'assets/old.js': 'old', ...master });
     git(root, 'add', '--all');
     git(root, 'commit', '--quiet', '-m', 'deploy');
+    if (origin === 'ahead') {
+      write(root, { CNAME: 'board.example.org\n' });
+      git(root, 'add', 'CNAME');
+      git(root, 'commit', '--quiet', '-m', 'Create CNAME');
+    }
     git(root, 'checkout', '--quiet', '-b', 'source');
     git(root, 'rm', '--quiet', '-r', '.');
     write(root, {
       '.gitignore': 'dist/\n.deploy/\nnode_modules/\n',
       'package.json': JSON.stringify({ private: true, type: 'module', scripts: { build: 'node make-dist.mjs' } }),
-      'make-dist.mjs': `import { mkdirSync, writeFileSync } from 'node:fs';\nimport { dirname } from 'node:path';\nfor (const [p, c] of Object.entries(${JSON.stringify(build)})) { mkdirSync(dirname('dist/' + p), { recursive: true }); writeFileSync('dist/' + p, c); }\n`,
+      'make-dist.mjs': [
+        `import { mkdirSync, writeFileSync } from 'node:fs';`,
+        `import { dirname } from 'node:path';`,
+        `const date = process.env.BUILD_DATE ?? new Date().toISOString();`,
+        `for (const [p, c] of Object.entries(${JSON.stringify(build)})) { mkdirSync(dirname('dist/' + p), { recursive: true }); writeFileSync('dist/' + p, c.replaceAll(${JSON.stringify(STAMP)}, date)); }`,
+        '',
+      ].join('\n'),
     });
     mkdirSync(join(root, 'scripts'));
     copyFileSync(DEPLOY, join(root, 'scripts', 'deploy.mjs'));
     git(root, 'add', '--all');
     git(root, 'commit', '--quiet', '-m', 'source');
+    if (origin) {
+      const bare = join(temp('k0t3i-origin-'), 'origin.git');
+      git(root, 'clone', '--quiet', '--bare', root, bare);
+      // Ahead: GitHub's commit is on origin only.
+      if (origin === 'ahead') git(root, 'branch', '--quiet', '--force', 'master', 'master~1');
+      git(root, 'remote', 'add', 'origin', bare);
+      git(root, 'fetch', '--quiet', 'origin');
+    }
     return root;
   }
 
-  const deploy = (root: string, ...args: string[]) => {
-    const env = { ...process.env };
-    delete env.DIST_DIR;
-    const r = spawnSync(process.execPath, [join(root, 'scripts', 'deploy.mjs'), ...args], { cwd: root, encoding: 'utf8', env });
+  const deploy = (root: string, args: string[] = [], extra: NodeJS.ProcessEnv = {}) => {
+    const r = spawnSync(process.execPath, [join(root, 'scripts', 'deploy.mjs'), ...args], { cwd: root, encoding: 'utf8', env: { ...clean(), ...extra } });
     return { status: r.status, out: `${r.stdout}${r.stderr}` };
   };
 
-  /** What may not change unless a commit is asked for: master, the branch, the tree, the worktrees. */
+  /** What may not change unless a commit is asked for: master, the branch, the tree, the worktrees, origin. */
   const state = (root: string) => ({
     master: git(root, 'rev-parse', 'master'),
     head: git(root, 'rev-parse', 'HEAD'),
     branch: git(root, 'rev-parse', '--abbrev-ref', 'HEAD'),
     status: git(root, 'status', '--porcelain'),
     worktrees: git(root, 'worktree', 'list', '--porcelain').split('\n').filter((l) => l.startsWith('worktree ')).length,
+    origin: git(root, 'remote').includes('origin') ? git(git(root, 'remote', 'get-url', 'origin'), 'rev-parse', 'master') : null,
   });
 
   test('the dry run builds, lists what would be published and how it differs from master, and changes nothing', { timeout: 60_000 }, () => {
@@ -197,8 +244,9 @@ describe('a deploy in a throwaway repository (no remote)', () => {
     const root = repository();
     const before = state(root);
     const source = git(root, 'rev-parse', '--short', 'HEAD');
-    const { status, out } = deploy(root, '--commit');
+    const { status, out } = deploy(root, ['--commit']);
     expect(status, out).toBe(0);
+    expect(out).toMatch(/no origin/i);
     const after = state(root);
     expect({ ...after, master: before.master }).toEqual(before);
     expect(git(root, 'rev-parse', 'master~1')).toBe(before.master);
@@ -207,17 +255,92 @@ describe('a deploy in a throwaway repository (no remote)', () => {
     expect(git(root, 'show', 'master:index.html')).toBe(GOOD['index.html']);
     expect(existsSync(join(root, '.deploy'))).toBe(false);
     // Once more, with nothing new: no empty commit.
-    const again = deploy(root, '--commit');
+    const again = deploy(root, ['--commit']);
     expect(again.status, again.out).toBe(0);
     expect(again.out).toMatch(/nothing to commit/i);
     expect(git(root, 'rev-parse', 'master')).toBe(after.master);
+  });
+
+  test('the build date is the commit date of the sources: --commit twice makes one deploy commit', { timeout: 60_000 }, () => {
+    const root = repository({ build: { ...GOOD, 'index.html': `<!doctype html><title>fr</title><p>${STAMP}</p>` } });
+    const before = git(root, 'rev-parse', 'master');
+    const first = deploy(root, ['--commit']);
+    expect(first.status, first.out).toBe(0);
+    const committed = git(root, 'rev-parse', 'master');
+    expect(git(root, 'rev-parse', 'master~1')).toBe(before);
+    const date = new Date(git(root, 'log', '-1', '--format=%cI', 'source')).toISOString();
+    expect(git(root, 'show', 'master:index.html')).toContain(date);
+    const again = deploy(root, ['--commit']);
+    expect(again.status, again.out).toBe(0);
+    expect(again.out).toMatch(/nothing to commit/i);
+    expect(git(root, 'rev-parse', 'master')).toBe(committed);
+  });
+
+  test('with a local origin that master already holds, --commit fetches it and commits, and pushes nothing', { timeout: 60_000 }, () => {
+    const root = repository({ origin: 'same' });
+    const before = state(root);
+    const { status, out } = deploy(root, ['--commit']);
+    expect(status, out).toBe(0);
+    expect(git(root, 'rev-parse', 'master~1')).toBe(before.master);
+    expect(state(root).origin).toBe(before.origin);
+  });
+
+  test('origin ahead of master (GitHub committed a CNAME): --commit is refused before building, with the way out', { timeout: 60_000 }, () => {
+    const root = repository({ origin: 'ahead' });
+    const before = state(root);
+    const { status, out } = deploy(root, ['--commit']);
+    expect(status).not.toBe(0);
+    expect(out).toMatch(/origin\/master has 1 commit/);
+    expect(out).toContain('git fetch origin master:master');
+    expect(state(root)).toEqual(before);
+    expect(existsSync(join(root, 'dist'))).toBe(false);
+    expect(existsSync(join(root, '.deploy'))).toBe(false);
+  });
+
+  test('master holds a CNAME the build lacks: --commit is refused, the dry run says why', { timeout: 60_000 }, () => {
+    const root = repository({ master: { CNAME: 'board.example.org\n' } });
+    const before = state(root);
+    const dry = deploy(root);
+    expect(dry.status, dry.out).toBe(0);
+    expect(dry.out).toMatch(/CNAME[\s\S]*public\//);
+    const { status, out } = deploy(root, ['--commit']);
+    expect(status).not.toBe(0);
+    expect(out).toMatch(/CNAME[\s\S]*public\//);
+    expect(state(root)).toEqual(before);
+    // With the CNAME in the build (public/), the deploy goes ahead and keeps it.
+    const kept = repository({ build: { ...GOOD, CNAME: 'board.example.org\n' }, master: { CNAME: 'board.example.org\n' } });
+    expect(deploy(kept, ['--commit']).status).toBe(0);
+    expect(git(kept, 'show', 'master:CNAME')).toBe('board.example.org');
+  });
+
+  test('the commit holds the build byte for byte, or nothing is committed', { timeout: 60_000 }, () => {
+    // A build whose own .gitattributes would make git rewrite a page on its way into the commit.
+    const root = repository({ build: { ...GOOD, '.gitattributes': '*.html text\n', 'index.html': 'a\r\nb\r\n' } });
+    const before = state(root);
+    const { status, out } = deploy(root, ['--commit']);
+    expect(status).not.toBe(0);
+    expect(out).toMatch(/byte for byte[\s\S]*index\.html/);
+    expect(state(root)).toEqual(before);
+    expect(existsSync(join(root, '.deploy'))).toBe(false);
+  });
+
+  test('the variables of a git running the deploy (a hook) never point it at another repository', { timeout: 60_000 }, () => {
+    const root = repository();
+    const decoy = repository();
+    const decoyBefore = state(decoy);
+    const before = state(root);
+    const env = { GIT_DIR: join(decoy, '.git'), GIT_WORK_TREE: decoy, GIT_INDEX_FILE: join(decoy, '.git', 'index') };
+    const { status, out } = deploy(root, ['--commit'], env);
+    expect(status, out).toBe(0);
+    expect(git(root, 'rev-parse', 'master~1')).toBe(before.master);
+    expect(state(decoy)).toEqual(decoyBefore);
   });
 
   test('--commit refuses a dirty tree before building anything', { timeout: 60_000 }, () => {
     const root = repository();
     writeFileSync(join(root, 'notes.txt'), 'not committed');
     const before = state(root);
-    const { status, out } = deploy(root, '--commit');
+    const { status, out } = deploy(root, ['--commit']);
     expect(status).not.toBe(0);
     expect(out).toMatch(/working tree is not clean/);
     expect(state(root)).toEqual(before);
@@ -225,9 +348,9 @@ describe('a deploy in a throwaway repository (no remote)', () => {
   });
 
   test('--push without --yes-publish is refused before anything is built or committed', { timeout: 60_000 }, () => {
-    const root = repository();
+    const root = repository({ origin: 'same' });
     const before = state(root);
-    const { status, out } = deploy(root, '--push');
+    const { status, out } = deploy(root, ['--push']);
     expect(status).not.toBe(0);
     expect(out).toMatch(/--yes-publish/);
     expect(state(root)).toEqual(before);
@@ -235,9 +358,9 @@ describe('a deploy in a throwaway repository (no remote)', () => {
   });
 
   test('a build that fails validateDist is never committed', { timeout: 60_000 }, () => {
-    const root = repository({ ...GOOD, 'kit-urgence/index.html': 'x' });
+    const root = repository({ build: { ...GOOD, 'kit-urgence/index.html': 'x' } });
     const before = state(root);
-    const { status, out } = deploy(root, '--commit');
+    const { status, out } = deploy(root, ['--commit']);
     expect(status).not.toBe(0);
     expect(out).toContain('kit-urgence/ must not exist');
     expect(state(root)).toEqual(before);

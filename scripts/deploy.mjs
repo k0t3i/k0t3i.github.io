@@ -9,8 +9,11 @@
 //                                                  online. The owner's call only.
 //
 // --commit and --push need a clean source tree, so that the sha in the message names what was built.
-// The commit is made in a temporary worktree of master in .deploy/, removed afterwards; the Git
-// identity is the one configured. DIST_DIR builds and publishes another folder than dist/.
+// They fetch origin first, and refuse while origin/master holds commits that master lacks (GitHub
+// commits a CNAME there for a custom domain); every run refuses to drop a CNAME of master. The build
+// date is the commit date of the sources: the same sources give the same build. The commit is made in
+// a temporary worktree of master in .deploy/, removed afterwards; the Git identity is the one
+// configured. DIST_DIR builds and publishes another folder than dist/.
 import { cpSync, existsSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { dirname, join, relative, resolve, sep } from 'node:path';
@@ -118,8 +121,48 @@ export function pushNotice(remote, commit) {
   return `Pushing ${MASTER} to origin, ${remote}\n  commit ${commit}\nGitHub Pages publishes it about a minute later.`;
 }
 
+/**
+ * What to do once a push has failed: the deploy commit is on master already, so it is pushed as it
+ * is. A new deploy would only build and commit again.
+ * @returns {string}
+ */
+export function pushFailed() {
+  return [
+    `the push failed: the deploy commit is on the local ${MASTER} already. Once the cause is fixed (the network,`,
+    `the rights, or origin moved: git fetch origin, then git log --oneline ${MASTER}..origin/${MASTER}), push it as it is:`,
+    `  git push origin ${MASTER}`,
+  ].join('\n');
+}
+
+/**
+ * Runs a clean-up after `failure` (an error, or null when all went well); if the clean-up throws too,
+ * the error thrown names both, the first one first: a clean-up never hides what went wrong before it.
+ * @param {() => void} remove
+ * @param {Error | null} failure
+ */
+export function cleanUp(remove, failure) {
+  try {
+    remove();
+  } catch (error) {
+    if (!failure) throw error;
+    throw new Error(`${failure.message}\n  then the clean-up failed too: ${error.message}`, { cause: error });
+  }
+}
+
+/**
+ * The variables by which git finds its repository (`git rev-parse --local-env-vars`). A git running
+ * this script (a hook, a `rebase --exec`) sets them: kept, they would point every command below,
+ * those of the worktree included, at that repository. They are dropped from the commands' environment.
+ */
+const LOCAL_GIT_VARS = new Set(
+  'GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_CONFIG GIT_CONFIG_PARAMETERS GIT_CONFIG_COUNT GIT_OBJECT_DIRECTORY GIT_DIR GIT_WORK_TREE GIT_IMPLICIT_WORK_TREE GIT_GRAFT_FILE GIT_INDEX_FILE GIT_NO_REPLACE_OBJECTS GIT_REPLACE_REF_BASE GIT_PREFIX GIT_SHALLOW_FILE GIT_COMMON_DIR'.split(' '),
+);
+const ENV = Object.fromEntries(Object.entries(process.env).filter(([k]) => !LOCAL_GIT_VARS.has(k) && !/^GIT_CONFIG_(KEY|VALUE)_\d+$/.test(k)));
+
 /** A git command in `cwd` (the sources by default); its output, trimmed. */
-const git = (args, cwd = ROOT) => execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] }).trim();
+const git = (args, cwd = ROOT) => execFileSync('git', args, { cwd, encoding: 'utf8', env: ENV, stdio: ['pipe', 'pipe', 'pipe'] }).trim();
+/** Whether a git command succeeds (a ref exists, a remote is set). */
+const gitOk = (args) => spawnSync('git', args, { cwd: ROOT, env: ENV, stdio: 'ignore' }).status === 0;
 
 /** The changes of the source tree, untracked files included (never the ignored ones). */
 const changes = () => git(['--no-optional-locks', 'status', '--porcelain']).split('\n').filter(Boolean);
@@ -132,23 +175,64 @@ function fail(message) {
 /** The blob sha of each file of `dir`, as the commit stores it (its bytes as they are), without writing anything. */
 function blobsOf(dir, files) {
   const input = files.map((f) => join(dir, f)).join('\n');
-  const shas = execFileSync('git', ['hash-object', '--no-filters', '--stdin-paths'], { cwd: ROOT, encoding: 'utf8', input }).trim().split('\n');
+  const shas = execFileSync('git', ['hash-object', '--no-filters', '--stdin-paths'], { cwd: ROOT, encoding: 'utf8', env: ENV, input }).trim().split('\n');
   if (shas.length !== files.length) throw new Error(`git hash-object gave ${shas.length} hashes for ${files.length} files`);
   return Object.fromEntries(files.map((f, i) => [f, shas[i]]));
 }
 
-/** The blob sha of each file on master. */
-function blobsOnMaster() {
-  const out = execFileSync('git', ['ls-tree', '-r', '-z', '--full-tree', MASTER], { cwd: ROOT, encoding: 'utf8' });
-  return Object.fromEntries(
+/** The blob sha of each file of a tree, from lines "<mode> <type or sha> ...\t<path>": the sha is field `at`. */
+const blobsOfLines = (out, at) =>
+  Object.fromEntries(
     out
       .split('\0')
       .filter(Boolean)
       .map((line) => {
         const [meta, path] = line.split('\t');
-        return [path, meta.split(' ')[2]];
+        return [path, meta.split(' ')[at]];
       }),
   );
+
+/** The blob sha of each file on master. */
+const blobsOnMaster = () => blobsOfLines(execFileSync('git', ['ls-tree', '-r', '-z', '--full-tree', MASTER], { cwd: ROOT, encoding: 'utf8', env: ENV }), 2);
+
+/**
+ * master holds a CNAME (the custom domain of the site) that the build lacks: publishing it would take
+ * the domain off. The message, or null.
+ * @param {Record<string, string>} onMaster
+ * @param {string[]} files the files of the build
+ * @returns {string | null}
+ */
+export function cnameDropped(onMaster, files) {
+  if (!('CNAME' in onMaster) || files.includes('CNAME')) return null;
+  return `${MASTER} holds a CNAME (the custom domain of the site) that the build lacks: publishing it would take the domain off. A custom domain's CNAME lives in public/: git show ${MASTER}:CNAME > public/CNAME, commit it, then run again.`;
+}
+
+/**
+ * Compares master with origin/master (fetched first when `fetch`): the commits of origin/master that
+ * master lacks (GitHub commits there too: a CNAME for a custom domain), as a message, or null. No
+ * origin, or never fetched: nothing to compare, said so.
+ */
+function originAhead(fetch) {
+  if (!gitOk(['remote', 'get-url', 'origin'])) {
+    console.log(`No origin remote: ${MASTER} is not compared with a remote.`);
+    return null;
+  }
+  if (fetch) git(['fetch', '--quiet', 'origin', MASTER]);
+  if (!gitOk(['rev-parse', '--verify', '--quiet', `refs/remotes/origin/${MASTER}`])) {
+    console.log(`origin/${MASTER} is unknown (never fetched): ${MASTER} is not compared with it.`);
+    return null;
+  }
+  const ahead = Number(git(['rev-list', '--count', `${MASTER}..origin/${MASTER}`]));
+  if (ahead === 0) {
+    console.log(`origin/${MASTER}${fetch ? ' (just fetched)' : ' (as last fetched)'} is in ${MASTER}.`);
+    return null;
+  }
+  return [
+    `origin/${MASTER} has ${ahead} commit${ahead === 1 ? '' : 's'} that ${MASTER} lacks (GitHub commits there too: a CNAME for a custom domain, say).`,
+    `  git log --oneline ${MASTER}..origin/${MASTER}    shows them`,
+    `  git fetch origin ${MASTER}:${MASTER}              brings them into ${MASTER} (when it has nothing of its own: a fast-forward)`,
+    'then run the deploy again.',
+  ].join('\n');
 }
 
 const bytes = (n) => `${n.toLocaleString('en-GB')} B`;
@@ -169,21 +253,25 @@ function report({ source, files, diff, master }) {
 
 /**
  * Commits the build on master through a temporary worktree, removed whatever happens; returns whether
- * a commit was made. It throws, never exits, so that the worktree always goes.
+ * a commit was made. It throws, never exits, so that the worktree always goes; a failed removal never
+ * hides the error before it.
  */
-function commitOnMaster(source, files) {
+function commitOnMaster(source, files, built) {
   if (existsSync(WORKTREE)) throw new Error(`${WORKTREE} exists: a deploy stopped half-way. Remove it (git worktree remove --force .deploy), then run again`);
   // The record of a worktree whose folder is gone (a deploy killed half-way) would block the next one.
   git(['worktree', 'prune']);
   git(['worktree', 'add', '--quiet', WORKTREE, MASTER]);
+  let failure = null;
   try {
     // Everything of master goes, but its .git link: master holds this build alone.
     for (const entry of readdirSync(WORKTREE)) if (entry !== '.git') rmSync(join(WORKTREE, entry), { recursive: true, force: true });
     cpSync(DIST, WORKTREE, { recursive: true });
     // Every file as it is: no line-ending conversion, no ignore rule.
     git(['-c', 'core.autocrlf=false', 'add', '--all', '--force'], WORKTREE);
-    const staged = git(['ls-files', '-z'], WORKTREE).split('\0').filter(Boolean).sort();
-    if (staged.join('\n') !== files.join('\n')) throw new Error(`the commit would not hold exactly the build (${staged.length} files for ${files.length})`);
+    // The index holds the build, byte for byte: the same files, the same blobs.
+    const staged = blobsOfLines(git(['ls-files', '-s', '-z'], WORKTREE), 1);
+    const off = [...new Set([...Object.keys(staged), ...files])].filter((f) => staged[f] !== built[f]).sort();
+    if (off.length) throw new Error(`the commit would not hold the build byte for byte: ${off.join(', ')}`);
     if (git(['diff', '--cached', '--name-only'], WORKTREE) === '') {
       console.log(`\n${MASTER} already holds this build: nothing to commit.`);
       return false;
@@ -191,8 +279,11 @@ function commitOnMaster(source, files) {
     git(['-c', 'core.autocrlf=false', 'commit', '--quiet', '-m', `deploy: ${source}`], WORKTREE);
     console.log(`\nCommitted on ${MASTER}: ${git(['log', '-1', '--format=%h %s (%an <%ae>)', MASTER])}`);
     return true;
+  } catch (error) {
+    failure = error;
+    throw error;
   } finally {
-    git(['worktree', 'remove', '--force', WORKTREE]);
+    cleanUp(() => git(['worktree', 'remove', '--force', WORKTREE]), failure);
   }
 }
 
@@ -204,32 +295,45 @@ function main() {
 
   const branch = git(['rev-parse', '--abbrev-ref', 'HEAD']);
   if (branch === MASTER) fail(`run it from the branch of the sources, not from ${MASTER}`);
-  if (spawnSync('git', ['rev-parse', '--verify', '--quiet', `refs/heads/${MASTER}`], { cwd: ROOT }).status !== 0) fail(`there is no local ${MASTER} branch`);
+  if (!gitOk(['rev-parse', '--verify', '--quiet', `refs/heads/${MASTER}`])) fail(`there is no local ${MASTER} branch`);
   const source = git(['rev-parse', '--short', 'HEAD']);
   const master = git(['log', '-1', '--format=%h %s', MASTER]);
   console.log(`Sources: ${branch} at ${source}, ${dirty.length ? `${dirty.length} uncommitted change(s): --commit would refuse` : 'working tree clean'}`);
 
-  const build = spawnSync('npm', ['run', 'build'], { cwd: ROOT, stdio: 'inherit', shell: process.platform === 'win32' });
+  // A commit builds on what origin holds: fetched first, and refused while master lacks some of it.
+  const behind = originAhead(options.commit);
+  if (behind && options.commit) fail(behind);
+  if (behind) console.log(`Note: --commit would refuse: ${behind}`);
+
+  // The date of the sources, not of the run: the same sources give the same build (no second deploy commit).
+  const buildDate = new Date(git(['log', '-1', '--format=%cI', 'HEAD'])).toISOString();
+  console.log(`Build date: ${buildDate}, the commit date of the sources`);
+  const build = spawnSync('npm', ['run', 'build'], { cwd: ROOT, env: { ...ENV, BUILD_DATE: buildDate }, stdio: 'inherit', shell: process.platform === 'win32' });
   if (build.status !== 0) fail('the build failed');
   if (changes().join('\n') !== dirty.join('\n')) fail('the build changed the sources: look at git status');
 
   const errors = validateDist(DIST);
   if (errors.length) fail(`${relative(ROOT, DIST)}/ may not be published:\n  ${errors.join('\n  ')}`);
   const files = filesOf(DIST);
-  report({ source, files, diff: compareTrees(blobsOf(DIST, files), blobsOnMaster()), master });
+  const built = blobsOf(DIST, files);
+  const onMaster = blobsOnMaster();
+  report({ source, files, diff: compareTrees(built, onMaster), master });
+  const domain = cnameDropped(onMaster, files);
+  if (domain && options.commit) fail(domain);
+  if (domain) console.log(`\nNote: --commit would refuse: ${domain}`);
 
   if (!options.commit) {
     console.log('\nDry run: nothing was changed. Next: node scripts/deploy.mjs --commit (local), then --push --yes-publish (online).');
     return;
   }
-  commitOnMaster(source, files);
+  commitOnMaster(source, files, built);
   if (!options.push) {
     console.log(`Nothing was pushed. To publish: node scripts/deploy.mjs --push --yes-publish`);
     return;
   }
   console.log(`\n${pushNotice(git(['remote', 'get-url', 'origin']), git(['log', '-1', '--format=%H %s', MASTER]))}`);
-  const push = spawnSync('git', ['push', 'origin', MASTER], { cwd: ROOT, stdio: 'inherit' });
-  if (push.status !== 0) fail('the push failed: master is committed locally, run --push --yes-publish again');
+  const push = spawnSync('git', ['push', 'origin', MASTER], { cwd: ROOT, env: ENV, stdio: 'inherit' });
+  if (push.status !== 0) fail(pushFailed());
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
