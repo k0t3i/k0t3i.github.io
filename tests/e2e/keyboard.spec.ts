@@ -79,6 +79,45 @@ test('the close button returns focus to the trigger', async ({ page }) => {
   await expect(trigger(page, 'r1')).toBeFocused();
 });
 
+/** Whether what is drawn at the centre of an element is something else (a sheet over it, say). */
+const coveredAtCentre = (page: Page, id: string) =>
+  trigger(page, id).evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    return !hit || !el.contains(hit);
+  });
+
+for (const viewport of [
+  { width: 1600, height: 900 },
+  { width: 390, height: 844 },
+]) {
+  test(`focus leaving an open sheet closes it: the part it lands on is never under it (${viewport.width}px)`, async ({ page, isMobile }) => {
+    test.skip(isMobile, 'no keyboard on touch devices');
+    await page.setViewportSize(viewport);
+    await page.goto('/');
+    await expect(page.locator('button.jp1')).toBeVisible();
+    const title = () => page.evaluate(() => document.activeElement?.id);
+    // Tab past the Close button of D1: on to U2, which the sheet of D1 covers on a phone.
+    await trigger(page, 'd1').focus();
+    await page.keyboard.press('Enter');
+    await expect.poll(title).toBe('sheet-d1-title');
+    await page.keyboard.press('Tab');
+    await expect(page.locator('#sheet-d1 .sheet__close')).toBeFocused();
+    expect(await isOpen(page, 'd1')).toBe(true);
+    await page.keyboard.press('Tab');
+    await expect(trigger(page, 'u2')).toBeFocused();
+    await expect.poll(() => isOpen(page, 'd1')).toBe(false);
+    expect(await coveredAtCentre(page, 'u2')).toBe(false);
+    // Shift+Tab out of the sheet of U2: back to U2 itself, which its own sheet covers on a phone.
+    await page.keyboard.press('Enter');
+    await expect.poll(title).toBe('sheet-u2-title');
+    await page.keyboard.press('Shift+Tab');
+    await expect(trigger(page, 'u2')).toBeFocused();
+    await expect.poll(() => isOpen(page, 'u2')).toBe(false);
+    expect(await coveredAtCentre(page, 'u2')).toBe(false);
+  });
+}
+
 test('one sheet at a time', async ({ page }) => {
   await trigger(page, 'r1').click();
   await expect(page.locator('#sheet-r1')).toBeVisible();

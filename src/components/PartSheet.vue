@@ -22,6 +22,16 @@ async function onToggle(event: Event): Promise<void> {
   fallbackReady.value = true;
 }
 
+/**
+ * Focus that leaves an open sheet closes it: Tab past its Close button, or Shift+Tab back to its part.
+ * On the flowing board the sheet would otherwise lie over the part that now has the focus. A focus
+ * lost to another window (no related target) keeps it open.
+ */
+function onFocusOut(event: FocusEvent): void {
+  const sheet = event.currentTarget as HTMLElement;
+  if (event.relatedTarget instanceof Node && !sheet.contains(event.relatedTarget) && sheet.matches(':popover-open')) sheet.hidePopover();
+}
+
 const FORMATS = [
   { type: 'image/avif', ext: 'avif' },
   { type: 'image/webp', ext: 'webp' },
@@ -38,6 +48,7 @@ const srcset = (ext: string): string => `/img/kit-urgence-380.${ext} 380w, /img/
     role="dialog"
     :aria-labelledby="`sheet-${props.part.id}-title`"
     @toggle="onToggle"
+    @focusout="onFocusOut"
   >
     <p class="sheet__ref">
       {{ props.part.ref }} · {{ props.part.kind }}
