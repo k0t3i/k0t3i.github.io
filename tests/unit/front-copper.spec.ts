@@ -83,7 +83,7 @@ describe('the routes of the front', () => {
     expect(nearest?.pin).toBe('1');
     // Then counter-clockwise, seen from above: 1 to 4 along the side of the dimple, 5 to 8 back along the other.
     const at = (pin: string) => u2.find((p) => p.pin === pin) as NetPad;
-    for (const [a, b] of [['1', '2'], ['2', '3'], ['3', '4'], ['5', '6'], ['6', '7'], ['7', '8']]) expect(at(b).x - at(a).x, `${a} → ${b}`).toBe(at('1').y === at(a).y ? 8 : -8);
+    for (const [a, b] of [['1', '2'], ['2', '3'], ['3', '4'], ['5', '6'], ['6', '7'], ['7', '8']] as const) expect(at(b).x - at(a).x, `${a} → ${b}`).toBe(at('1').y === at(a).y ? 8 : -8);
     expect([at('4').x, at('5').x]).toEqual([at('4').x, at('4').x]);
   });
 
