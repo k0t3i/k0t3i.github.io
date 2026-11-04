@@ -12,15 +12,23 @@ const props = defineProps<{ part: PartContent; close: string }>();
  * The <img> gets its own URLs one tick later, once it sits in its <picture>: WebKit starts a load on
  * each attribute set on a detached image, so src, srcset and sizes set at creation cost three
  * requests. Inside the picture, the sources are chosen first and the fallback adds no request.
+ * A sheet opened before the app has mounted (natively, by its part) shows its picture once it has.
  */
+const sheetEl = ref<HTMLElement | null>(null);
 const mediaReady = ref(false);
 const fallbackReady = ref(false);
-async function onToggle(event: Event): Promise<void> {
-  if ((event as ToggleEvent).newState !== 'open' || mediaReady.value) return;
+async function showMedia(): Promise<void> {
+  if (mediaReady.value) return;
   mediaReady.value = true;
   await nextTick();
   fallbackReady.value = true;
 }
+function onToggle(event: Event): void {
+  if ((event as ToggleEvent).newState === 'open') void showMedia();
+}
+onMounted(() => {
+  if (sheetEl.value?.matches(':popover-open')) void showMedia();
+});
 
 const id = `sheet-${props.part.id}`;
 
@@ -63,6 +71,7 @@ const srcset = (ext: string): string => `/img/kit-urgence-380.${ext} 380w, /img/
 <template>
   <div
     :id="id"
+    ref="sheetEl"
     class="sheet"
     popover
     role="dialog"

@@ -171,6 +171,24 @@ test('the J1 image loads only when the sheet opens', async ({ page }) => {
   expect(requests).toHaveLength(1);
 });
 
+test('the J1 picture shows even when its sheet was opened before the app started', async ({ page }) => {
+  // The script of the app held back: the visitor opens the sheet natively (popovertarget), then the app hydrates.
+  let release = (): void => {};
+  const held = new Promise<void>((r) => (release = r));
+  await page.route('**/assets/app-*.js', async (route) => {
+    await held;
+    await route.continue();
+  });
+  await page.goto('/', { waitUntil: 'commit' });
+  await trigger(page, 'j1').click();
+  await expect(page.locator('#sheet-j1')).toBeVisible();
+  await expect(page.locator('#sheet-j1 picture')).toHaveCount(0);
+  release();
+  await page.waitForFunction(() => Boolean((document.querySelector('#app') as { __vue_app__?: unknown } | null)?.__vue_app__));
+  await expect(page.locator('#sheet-j1 picture img')).toHaveJSProperty('complete', true);
+  expect(await page.locator('#sheet-j1 picture img').evaluate((img) => (img as HTMLImageElement).naturalWidth)).toBeGreaterThan(0);
+});
+
 test('SW1 is focusable and changes the screen of DISP1', async ({ page }) => {
   // Once the app has mounted (JP1 is shown then): SW1 works with JavaScript only.
   await expect(page.locator('button.jp1')).toBeVisible();
