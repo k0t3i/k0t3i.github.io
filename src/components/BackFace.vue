@@ -24,35 +24,35 @@ const state = useBackState();
  * gives { text: "two ", glued: "words ·" }, { text: "c", glued: "" }. A line can break inside an item,
  * never before a dot; the text of the cell is unchanged.
  */
-const glue = (item: string): { text: string; glued: string } => {
-  const cut = item.lastIndexOf(' ') + 1;
-  return { text: item.slice(0, cut), glued: `${item.slice(cut)} ·` };
-};
 const items = (value: string): { text: string; glued: string }[] =>
-  value.split(' · ').map((item, i, all) => (i === all.length - 1 ? { text: item, glued: '' } : glue(item)));
+  value.split(' · ').map((item, i, all) => {
+    if (i === all.length - 1) return { text: item, glued: '' };
+    const cut = item.lastIndexOf(' ') + 1;
+    return { text: item.slice(0, cut), glued: `${item.slice(cut)} ·` };
+  });
 
 const NETS = BACK_NETS.map((n) => ({ ...n, d: netPath(n) }));
 
 /**
- * A row of the table (circuit/bom.ts): its two lines, the skill opening the second one, its dot glued
- * to it; the parts it is linked to as printed in « Relié à », each reference (or range) but the last
+ * A row of the table (circuit/bom.ts): its two lines; the parts it is linked to as printed in « Relié à », each reference (or range) but the last
  * followed by its dot (`none` for a part with no signal link); and all of them, for what lights up.
  */
 const rows = computed(() =>
   bomRows(props.back.bom.rows).map((row) => {
     const linkedItems = row.linked.length ? row.linked.map((to, i) => ({ to, dot: i < row.linked.length - 1 })) : [{ to: props.back.bom.none, dot: false }];
-    return { ...row, lead: glue(row.skill), linkedItems, dataLinks: row.links.join(' ') };
+    return { ...row, linkedItems, dataLinks: row.links.join(' ') };
   }),
 );
 /**
  * The parts drawn on the circuit, in the order of the table: each named « {repère}, {composant},
- * {compétence} », the visible reference first, the rest of the name visually hidden (nameTail).
+ * {compétence} », its visible reference first (label in name). The name is an aria-label: the
+ * reference is placed apart from the button (absolute), and a browser would read a space after it.
  */
 const parts = computed(() =>
   rows.value.map((row) => {
     const part = BACK_PARTS.find((p) => p.ref === row.ref);
     if (!part) throw new Error(`no part for ${row.ref}`);
-    return { ...part, nameTail: row.name.slice(row.ref.length), links: row.dataLinks };
+    return { ...part, name: row.name, links: row.dataLinks };
   }),
 );
 
@@ -156,6 +156,7 @@ function onClick(ref: BackRef): void {
         :disabled="!ready"
         :tabindex="ready ? (current === p.ref ? 0 : -1) : undefined"
         :aria-pressed="ready ? (state.pinned.value === p.ref ? 'true' : 'false') : undefined"
+        :aria-label="ready ? p.name : undefined"
         :aria-describedby="ready ? `value-${p.ref} details-${p.ref} links-${p.ref}` : undefined"
         @pointerenter="point($event, p.ref)"
         @pointerleave="point($event, null)"
@@ -168,7 +169,7 @@ function onClick(ref: BackRef): void {
           aria-hidden="true"
           focusable="false"
         ><use :href="`#pkg-${p.pkg}`" /></svg>
-        <span class="part__ref">{{ p.ref }}</span><span class="vh">{{ p.nameTail }}</span>
+        <span class="part__ref">{{ p.ref }}</span>
       </button>
     </div>
   </div>
@@ -208,11 +209,14 @@ function onClick(ref: BackRef): void {
         <th scope="row">
           {{ row.ref }}
         </th>
-        <td>{{ row.part }}</td>
         <!--
-          Two lines: the value of the part, then its skill and the details of it. The last word of each
-          item is glued to its dot: a line never starts with a dot.
+          Two lines to a row: the real part and its value, then the skill and its details, each line
+          across the two cells. The last word of each item is glued to its dot: a line never starts
+          with a dot.
         -->
+        <td>
+          <span class="bom__line">{{ row.part }}</span>{{ ' ' }}<span class="bom__line">{{ row.skill }}</span>
+        </td>
         <td>
           <span
             :id="`value-${row.ref}`"
@@ -225,7 +229,10 @@ function onClick(ref: BackRef): void {
               v-if="item.glued"
               class="bom__glue"
             >{{ item.glued }}</span>
-          </template></span>{{ ' ' }}<span class="bom__line">{{ row.lead.text }}<span class="bom__glue">{{ row.lead.glued }}</span>{{ ' ' }}<span :id="`details-${row.ref}`"><template
+          </template></span>{{ ' ' }}<span
+            :id="`details-${row.ref}`"
+            class="bom__line"
+          ><template
             v-for="(item, i) in items(row.details)"
             :key="i"
           >
@@ -233,7 +240,7 @@ function onClick(ref: BackRef): void {
               v-if="item.glued"
               class="bom__glue"
             >{{ item.glued }}</span>
-          </template></span></span>
+          </template></span>
           <!--
             A narrow face has no room for the last column: the links are printed here instead. Labelled,
             this copy is also the end of the description of the part (after its value and details), at every size.

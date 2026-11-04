@@ -599,6 +599,12 @@
     display: block;
   }
 
+  /* On a narrow face a long name may break inside a word (« Microcontrôleur »), hyphenated where it can. */
+  .bom td:nth-child(2) {
+    hyphens: auto;
+    overflow-wrap: anywhere;
+  }
+
   /* Printed under the value on a narrow face only (below), in place of the last column. */
   .bom__links {
     display: none;
@@ -718,11 +724,27 @@
       border-radius: 0;
     }
 
+    /*
+     * Two lines of text to a row (revision 9): the table at the smallest silkscreen size, set a little
+     * tighter, so that its eleven rows keep to the height of the board.
+     */
     .board--home .bom {
       position: relative;
       z-index: 1;
       width: calc(664 * var(--u));
       margin: 0 0 0 calc(824 * var(--u));
+      font-size: var(--text-floor);
+      line-height: 1.3;
+    }
+
+    .board--home .bom tbody :is(th, td) {
+      padding-top: 0.3125rem;
+      padding-bottom: 0.3125rem;
+    }
+
+    /* « Relié à » narrow, its references wrapping: the room goes to the two lines of the value. */
+    .board--home .bom .bom__linked {
+      width: 8rem;
     }
 
     .board--home .bom tbody {

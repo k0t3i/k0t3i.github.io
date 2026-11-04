@@ -22,7 +22,7 @@ import { BACK_NETS, BACK_PARTS } from '../../src/content/backNets';
 import { en } from '../../src/content/en';
 import { fr } from '../../src/content/fr';
 import { SITE } from '../../src/content/site';
-import { EN as ORACLE_EN, FR as ORACLE_FR, SITE as ORACLE_SITE, absolute, bomCells, bomDetails } from '../helpers/copy';
+import { EN as ORACLE_EN, FR as ORACLE_FR, SITE as ORACLE_SITE, absolute, bomCells, bomDetails, bomSkill } from '../helpers/copy';
 import type { PartContent, PartId } from '../../src/content/types';
 import { BACK_PASSIVES } from '../../src/content/backPassives';
 import { PACKAGES, PACKAGE_IDS } from '../../src/lib/packages';
@@ -488,9 +488,9 @@ describe('BackFace', () => {
         const r = oracle.rows[i];
         const row = rows[i];
         if (!r || !row) throw new Error('a row too many');
-        // Two lines: the real part and its value, then the skill and its details.
-        expect(tr.findAll('.bom__line').map((l) => text(l.element))).toEqual([r.value, r.skill]);
-        expect(tr.findAll('.bom__line').map((l) => text(l.element))).toEqual([row.value, `${row.skill} · ${row.details}`]);
+        // Two lines, each across two cells: the real part and its value, then the skill and its details.
+        expect(tr.findAll('.bom__line').map((l) => text(l.element))).toEqual([r.part, bomSkill(r), r.value, bomDetails(r)]);
+        expect(tr.findAll('.bom__line').map((l) => text(l.element))).toEqual([row.part, row.skill, row.value, row.details]);
         // « Relié à », computed from the netlist: printed in its column, and under the value for a narrow face.
         expect(text(tr.get('td.bom__linked').element)).toBe(r.linked);
         expect(text(tr.get('td.bom__linked').element)).toBe(row.linked.join(' · ') || bom.none);
@@ -523,8 +523,9 @@ describe('BackFace', () => {
         if (!r || !row) throw new Error('a part too many');
         expect(b.attributes('type')).toBe('button');
         expect(b.attributes('aria-describedby')).toBe(`value-${r.ref} details-${r.ref} links-${r.ref}`);
-        // The visible reference first (label in name), then the part and the skill, visually hidden.
-        expect(text(b.element)).toBe(r.name);
+        // The visible reference first (label in name), then the part and the skill.
+        expect(b.attributes('aria-label')).toBe(r.name);
+        expect(text(b.element)).toBe(r.ref);
         expect(b.get('.part__ref').text()).toBe(r.ref);
         expect(b.get('svg').attributes('aria-hidden')).toBe('true');
         const pkg = BACK_PARTS.find((p) => p.ref === r.ref)?.pkg;
@@ -537,10 +538,10 @@ describe('BackFace', () => {
         const tr = wrapper.get(`#row-${row.ref}`);
         const b = wrapper.get(`button.back-part[data-ref="${row.ref}"]`);
         expect(b.attributes('data-links')).toBe(tr.attributes('data-links'));
-        expect(text(b.element)).toBe(row.name);
+        expect(b.attributes('aria-label')).toBe(row.name);
         expect(row.name).toBe(`${src?.ref}, ${src?.part}, ${src?.skill}`);
-        expect(text(tr.findAll('td')[0]?.element as Element)).toBe(row.part);
-        expect(text(tr.findAll('.bom__line')[1]?.element as Element).startsWith(`${row.skill} · `)).toBe(true);
+        expect(text(tr.findAll('.bom__line')[0]?.element as Element)).toBe(row.part);
+        expect(text(tr.findAll('.bom__line')[1]?.element as Element)).toBe(row.skill);
       }
       // One path per net, its two ends named, and the signal that runs along it.
       const nets = wrapper.findAll('path.back-net');

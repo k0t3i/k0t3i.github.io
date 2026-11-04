@@ -101,11 +101,15 @@ export interface BomRow {
 /** « Relié à » of a part with no signal link. */
 export const BOM_NONE = '—';
 
-/** The cells of a row as the table prints them: the value cell holds its two lines. */
-export const bomCells = (r: BomRow): string[] => [r.ref, r.part, `${r.value} ${r.skill}`, r.linked];
-
-/** The details of the skill: line 2 without the skill itself. */
+/** The skill alone, and its details: line 2 cut at its first dot. */
+export const bomSkill = (r: BomRow): string => r.skill.slice(0, r.skill.indexOf(' · '));
 export const bomDetails = (r: BomRow): string => r.skill.slice(r.skill.indexOf(' · ') + 3);
+
+/**
+ * The cells of a row as the table prints them, each line across two cells: the part over its skill,
+ * the value over the details of the skill.
+ */
+export const bomCells = (r: BomRow): string[] => [r.ref, `${r.part} ${bomSkill(r)}`, `${r.value} ${bomDetails(r)}`, r.linked];
 
 /** Every reference of a « Relié à », its ranges spelt out: « U10 · D2–D5 » gives U10, D2, D3, D4, D5. */
 export function bomRefs(linked: string): string[] {

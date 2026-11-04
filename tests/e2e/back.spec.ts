@@ -17,6 +17,8 @@ const REFS = FR.back.rows.map((r) => r.ref);
  * of the table: the other parts it names (the front face, the passives) are not rows of it.
  */
 const NEIGHBOURS = Object.fromEntries(FR.back.rows.map((r) => [r.ref, bomRefs(r.linked).filter((to) => REFS.includes(to))]));
+/** The items of its « Relié à » as printed (a reference or a range each). */
+const PRINTED = Object.fromEntries(FR.back.rows.map((r) => [r.ref, r.linked.split(' · ')]));
 
 const face = (page: Page): Locator => page.locator('section.board__face--back');
 const part = (page: Page, ref: string): Locator => page.locator(`button.back-part[data-ref="${ref}"]`);
@@ -349,7 +351,7 @@ test.describe('the parts linked to the lit one', () => {
       }
       // The lit row: its gold rule, twice as wide, and its « Relié à » in the second colour.
       expect((await ruleOf(page, ref)).width).toBe(2);
-      expect(look.to[ref]).toEqual(neighbours.map(() => linked));
+      expect(look.to[ref]).toEqual((PRINTED[ref] ?? []).map(() => linked));
       for (const other of REFS.filter((r) => r !== ref)) for (const c of look.to[other] ?? []) expect(c, `${other} links`).not.toBe(linked);
       await page.mouse.move(1, 1);
       await expect.poll(async () => (await lighting(page)).linkedRows).toEqual([]);
@@ -372,7 +374,7 @@ test.describe('the parts linked to the lit one', () => {
         ]),
       ),
     );
-    expect(inline.U14).toEqual((NEIGHBOURS.U14 ?? []).map(() => linked));
+    expect(inline.U14).toEqual((PRINTED.U14 ?? []).map(() => linked));
     for (const other of REFS.filter((r) => r !== 'U14')) {
       expect(inline[other]?.length, other).toBeGreaterThan(0);
       for (const c of inline[other] ?? []) expect(c, other).not.toBe(linked);
@@ -465,7 +467,9 @@ test.describe('forced colours', () => {
       expect(look.outlines[ref], ref).toBe('dashed');
     }
     expect(look.outlines.U14).toBe('solid');
-    expect(look.outlines.U10).toBe('none');
+    // A part of the table not linked to U14.
+    expect(NEIGHBOURS.U14).not.toContain('U11');
+    expect(look.outlines.U11).toBe('none');
     expect(look.passives.length).toBeGreaterThan(20);
     for (const [display, line] of look.passives) expect([display, line]).toEqual(['inline', 'GrayText']);
   });
