@@ -605,9 +605,17 @@
       padding-bottom: 0.3125rem;
     }
 
-    /* « Relié à » narrow, its references wrapping: the room goes to the two lines of the value. */
+    /*
+     * « Relié à » wide enough for the row of U10 on four lines at most, « Composant » held at its
+     * width: the room they take comes from the two lines of the value.
+     */
     .board--home .bom .bom__linked {
-      width: 8rem;
+      width: 11rem;
+    }
+
+    .board--home .bom tbody td:first-of-type,
+    .board--home .bom thead th:nth-child(2) {
+      width: 9.5rem;
     }
 
     /*
