@@ -57,6 +57,15 @@ const refs = computed(() => drawn.value.map((p) => p.ref));
 const ready = ref(false);
 onMounted(() => {
   ready.value = true;
+  // The art is loaded lazily (the face is not drawn until the board turns): fetched once the page is
+  // idle, the one this width shows, so the first turn finds it in the cache.
+  const warm = () => {
+    const img = new Image();
+    img.decoding = 'async';
+    img.src = matchMedia('(max-width: 40rem)').matches ? artSmall : art;
+  };
+  if ('requestIdleCallback' in window) requestIdleCallback(warm, { timeout: 4000 });
+  else setTimeout(warm, 2000);
 });
 
 /*

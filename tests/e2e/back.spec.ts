@@ -743,3 +743,22 @@ test.describe('without JavaScript', () => {
     }
   }
 });
+
+test.describe('the art of the back face', () => {
+  test('is fetched once the page is idle, after its load, so the first turn finds it there', async ({ page }) => {
+    const fetched: { url: string; at: number }[] = [];
+    let loaded = Infinity;
+    page.on('request', (r) => {
+      if (/\/board-back(-small)?-[\w-]+\.svg$/.test(new URL(r.url()).pathname)) fetched.push({ url: r.url(), at: Date.now() });
+    });
+    page.on('load', () => {
+      loaded = Date.now();
+    });
+    await page.goto('/');
+    await expect.poll(() => fetched.length, { timeout: 8000 }).toBe(1);
+    expect(fetched[0]?.at).toBeGreaterThanOrEqual(loaded);
+    // The one that the face will show at this size (the small one on a narrow face).
+    const narrow = (page.viewportSize()?.width ?? 0) <= 640;
+    expect(fetched[0]?.url).toMatch(narrow ? /board-back-small-/ : /board-back-(?!small-)/);
+  });
+});
