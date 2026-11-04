@@ -234,9 +234,9 @@ describe('the netlist of the board', () => {
     for (const [pin, name] of [['DISP1.3', 'SPI_SCK'], ['DISP1.4', 'SPI_MOSI'], ['J3.5', 'SPI_SCK'], ['J3.3', 'SPI_MOSI'], ['J3.7', 'SPI_MISO']]) {
       expect(netOf(pin ?? '')?.name, pin).toBe(name);
     }
-    expect(netOf('SW1.1')?.pins).toContain('U14.4');
+    expect(netOf('SW1.1')?.pins).toContain('U14.6');
     expect(between(/^C\d/, netOf('SW1.1')?.name ?? '', 'GND'), 'SW1 debounced').toHaveLength(1);
     expect(netOf('SW2.2')?.pins).toContain('U14.5');
-    expect(netOf('JP1.2')?.pins).toContain('U14.6');
+    expect(netOf('JP1.2')?.pins).toContain('U14.4');
   });
 });

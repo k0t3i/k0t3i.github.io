@@ -11,10 +11,10 @@ import { DEVICES, type Device, type DeviceId } from './devices';
  *   its native USB on J5 through U13, UART0 and the boot pins on J6, the radio out through the π network
  *   (C14, L1, C15) to J7, its quad flash U11 on VDD_SPI (3.3 V: GPIO45 left to its weak pull-down).
  * - The front: DISP1 on SPI (SCK, MOSI, DC, CS); J3 (microSD) on the same bus, in SPI mode; J1, four
- *   GPIOs and 3.3 V; J2, the I²C bus (GND, 3V3, SDA, SCL); J4, a 1-Wire port (4.7 kΩ pull-up, D1
+ *   GPIOs and 3.3 V; J2, the I²C bus (SCL, SDA, 3V3, GND, as a Grove port); J4, a 1-Wire port (4.7 kΩ pull-up, D1
  *   clamps it to 3.3 V); LED1 lit through R1; C1 bypasses the 3.3 V rail; U2 (LM75B) measures the
  *   temperature, away from the hot parts; SW1 (debounced by R9 and C18), SW2 and JP1 (the theme) read by
- *   U14 (TCA9554), which raises EXP_INT.
+ *   U14 (TCA9554, JP1 on P0, SW2 on P1, SW1 on P2), which raises EXP_INT.
  * - On I²C (4.7 kΩ pull-ups): U14 0x20, U15 (PCA9633, the four status LEDs) 0x62, U16 (PCF8563, the
  *   uptime, its 32.768 kHz crystal Y2) 0x51, U18 (BH1750, ambient light) 0x23, U2 0x48.
  */
@@ -137,14 +137,14 @@ export const NETS: readonly Net[] = [
     U10.57 U11.4 U12.2 U13.2 U14.8 U14.1 U14.2 U14.3 U15.5 U16.4 U17.1 U18.3 U18.2 Y1.2 Y1.4 J6.6 J7.2 J7.3
     C2.2 C3.2 C4.2 C5.2 C6.2 C7.2 C8.2 C9.2 C10.2 C11.2 C12.2 C13.2 C14.2 C15.2 C16.2 C17.2 C18.2 C19.2 C20.2
     C21.2 C22.2 C23.2 C24.2 C25.2 C26.2 R2.2 R3.2 TP3.1
-    C1.2 LED1.K U2.4 U2.5 U2.6 U2.7 J1.6 J2.1 J3.6 J3.S1 J3.S2 J4.3
+    C1.2 LED1.K U2.4 U2.5 U2.6 U2.7 J1.6 J2.4 J3.6 J3.S1 J3.S2 J4.3
     J5.A1 J5.A12 J5.B1 J5.B12 J5.S1 J5.S2 J5.S3 J5.S4 SW1.3 SW1.4 SW2.3 JP1.3 DISP1.1`),
   net('VBUS', 'power', 'J5.A4 J5.B4 J5.A9 J5.B9 U12.1 U12.3 U13.5 C2.1 C26.1 TP2.1'),
   net('+3V3', 'power', `
     U12.5 C3.1 U10.2 U10.3 U10.20 U10.46 U10.55 U10.56 C4.1 C5.1 C6.1 C8.1 C9.1 C10.1
     R4.1 R5.1 R6.1 R7.1 R8.1 R9.1 R10.1 R11.1 R12.1 R13.1 R14.1 R15.1 R16.1 R17.1 R18.1 R19.1 R20.1
     U14.16 C17.1 U15.8 C19.1 U16.8 C20.1 U17.3 C21.1 U18.1 C22.1 C24.1 C25.1 J6.1
-    C1.1 D1.K U2.8 J1.5 J2.2 J3.4 J4.2 SW2.1 JP1.1 DISP1.2 TP1.1`),
+    C1.1 D1.K U2.8 J1.5 J2.3 J3.4 J4.2 SW2.1 JP1.1 DISP1.2 TP1.1`),
   net('VDD_SPI', 'power', 'U10.29 U11.8 C7.1 C16.1'),
   // The radio, through the π network.
   net('LNA_IN', 'signal', 'U10.1 C14.1 L1.1'),
@@ -171,27 +171,27 @@ export const NETS: readonly Net[] = [
   net('CC1', 'signal', 'J5.A5 R2.1'),
   net('CC2', 'signal', 'J5.B5 R3.1'),
   // The SPI bus: DISP1 and the microSD card (J3, its unused lines pulled up).
-  net('SPI_SCK', 'signal', 'U10.9 DISP1.3 J3.5', 'spi'),
-  net('SPI_MOSI', 'signal', 'U10.10 DISP1.4 J3.3', 'spi'),
+  net('SPI_SCK', 'signal', 'U10.6 DISP1.3 J3.5', 'spi'),
+  net('SPI_MOSI', 'signal', 'U10.7 DISP1.4 J3.3', 'spi'),
   net('SPI_MISO', 'signal', 'U10.11 J3.7 R17.2', 'spi'),
-  net('DISP_CS', 'signal', 'U10.6 DISP1.6'),
-  net('DISP_DC', 'signal', 'U10.7 DISP1.5'),
-  net('SD_CS', 'signal', 'U10.15 J3.2 R16.2'),
+  net('DISP_CS', 'signal', 'U10.10 DISP1.6'),
+  net('DISP_DC', 'signal', 'U10.9 DISP1.5'),
+  net('SD_CS', 'signal', 'U10.19 J3.2 R16.2'),
   net('SD_DAT1', 'signal', 'J3.8 R18.2'),
   net('SD_DAT2', 'signal', 'J3.1 R19.2'),
   // The I²C bus.
-  net('SDA', 'signal', 'U10.13 R6.2 U14.15 U15.7 U16.5 U18.4 U2.1 J2.3', 'i2c'),
-  net('SCL', 'signal', 'U10.14 R7.2 U14.14 U15.6 U16.6 U18.6 U2.2 J2.4', 'i2c'),
+  net('SDA', 'signal', 'U10.38 R6.2 U14.15 U15.7 U16.5 U18.4 U2.1 J2.2', 'i2c'),
+  net('SCL', 'signal', 'U10.39 R7.2 U14.14 U15.6 U16.6 U18.6 U2.2 J2.1', 'i2c'),
   // The inputs of the front, read by U14, and its interrupt.
   net('EXP_INT', 'signal', 'U10.12 U14.13 R8.2'),
-  net('BTN', 'signal', 'SW1.1 SW1.2 U14.4 R9.2 C18.1'),
+  net('BTN', 'signal', 'SW1.1 SW1.2 U14.6 R9.2 C18.1'),
   net('FLIP', 'signal', 'SW2.2 U14.5'),
-  net('THEME', 'signal', 'JP1.2 U14.6'),
+  net('THEME', 'signal', 'JP1.2 U14.4'),
   // J1: four GPIOs.
-  net('EXT1', 'signal', 'U10.16 J1.1'),
+  net('EXT1', 'signal', 'U10.18 J1.1'),
   net('EXT2', 'signal', 'U10.17 J1.2'),
-  net('EXT3', 'signal', 'U10.18 J1.3'),
-  net('EXT4', 'signal', 'U10.19 J1.4'),
+  net('EXT3', 'signal', 'U10.16 J1.3'),
+  net('EXT4', 'signal', 'U10.15 J1.4'),
   // J4: 1-Wire.
   net('ONEWIRE', 'signal', 'U10.23 J4.1 R20.2 D1.A'),
   // LED1, through R1.
@@ -226,8 +226,8 @@ export const NC: Readonly<Record<string, string>> = {
   'U10.24': UNUSED,
   'U10.27': UNUSED,
   'U10.28': 'SPICS1: chip select of an external PSRAM, none fitted',
-  'U10.38': UNUSED,
-  'U10.39': UNUSED,
+  'U10.13': UNUSED,
+  'U10.14': UNUSED,
   'U10.40': UNUSED,
   'U10.41': UNUSED,
   'U10.42': UNUSED,

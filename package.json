@@ -17,6 +17,7 @@
     "test:e2e": "playwright test",
     "validate": "node scripts/validate.mjs",
     "test:lh": "node scripts/lighthouse.mjs",
+    "gen:circuit": "vitest run --config tests/gen/vitest.config.ts tests/gen/circuit.gen.spec.ts",
     "test": "npm run typecheck && npm run lint && npm run test:unit && npm run build && npm run test:static && npm run test:e2e && npm run validate"
   },
   "devDependencies": {
