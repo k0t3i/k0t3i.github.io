@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { BACK_NETS, EN, FR, type Copy } from '../helpers/copy';
+import { BACK_NETS, EN, FR, bomCells, bomDetails, bomRefs, type Copy } from '../helpers/copy';
 
 /*
  * The back face (spec rev. 5): every part drawn on it is a skill of the bill of materials, and every
@@ -11,8 +11,12 @@ import { BACK_NETS, EN, FR, type Copy } from '../helpers/copy';
 const GOLD = 'rgb(201, 164, 92)';
 const SILK = 'rgb(232, 228, 218)';
 const WIDE = { width: 1600, height: 900 };
-const REFS = FR.back.rows.map((r) => r[0]);
-const NEIGHBOURS = Object.fromEntries(FR.back.rows.map((r) => [r[0], r[3].split(' · ')]));
+const REFS = FR.back.rows.map((r) => r.ref);
+/**
+ * The parts of the table each one is linked to (its « Relié à », the ranges spelt out), in the order
+ * of the table: the other parts it names (the front face, the passives) are not rows of it.
+ */
+const NEIGHBOURS = Object.fromEntries(FR.back.rows.map((r) => [r.ref, bomRefs(r.linked).filter((to) => REFS.includes(to))]));
 
 const face = (page: Page): Locator => page.locator('section.board__face--back');
 const part = (page: Page, ref: string): Locator => page.locator(`button.back-part[data-ref="${ref}"]`);
@@ -140,10 +144,10 @@ test.describe('the back face lights up', () => {
     // still passed 3 times in 3 by its timing; the mat only shifted the timing. So, once the board has
     // leant, the row is pointed at again.
     await page.setViewportSize({ width: 768, height: 1024 });
-    await row(page, 'U20').hover();
+    await row(page, 'J6').hover();
     await page.waitForTimeout(800);
-    await row(page, 'U20').hover();
-    await expectLit(page, 'U20');
+    await row(page, 'J6').hover();
+    await expectLit(page, 'J6');
   });
 
   test('keyboard: one tab stop, arrows, Enter pins', async ({ page }) => {
@@ -167,11 +171,11 @@ test.describe('the back face lights up', () => {
     await page.keyboard.press('ArrowDown');
     await expect(part(page, 'U12')).toBeFocused();
     await page.keyboard.press('End');
-    await expect(part(page, 'U20')).toBeFocused();
+    await expect(part(page, 'J6')).toBeFocused();
     await page.keyboard.press('ArrowRight');
     await expect(part(page, 'U10')).toBeFocused();
     await page.keyboard.press('ArrowLeft');
-    await expect(part(page, 'U20')).toBeFocused();
+    await expect(part(page, 'J6')).toBeFocused();
     await page.keyboard.press('Home');
     await expect(part(page, 'U10')).toBeFocused();
     expect(await page.locator('button.back-part[tabindex="0"]').count()).toBe(1);
@@ -417,11 +421,11 @@ test.describe('the parts linked to the lit one', () => {
         await page.mouse.move(1, 1);
         await expectLit(page, 'U14');
         // Every text of the lit row and of its neighbours, on its row, on the face.
-        const texts = await face(page).evaluate((el) => {
+        const texts = await face(page).evaluate((el, lit) => {
           const under = getComputedStyle(el).backgroundColor;
           const out: { what: string; color: string; background: string; under: string }[] = [];
           for (const tr of el.querySelectorAll<HTMLTableRowElement>('tbody tr')) {
-            if (!['U12', 'U14', 'U17', 'U19'].includes(tr.dataset.ref ?? '')) continue;
+            if (!lit.includes(tr.dataset.ref ?? '')) continue;
             for (const cell of tr.cells) {
               const background = getComputedStyle(cell).backgroundColor;
               for (const t of [cell, ...cell.querySelectorAll<HTMLElement>('span')]) {
@@ -431,7 +435,7 @@ test.describe('the parts linked to the lit one', () => {
             }
           }
           return out;
-        });
+        }, ['U14', ...(NEIGHBOURS.U14 ?? [])]);
         expect(texts.length).toBeGreaterThan(12);
         for (const t of texts) expect(contrastOn(t.color, t.background, t.under), `${viewport.width}px ${t.what}`).toBeGreaterThanOrEqual(4.5);
       }
@@ -490,13 +494,14 @@ test.describe('the circuit on a flowing board', () => {
 test.describe('the description of a part', () => {
   for (const copy of [FR, EN] as Copy[]) {
     for (const viewport of [WIDE, { width: 390, height: 844 }]) {
-      test(`a part is described by its value and the parts it is linked to, labelled (${copy.path}, ${viewport.width}px)`, async ({ page, isMobile }) => {
+      test(`a part is named « {repère}, {composant}, {compétence} », described by its value, its details and the parts it is linked to (${copy.path}, ${viewport.width}px)`, async ({ page, isMobile }) => {
         test.skip(isMobile && viewport.width > 390, 'the phone sizes only');
         if (!isMobile) await page.setViewportSize(viewport);
         await showBack(page, copy.path);
-        for (const [ref = '', , value, links] of copy.back.rows) {
-          // Not its name again: the reference and the skill are its name already.
-          await expect(part(page, ref)).toHaveAccessibleDescription(`${value} ${copy.back.columns[3]} ${links}`);
+        for (const r of copy.back.rows) {
+          await expect(part(page, r.ref)).toHaveAccessibleName(r.name);
+          // Not its name again: the part and the skill are its name already.
+          await expect(part(page, r.ref)).toHaveAccessibleDescription(`${r.value} ${bomDetails(r)} ${copy.back.columns[3]} ${r.linked}`);
         }
       });
     }
@@ -512,11 +517,11 @@ test.describe('the back face on a touch screen', () => {
     await expect(part(page, 'U15')).toHaveAttribute('aria-pressed', 'true');
     await expectLit(page, 'U15');
     // A tap on another part moves the pin; the same part again turns it off, and nothing stays lit.
-    await part(page, 'U19').tap();
+    await part(page, 'Y1').tap();
     await expect(part(page, 'U15')).toHaveAttribute('aria-pressed', 'false');
-    await expectLit(page, 'U19');
-    await part(page, 'U19').tap();
-    await expect(part(page, 'U19')).toHaveAttribute('aria-pressed', 'false');
+    await expectLit(page, 'Y1');
+    await part(page, 'Y1').tap();
+    await expect(part(page, 'Y1')).toHaveAttribute('aria-pressed', 'false');
     await expect.poll(async () => (await lighting(page)).active).toBeNull();
     await expect.poll(async () => (await lighting(page)).nets).toEqual([]);
   });
@@ -670,7 +675,7 @@ test.describe('without JavaScript', () => {
             }),
           ),
         );
-        expect(rows).toEqual(copy.back.rows);
+        expect(rows).toEqual(copy.back.rows.map(bomCells));
         // On a phone the links are printed under the value, in place of the last column.
         const narrow = (page.viewportSize()?.width ?? 0) < 600;
         const shown = await page.locator('table.bom tbody tr').first().evaluate((tr) => ({
@@ -684,7 +689,7 @@ test.describe('without JavaScript', () => {
         await expect(page.locator('button.back-part:not([disabled])')).toHaveCount(0);
         await expect(page.locator('.back__parts')).toHaveAttribute('aria-hidden', 'true');
         await expect(page.locator('.back__parts')).not.toHaveAttribute('role', /.*/);
-        await expect(page.getByRole('button', { name: /^U1\d|^U20/ })).toHaveCount(0);
+        await expect(page.getByRole('button', { name: /^(U1\d|Y1|J6),/ })).toHaveCount(0);
       });
     }
   }
