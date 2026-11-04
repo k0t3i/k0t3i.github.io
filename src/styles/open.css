@@ -1,0 +1,175 @@
+/*
+ * The open-circuit page (404): the flowing board, one face, flat (depth.css), on the base page. Its
+ * silkscreen name, the title in both languages, a cut trace (a drawing, static: nothing here moves),
+ * then the way back to the board, French first. Sizes follow the hero of the home board.
+ */
+@layer board {
+  /* The name over the revision, as on the home board (its areas: board.css). */
+  .open__header {
+    display: grid;
+    grid-template-areas:
+      "name"
+      "rev";
+    align-content: center;
+    min-height: 2.75rem;
+  }
+
+  .open {
+    padding-block: 2.75rem 2.5rem;
+  }
+
+  .open__title {
+    color: var(--silk);
+    font-size: 2.75rem;
+    font-weight: 200;
+    line-height: 1.04;
+    letter-spacing: -0.025em;
+    overflow-wrap: break-word;
+  }
+
+  /* The same title in English, on its own line, in the dim silkscreen. */
+  .open__en {
+    display: block;
+    margin-top: 0.5rem;
+    color: var(--silk-dim);
+    font-size: 0.64em;
+    line-height: 1.15;
+  }
+
+  /*
+   * The cut trace, in the symbol unit of the board at full size; narrower faces scale it down. The
+   * trace is copper under the mask; at the cut the mask is scraped off (bare copper, gold) and the
+   * scratch goes down to the FR4 core.
+   */
+  .open__trace {
+    width: 100%;
+    max-width: 25rem;
+    height: auto;
+    margin-top: 2.25rem;
+  }
+
+  .open__copper {
+    fill: none;
+    stroke: var(--trace);
+    stroke-width: 4;
+    stroke-linejoin: round;
+  }
+
+  .open__bare,
+  .open__pads {
+    fill: var(--pad);
+  }
+
+  .open__scratch {
+    fill: none;
+    stroke: var(--fr4);
+    stroke-width: 2.5;
+    stroke-linecap: round;
+  }
+
+  .open__drills {
+    fill: var(--drill);
+  }
+
+  /* French, then English: one column on a phone, two side by side from 36rem. */
+  .open__langs {
+    display: grid;
+    gap: 2rem var(--gap);
+    margin-top: 2rem;
+  }
+
+  .open__lang {
+    display: grid;
+    align-content: start;
+    justify-items: start;
+    row-gap: 1rem;
+  }
+
+  .open__text {
+    max-width: 30ch;
+    color: var(--silk);
+    font-size: 1.0625rem;
+    line-height: 1.55;
+    text-wrap: pretty;
+  }
+
+  .open__lang + .open__lang .open__text {
+    color: var(--silk-dim);
+  }
+
+  /* The way back: a silkscreen zone with a pad, like a test point to reconnect to. A 44px target. */
+  .open__back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.625rem;
+    min-height: 2.75rem;
+    padding: 0.5rem 1rem 0.5rem 0.75rem;
+    border: 1px solid var(--line);
+    border-radius: 0.1875rem;
+    color: var(--silk);
+    font: 500 var(--text-silk) / 1.3 var(--font-mono);
+    letter-spacing: 0.04em;
+    text-decoration: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .open__back::before {
+    content: "";
+    flex: none;
+    width: 0.625rem;
+    height: 0.625rem;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--drill) 0 0.1875rem, var(--pad) calc(0.1875rem + 0.5px));
+  }
+
+  .open__back:focus-visible {
+    --pad: var(--pad-lit);
+
+    outline-offset: 0.25rem;
+  }
+
+  @media (hover: hover) {
+    .open__back:hover {
+      --pad: var(--pad-lit);
+
+      border-color: var(--silk-dim);
+    }
+  }
+
+  /* Pressed: the zone lights at once (no transition). */
+  .open__back:active {
+    --pad: var(--pad-lit);
+
+    border-color: var(--silk);
+  }
+
+  @media (min-width: 30rem) {
+    .open__title {
+      font-size: 3.5rem;
+    }
+  }
+
+  /* Side by side, each text over its link: the two links on one line, whatever the length of the texts. */
+  @media (min-width: 36rem) {
+    .open__langs {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-rows: auto auto;
+      row-gap: 1rem;
+    }
+
+    .open__lang {
+      grid-row: span 2;
+      grid-template-rows: subgrid;
+    }
+  }
+
+  @media (min-width: 40rem) {
+    .open {
+      padding-block: 4rem 3.5rem;
+    }
+
+    .open__trace {
+      margin-top: 2.75rem;
+    }
+  }
+}

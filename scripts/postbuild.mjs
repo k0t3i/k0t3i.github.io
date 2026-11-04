@@ -3,15 +3,18 @@
 //   2. every dist/**/*.html gets its Content-Security-Policy <meta>, right after <meta charset>,
 //      and its data-critical scripts right after the CSP: the theme, then the language redirect;
 //   3. fails if a page has an inline style (the CSP forbids it);
-//   4. fails if dist/kit-urgence exists (that folder belongs to another repository).
+//   4. fails if dist/kit-urgence exists (that folder belongs to another repository);
+//   5. writes dist/robots.txt and dist/sitemap.xml, from the baseUrl of src/content/site.json.
 // It also removes dist/.vite (the SSR manifest is of no use once pages are prerendered).
 import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync, renameSync, rmdirSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 // DIST_DIR: another output folder (vite.config.ts builds there too).
-const DIST = resolve(dirname(fileURLToPath(import.meta.url)), '..', process.env.DIST_DIR || 'dist');
+const DIST = resolve(ROOT, process.env.DIST_DIR || 'dist');
+const SITE_JSON = join(ROOT, 'src', 'content', 'site.json');
 
 const CHARSET = /<meta\s+charset=[^>]*>/i;
 const CSP_META = /<meta\s+http-equiv=["']Content-Security-Policy["'][^>]*>/gi;
@@ -93,6 +96,35 @@ export function inlineStyleProblems(html) {
   return problems;
 }
 
+/** robots.txt: every page may be crawled; the sitemap is given by its absolute URL. */
+export function robotsTxt(baseUrl) {
+  return `User-agent: *\nAllow: /\nSitemap: ${baseUrl}sitemap.xml\n`;
+}
+
+const xml = (text) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+/**
+ * sitemap.xml: the two pages, each with the day of the build (YYYY-MM-DD) and the same three
+ * alternates as the hreflang links of their head (usePageHead.ts). The 404 page is not listed.
+ */
+export function sitemapXml(baseUrl, lastmod) {
+  const fr = xml(baseUrl);
+  const en = xml(`${baseUrl}en/`);
+  const alternates = [
+    ['fr', fr],
+    ['en', en],
+    ['x-default', fr],
+  ]
+    .map(([lang, href]) => `    <xhtml:link rel="alternate" hreflang="${lang}" href="${href}"/>\n`)
+    .join('');
+  const urls = [fr, en].map((loc) => `  <url>\n    <loc>${loc}</loc>\n    <lastmod>${lastmod}</lastmod>\n${alternates}  </url>\n`).join('');
+  return (
+    '<?xml version="1.0" encoding="UTF-8"?>\n' +
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">\n' +
+    `${urls}</urlset>\n`
+  );
+}
+
 function htmlFiles(dir) {
   return readdirSync(dir, { recursive: true, withFileTypes: true })
     .filter((d) => d.isFile() && d.name.endsWith('.html'))
@@ -119,6 +151,13 @@ function main() {
   }
 
   if (existsSync(join(DIST, 'kit-urgence'))) errors.push('dist/kit-urgence exists, it belongs to another repository');
+
+  const { baseUrl } = JSON.parse(readFileSync(SITE_JSON, 'utf8'));
+  if (!/^https:\/\/[^/]+\/$/.test(baseUrl ?? '')) errors.push(`site.json: baseUrl must be https://host/, got ${baseUrl}`);
+  else {
+    writeFileSync(join(DIST, 'robots.txt'), robotsTxt(baseUrl));
+    writeFileSync(join(DIST, 'sitemap.xml'), sitemapXml(baseUrl, new Date().toISOString().slice(0, 10)));
+  }
 
   if (errors.length) {
     for (const e of errors) console.error(`postbuild: ${e}`);

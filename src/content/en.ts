@@ -7,7 +7,7 @@ export const en: SiteContent = {
     title: 'Anthony · Principal front-end engineer',
     description:
       'Principal front-end engineer since 2004: accessibility, performance, architecture, debugging. Five principles and two projects, on a circuit board.',
-    ogImageAlt: 'Black circuit board: Front-end, no shortcuts.',
+    ogImageAlt: 'Green circuit board: Front-end, no shortcuts.',
   },
   skipLink: 'Skip to content',
   langNav: {

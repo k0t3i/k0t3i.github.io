@@ -9,7 +9,7 @@ export const fr: SiteContent = {
   meta: {
     title: 'Anthony · Ingénieur front-end principal',
     description: `Ingénieur front-end principal depuis 2004${NB}: accessibilité, performance, architecture, debug. Cinq principes et deux projets, sur une carte électronique.`,
-    ogImageAlt: `Carte électronique noire${NB}: Front-end, sans raccourcis.`,
+    ogImageAlt: `Carte électronique verte${NB}: Front-end, sans raccourcis.`,
   },
   skipLink: 'Aller au contenu',
   langNav: {

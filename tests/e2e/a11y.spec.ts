@@ -88,3 +88,19 @@ for (const scheme of ['light', 'dark'] as const) {
     });
   }
 }
+
+// The open-circuit page (404): one face, nothing inert, so every rule applies.
+for (const scheme of ['light', 'dark'] as const) {
+  test.describe(`axe on the open-circuit page, ${scheme} scheme`, () => {
+    test.use({ colorScheme: scheme });
+
+    for (const viewport of [null, { width: 390, height: 844 }]) {
+      test(`unknown path${viewport ? ' on a phone-sized window' : ''}`, async ({ page }) => {
+        if (viewport) await page.setViewportSize(viewport);
+        await page.goto('/nope');
+        await expect(page.locator('h1')).toBeVisible();
+        expect(await violations(page)).toEqual([]);
+      });
+    }
+  });
+}

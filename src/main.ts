@@ -6,6 +6,7 @@ import './styles/tokens.css';
 import './styles/fonts.css';
 import './styles/base.css';
 import './styles/board.css';
+import './styles/open.css';
 import './styles/parts.css';
 import './styles/sheets.css';
 import './styles/wide.css';

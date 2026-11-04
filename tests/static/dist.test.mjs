@@ -17,6 +17,10 @@ test('dist pages exist', () => {
   assert.ok(!existsSync(at('404')), 'dist/404/ must not exist');
 });
 
+test('robots, sitemap and share images are published', () => {
+  for (const f of ['robots.txt', 'sitemap.xml', 'img/og-fr.jpg', 'img/og-en.jpg']) assert.ok(existsSync(at(f)), `dist/${f} is missing`);
+});
+
 test('no inline style in prerendered html', () => {
   const files = htmlFiles();
   assert.ok(files.length >= 3);

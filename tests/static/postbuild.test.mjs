@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { hoistCritical, inlineScriptBodies, inlineStyleProblems, insertCsp, transformHtml } from '../../scripts/postbuild.mjs';
+import { hoistCritical, inlineScriptBodies, inlineStyleProblems, insertCsp, robotsTxt, sitemapXml, transformHtml } from '../../scripts/postbuild.mjs';
 
 const hashOf = (body) => `'sha256-${createHash('sha256').update(body, 'utf8').digest('base64')}'`;
 const CHARSET = '<meta charset="utf-8">';
@@ -69,4 +69,27 @@ test('inline style attributes and blocks are problems', () => {
   assert.deepEqual(inlineStyleProblems('<div style="color:red"></div>'), ['has a style attribute']);
   assert.deepEqual(inlineStyleProblems('<style>a{}</style>'), ['has a <style> block']);
   assert.deepEqual(inlineStyleProblems('<div data-style="x"></div>'), []);
+});
+
+test('robots.txt allows everything and gives the absolute sitemap', () => {
+  assert.equal(robotsTxt('https://example.org/'), 'User-agent: *\nAllow: /\nSitemap: https://example.org/sitemap.xml\n');
+});
+
+test('the sitemap lists both pages with their date and their three alternates', () => {
+  const xml = sitemapXml('https://example.org/', '2026-11-04');
+  assert.ok(xml.startsWith('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">'));
+  const urls = [...xml.matchAll(/<url>([\s\S]*?)<\/url>/g)].map(([, body]) => body);
+  assert.deepEqual(urls.map((u) => u.match(/<loc>([^<]*)<\/loc>/)?.[1]), ['https://example.org/', 'https://example.org/en/']);
+  for (const u of urls) {
+    assert.match(u, /<lastmod>2026-11-04<\/lastmod>/);
+    assert.deepEqual(
+      [...u.matchAll(/<xhtml:link rel="alternate" hreflang="([^"]*)" href="([^"]*)"\/>/g)].map(([, lang, href]) => `${lang} ${href}`),
+      ['fr https://example.org/', 'en https://example.org/en/', 'x-default https://example.org/'],
+    );
+  }
+  assert.ok(xml.endsWith('</urlset>\n'));
+});
+
+test('the sitemap escapes its URLs', () => {
+  assert.match(sitemapXml('https://example.org/?a=1&b=2/', '2026-11-04'), /<loc>https:\/\/example\.org\/\?a=1&amp;b=2\/<\/loc>/);
 });

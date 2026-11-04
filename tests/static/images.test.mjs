@@ -47,3 +47,14 @@ test('favicons', () => {
   assert.match(svg, /viewBox/);
   assert.doesNotMatch(svg, /<script/i);
 });
+
+test('og images are 1200×630 JPEG ≤ 150 KB', () => {
+  for (const lang of ['fr', 'en']) {
+    const file = img(`og-${lang}.jpg`);
+    assert.ok(existsSync(file), `og-${lang}.jpg is missing: run node scripts/og.mjs`);
+    const buf = readFileSync(file);
+    const info = imageSize(buf);
+    assert.deepEqual([info.type, info.width, info.height], ['jpeg', 1200, 630], `og-${lang}.jpg`);
+    assert.ok(buf.length <= 150 * 1024, `og-${lang}.jpg is ${buf.length} bytes`);
+  }
+});

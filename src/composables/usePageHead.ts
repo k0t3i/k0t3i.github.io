@@ -1,7 +1,7 @@
 import { useHead } from '@unhead/vue';
 import { toValue, type MaybeRefOrGetter } from 'vue';
 import { SITE } from '../content/site';
-import type { SiteContent } from '../content/types';
+import type { Locale, SiteContent } from '../content/types';
 import { REDIRECT_SNIPPET } from '../lib/langRedirect';
 import { THEME_SNIPPET } from '../lib/theme';
 // ?url gives the hashed URL of the build, the same one fonts.css points to: the preload is reused.
@@ -11,6 +11,9 @@ import monoUrl from '../assets/fonts/jetbrains-mono.woff2?url';
 import artUrl from '../assets/img/board-wide.svg?url';
 
 const KNOWS_ABOUT = ['Front-end development', 'Web accessibility', 'Web performance', 'Software architecture', 'Debugging'];
+
+/** The locale of a link preview (Open Graph): language and territory. */
+const OG_LOCALE: Record<Locale, string> = { fr: 'fr_FR', en: 'en_GB' };
 
 /** `<` is escaped so that no string of the data can close the script element. */
 const json = (data: unknown): string => JSON.stringify(data).replace(/</g, '\\u003c');
@@ -39,13 +42,15 @@ export function useThemeHead(): void {
 }
 
 /**
- * SEO head of a home page: title, description, canonical, hreflang, JSON-LD and, on the French
- * page only, the language redirect. The icons are in index.html, shared with the 404 page.
+ * SEO head of a home page: title, description, link preview (Open Graph, with the Twitter card),
+ * canonical, hreflang, JSON-LD and, on the French page only, the language redirect. The icons are
+ * in index.html, shared with the 404 page.
  */
 export function usePageHead(source: MaybeRefOrGetter<SiteContent>): void {
   useHead(() => {
     const content = toValue(source);
     const url = content.locale === 'fr' ? SITE.baseUrl : `${SITE.baseUrl}en/`;
+    const other: Locale = content.locale === 'fr' ? 'en' : 'fr';
     const jobTitle = content.meta.title.split(' · ')[1] ?? content.meta.title;
     const jsonLd = {
       '@context': 'https://schema.org',
@@ -67,6 +72,23 @@ export function usePageHead(source: MaybeRefOrGetter<SiteContent>): void {
       title: content.meta.title,
       meta: [
         { name: 'description', content: content.meta.description },
+        /*
+         * The preview of a shared link: the green board of this language, captured by scripts/og.mjs.
+         * Absolute URLs, as crawlers need them. og:image comes before its structured properties.
+         */
+        { property: 'og:type', content: 'website' },
+        { property: 'og:title', content: content.meta.title },
+        { property: 'og:description', content: content.meta.description },
+        { property: 'og:url', content: url },
+        { property: 'og:image', content: `${SITE.baseUrl}img/og-${content.locale}.jpg` },
+        { property: 'og:image:type', content: 'image/jpeg' },
+        { property: 'og:image:width', content: '1200' },
+        { property: 'og:image:height', content: '630' },
+        { property: 'og:image:alt', content: content.meta.ogImageAlt },
+        { property: 'og:locale', content: OG_LOCALE[content.locale] },
+        { property: 'og:locale:alternate', content: OG_LOCALE[other] },
+        // X reads the Open Graph tags above; this one asks for the large image.
+        { name: 'twitter:card', content: 'summary_large_image' },
       ],
       link: [
         // Both faces are on the first screen (title and silkscreen). Fonts are always fetched in CORS mode.

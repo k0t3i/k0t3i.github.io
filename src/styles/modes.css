@@ -170,9 +170,18 @@
       border: 1px solid CanvasText;
     }
 
-    /* The header pads of DISP1 are gradients: drawn as outlines instead. */
-    .disp__pin::before {
+    /* The header pads of DISP1 and the pads of the links of the 404 page are gradients: drawn as outlines instead. */
+    .disp__pin::before,
+    .open__back::before {
       border: 2px solid CanvasText;
+    }
+
+    /* The cut trace of the 404 page: the trace in grey, its pads and bare ends in the text colour, the scratch a hole. */
+    .open__trace {
+      --trace: GrayText;
+      --fr4: Canvas;
+
+      forced-color-adjust: none;
     }
 
     :focus-visible {
