@@ -1,3 +1,16 @@
+/* The point of the glow over the mat (useGlow.ts), written each frame on the glow only: registered, not inherited. */
+@property --glow-x {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --glow-y {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
 @layer reset {
   *,
   *::before,
@@ -67,6 +80,64 @@
     body {
       padding: 1.5rem 1rem;
     }
+  }
+
+  /*
+   * The workbench mat (revision 8, App.vue): a fine grid of dots over the page, fixed to the window,
+   * under everything. A 1px square in each cell of 12px, on whole pixels: crisp at 1x and 2x. It is
+   * static; the wave and the glow (motion.css) light its dots, with the same grid of their own.
+   */
+  .mat {
+    position: fixed;
+    inset: 0 0 auto;
+    z-index: -1;
+    height: 100lvh;
+    overflow: hidden;
+    background: conic-gradient(from 270deg at 1px 1px, var(--dot) 25%, #0000 0) 6px 6px / 12px 12px;
+    pointer-events: none;
+  }
+
+  .mat__wave::before,
+  .mat__glow {
+    position: absolute;
+    top: 0;
+    left: 0;
+    background: conic-gradient(from 270deg at 1px 1px, var(--dot-lit) 25%, #0000 0) 6px 6px / 12px 12px;
+  }
+
+  /*
+   * The wave: a soft band, off the page at rest; its dots are the grid of the window, moved back as
+   * much as the band (motion.css runs both).
+   */
+  .mat__wave {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 30rem;
+    overflow: hidden;
+    transform: translateX(-30rem);
+    mask: linear-gradient(100deg, #0000 15%, #000, #0000 85%);
+  }
+
+  .mat__wave::before {
+    content: "";
+    width: 100vw;
+    height: 100%;
+    transform: translateX(30rem);
+  }
+
+  /* The glow: a lamp of 768px centred on its point, lighter at its middle; off until a mouse moves (useGlow.ts). */
+  .mat__glow {
+    width: 768px;
+    height: 768px;
+    margin: -384px;
+    background-color: var(--lamp);
+    opacity: 0;
+    transform: translate(var(--glow-x), var(--glow-y));
+    mask: radial-gradient(closest-side, #000, #0000);
+  }
+
+  .mat__glow[data-on] {
+    opacity: 1;
   }
 
   a {

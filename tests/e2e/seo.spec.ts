@@ -167,12 +167,14 @@ test.describe('the open-circuit page', () => {
     });
   }
 
-  test('the open circuit is static, even when motion is welcome', async ({ page }) => {
+  test('the open circuit is static, even when motion is welcome: only the wave of the page runs', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await page.goto('/nope');
     await expect(page.locator('h1')).toBeVisible();
     await page.waitForLoadState('networkidle');
-    expect(await page.evaluate(() => document.getAnimations().length)).toBe(0);
+    // The board never moves here; the page around it is the same as on the home page (revision 8).
+    const names = await page.evaluate(() => document.getAnimations().map((a) => ('animationName' in a ? (a as CSSAnimation).animationName : 'transition')).sort());
+    expect(names).toEqual(['mat-dots', 'mat-wave']);
   });
 
   // Motion welcome (the default here): the view transition out of this page is skipped, it crashed WebKit on an iPhone.

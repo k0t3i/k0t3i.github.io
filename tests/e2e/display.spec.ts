@@ -13,8 +13,17 @@ const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-prac
 /** One unit of the Morse code (lib/morse.ts), and HELLO with the dark letter gap before and after it. */
 const UNIT = 240;
 const SEQUENCE_UNITS = 3 + 49 + 3;
-/** What runs on the wide board at rest: the ambient signals and the LED (motion.spec.ts). */
-const AT_REST_WIDE = ['led-breathe part-led1::after', 'signal signal', 'signal signal', 'signal signal', 'signal signal'];
+/** What runs on the wide board at rest: the ambient signals, the LED and the wave of the page (motion.spec.ts). */
+const AT_REST_WIDE = [
+  'led-breathe part-led1::after',
+  // The wave of the page (revision 8): its band, and its dots moved back as much (background.spec.ts).
+  'mat-dots app::before',
+  'mat-wave app',
+  'signal signal',
+  'signal signal',
+  'signal signal',
+  'signal signal',
+];
 
 const board = (page: Page): Locator => page.locator('div.board');
 const figure = (page: Page): Locator => page.locator('figure.disp');

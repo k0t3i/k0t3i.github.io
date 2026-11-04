@@ -82,3 +82,67 @@ test('every animation and transition under prefers-reduced-motion: no-preference
   assert.ok(blocks.length > 0);
   for (const b of blocks) assert.ok(welcome(b.parents), `${where(b)}: outside prefers-reduced-motion: no-preference`);
 });
+
+/** The keyframes of an animation: each offset (0 to 1) with its declarations. */
+function keyframes(name) {
+  const frames = DECLARATIONS.filter((d) => d.parents.some((p) => p === `@keyframes ${name}`));
+  return frames.flatMap((d) => {
+    const selector = d.parents.at(-1);
+    return splitTopLevel(selector).map((s) => ({ at: s === 'from' ? 0 : s === 'to' ? 1 : parseFloat(s) / 100, property: d.property, value: d.value }));
+  });
+}
+
+/** The animation shorthand of a selector in the stylesheets: its name and its duration, in seconds. */
+function animationOf(selector) {
+  const d = DECLARATIONS.find((x) => x.property === 'animation' && x.parents.at(-1) === selector);
+  assert.ok(d, `no animation on ${selector}`);
+  const items = splitTopLevel(d.value, ' ');
+  const duration = items.find((t) => TIME.test(t)) ?? '';
+  return { name: items[0], seconds: parseFloat(duration) / (duration.endsWith('ms') ? 1000 : 1), declaration: d };
+}
+
+test('the wave of the page: a pass of about 3 s, every 20 s, its band and its dots moved as one', () => {
+  // Revision 8: a soft band of lit dots crosses the mat now and then. The band moves; the dots in it
+  // move back as much, so they stay on the grid of the mat (two transforms, composited).
+  const band = animationOf('.mat__wave');
+  const dots = animationOf('.mat__wave::before');
+  for (const a of [band, dots]) {
+    assert.equal(a.seconds, 20, `${a.name}: one pass every 20 s`);
+    assert.ok(welcome(a.declaration.parents), `${a.name}: outside prefers-reduced-motion: no-preference`);
+    assert.match(a.declaration.value, /\binfinite\b/);
+  }
+  // The same timing for both: the dots never slide on the mat.
+  assert.equal(band.declaration.value.replace(band.name, ''), dots.declaration.value.replace(dots.name, ''));
+  const [b, d] = [keyframes(band.name), keyframes(dots.name)];
+  assert.ok(b.length >= 2 && b.every((f) => f.property === 'transform'), `${band.name}: transform only`);
+  assert.deepEqual(
+    d.map((f) => f.at),
+    b.map((f) => f.at),
+  );
+  // Each offset of the dots undoes the one of the band: translateX(v) against translateX(-v).
+  const amount = (v) => v.replace(/^translateX\((-?)(.*)\)$/, (_, sign, x) => (sign ? x : `-${x}`));
+  for (const [i, f] of b.entries()) assert.equal(amount(f.value), d[i]?.value.replace(/^translateX\((.*)\)$/, '$1'), `offset ${f.at}`);
+  // It moves between two offsets only, 3 s of the 20 s; the rest of the time it is off the page.
+  const values = [...new Set(b.map((f) => f.value))];
+  assert.equal(values.length, 2);
+  const leaves = Math.max(...b.filter((f) => f.value === values[0]).map((f) => f.at));
+  const arrives = Math.min(...b.filter((f) => f.value === values[1]).map((f) => f.at));
+  assert.ok(Math.abs((arrives - leaves) * band.seconds - 3) < 0.25, `a pass of ${((arrives - leaves) * band.seconds).toFixed(2)} s`);
+});
+
+test('the glow of the page writes registered properties that are not inherited', () => {
+  // A frame of the glow (useGlow.ts) restyles the glow alone, never the document under it.
+  const properties = BLOCKS.filter((b) => /^@property --glow-/.test(b.prelude)).map((b) => b.prelude.replace('@property ', ''));
+  assert.deepEqual(properties.sort(), ['--glow-x', '--glow-y']);
+  for (const name of properties) {
+    const inherits = DECLARATIONS.find((d) => d.property === 'inherits' && d.parents.at(-1) === `@property ${name}`);
+    assert.equal(inherits?.value, 'false', `${name} inherits`);
+  }
+});
+
+test('the mat, its wave and its glow go with more contrast and in forced colours', () => {
+  for (const media of ['@media (prefers-contrast: more)', '@media (forced-colors: active)']) {
+    const off = DECLARATIONS.filter((d) => d.parents.includes(media) && d.property === 'display' && d.value === 'none' && /(^|,\s*)\.mat(\s*,|$)/.test(d.parents.at(-1) ?? ''));
+    assert.equal(off.length, 1, `${media}: .mat { display: none }`);
+  }
+});

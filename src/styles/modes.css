@@ -18,6 +18,11 @@
     :root {
       --linked: #a9d9ee;
     }
+
+    /* A plain page: no mat, so no wave and no glow over it. */
+    .mat {
+      display: none;
+    }
   }
 
   /*
@@ -73,8 +78,9 @@
       outline: 1px solid CanvasText;
     }
 
-    /* The edge is a drawing of colour only: it goes with the mask. */
-    .board__edge {
+    /* The edge is a drawing of colour only: it goes with the mask; so does the mat of the page. */
+    .board__edge,
+    .mat {
       display: none;
     }
 

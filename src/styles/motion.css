@@ -15,6 +15,52 @@
       transition: none !important;
     }
 
+    /*
+     * The page (revision 8): now and then, a soft band of lit dots crosses the mat, 3 s from side to
+     * side, every 20 s (the first one 5 s after the page opens). The band moves, its dots move back
+     * as much: they stay on the grid of the mat. Two transforms, for the compositor. It is the page,
+     * not the board: it runs on both faces and on the open-circuit page, and nothing stops it.
+     */
+    .mat__wave {
+      animation: mat-wave 20s ease-in-out infinite;
+    }
+
+    .mat__wave::before {
+      animation: mat-dots 20s ease-in-out infinite;
+    }
+
+    @keyframes mat-wave {
+      0%,
+      25% {
+        transform: translateX(-30rem);
+      }
+
+      40%,
+      100% {
+        transform: translateX(100vw);
+      }
+    }
+
+    @keyframes mat-dots {
+      0%,
+      25% {
+        transform: translateX(30rem);
+      }
+
+      40%,
+      100% {
+        transform: translateX(-100vw);
+      }
+    }
+
+    /* The glow under a mouse (useGlow.ts) moves by a transform, and comes and goes in a fade. */
+    @media (hover: hover) and (pointer: fine) {
+      .mat__glow {
+        transition: opacity 400ms ease-out;
+        will-change: transform;
+      }
+    }
+
     /* LED1 breathes slowly. */
     #part-led1 .part__trigger::after {
       animation: led-breathe 3.2s ease-in-out infinite;

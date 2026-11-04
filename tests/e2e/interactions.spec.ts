@@ -10,8 +10,17 @@ import { FR } from '../helpers/copy';
 const GOLD = 'rgb(201, 164, 92)';
 const WIDE = { width: 1600, height: 900 };
 const IDS = [...FR.principles, ...FR.connectors].map((p) => p.id);
-/** What runs on the wide board at rest: the ambient signals and the LED (motion.spec.ts). */
-const AT_REST_WIDE = ['led-breathe part-led1::after', 'signal signal', 'signal signal', 'signal signal', 'signal signal'];
+/** What runs on the wide board at rest: the ambient signals, the LED and the wave of the page (motion.spec.ts). */
+const AT_REST_WIDE = [
+  'led-breathe part-led1::after',
+  // The wave of the page (revision 8): its band, and its dots moved back as much (background.spec.ts).
+  'mat-dots app::before',
+  'mat-wave app',
+  'signal signal',
+  'signal signal',
+  'signal signal',
+  'signal signal',
+];
 
 const board = (page: Page): Locator => page.locator('div.board');
 const trigger = (page: Page, id: string): Locator => page.locator(`.part__trigger[popovertarget="sheet-${id}"]`);

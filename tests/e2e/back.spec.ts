@@ -128,8 +128,12 @@ test.describe('the back face lights up', () => {
     await row(page, 'U10').hover();
     await expectLit(page, 'U10');
     expect((await lighting(page)).nets.sort()).toEqual(['N1', 'N2']);
-    // The same on the flowing board, the circuit above the table.
+    // The same on the flowing board, the circuit above the table. The last row is at the bottom of
+    // the page: as the board leans towards the pointer, WebKit moves the page a little under it (its
+    // scroll range follows the leaning board). Once the board has leant, the row is pointed at again.
     await page.setViewportSize({ width: 768, height: 1024 });
+    await row(page, 'U20').hover();
+    await page.waitForTimeout(800);
     await row(page, 'U20').hover();
     await expectLit(page, 'U20');
   });
@@ -518,8 +522,9 @@ test.describe('the current', () => {
     await booted(page);
     await page.setViewportSize(WIDE);
     await showBack(page);
-    // At rest, nothing runs on the back face: the front face (and its ambient set) is not drawn.
-    const ambient = ['led-breathe part-led1::after', 'signal signal'];
+    // At rest, nothing runs on the back face: the front face (and its ambient set) is not drawn. The
+    // wave of the page runs on, it is not the board's.
+    const ambient = ['led-breathe part-led1::after', 'signal signal', 'mat-dots app::before', 'mat-wave app'];
     for (const a of await running(page)) expect(ambient).toContain(a);
     await part(page, 'U14').hover();
     // One pass of the signal along each of its traces, leaving from it: N7 and N10 start at U14,

@@ -105,6 +105,15 @@
      * its own: decoration stays out of the render-blocking stylesheet (213 B gzip as a data URL there).
      */
     --grain: url("../assets/img/grain.svg");
+    /*
+     * The workbench mat of the page (revision 8, base.css): its dots, a little darker than the page
+     * on the light one and a little lighter on the black one (the ink of the mat); the dots lit by
+     * the wave and the glow; the warm light of the glow.
+     */
+    --ink: #37321f;
+    --dot: color-mix(in srgb, var(--ink) 12%, var(--page));
+    --dot-lit: color-mix(in srgb, var(--ink) 26%, var(--page));
+    --lamp: #fffaee;
 
     /*
      * Derived from the mask, so each board gets its own: silkscreen lines (frames, courtyards, the
@@ -132,6 +141,8 @@
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="green"]) {
       --page: #08090a;
+      --ink: #e9dfc4;
+      --lamp: #1c1810;
       --mask: #0c0d0f;
       --trace: #17191d;
       --silk-dim: #a29e95;
@@ -151,6 +162,8 @@
     color-scheme: dark;
 
     --page: #08090a;
+    --ink: #e9dfc4;
+    --lamp: #1c1810;
     --mask: #0c0d0f;
     --trace: #17191d;
     --silk-dim: #a29e95;

@@ -1,6 +1,11 @@
 import { expect, test, type Page } from '@playwright/test';
 
-// Motion: still under reduced motion; at rest on the wide board, only the ambient set runs.
+// Motion: still under reduced motion; at rest on the wide board, only the ambient set runs: four
+// signals, LED1, and the wave of the page (revision 8), on both faces and on the open-circuit page.
+
+/** The wave of the page: its band, and the dots in it moved back as much (background.spec.ts). */
+const WAVE = ['mat-dots app::before', 'mat-wave app'];
+const AT_REST_FRONT = ['led-breathe part-led1::after', ...WAVE, 'signal signal', 'signal signal', 'signal signal', 'signal signal'];
 
 /** The running animations of the page: their name, and what they run on. */
 const running = (page: Page) =>
@@ -78,14 +83,8 @@ test.describe('no preference', () => {
     await page.setViewportSize({ width: 1600, height: 900 });
     await page.goto('/');
     await expect(page.locator('button.jp1')).toBeVisible();
-    // Exactly four signals and the LED: nothing else runs on the wide board.
-    expect((await running(page)).sort()).toEqual([
-      'led-breathe part-led1::after',
-      'signal signal',
-      'signal signal',
-      'signal signal',
-      'signal signal',
-    ]);
+    // Exactly four signals, the LED and the wave of the page: nothing else runs on the wide board.
+    expect((await running(page)).sort()).toEqual(AT_REST_FRONT);
     const signals = await page.locator('path.signal').evaluateAll((paths) =>
       paths.map((p) => {
         const a = p.getAnimations()[0] as CSSAnimation;
@@ -142,23 +141,18 @@ test.describe('no preference', () => {
     const turn = ['board-recede 600 linear', 'transform 600 cubic-bezier(0.2, 0.7, 0.2, 1)'];
     expect(turning).toEqual([turn, turn]);
     await expect(page.locator('.board')).not.toHaveAttribute('data-turning', /.*/);
-    // The back face up and at rest: nothing runs. The front face is not drawn, its ambient set with it,
-    // and the back face moves only when a part lights up.
+    // The back face up and at rest: only the wave of the page runs. The front face is not drawn, its
+    // ambient set with it, and the back face moves only when a part lights up.
     await page.mouse.move(1, 1);
-    expect(await running(page)).toEqual([]);
+    expect((await running(page)).sort()).toEqual(WAVE);
     // Back on the front face, its ambient set again, and nothing else (WebKit runs the transitions of
     // its traces once as the face is drawn again: invisible, 220ms, they end at once).
     await page.locator('.board__face--back button.sw2').click();
     await expect(page.locator('.board')).not.toHaveAttribute('data-flipped', /.*/);
     await expect(page.locator('.board')).not.toHaveAttribute('data-turning', /.*/);
+    // (The glow of the page under the mouse fades out: its transition is no part of the board.)
     await expect.poll(async () => (await running(page)).filter((a) => a.startsWith('transition')), { timeout: 1000 }).toEqual([]);
-    expect((await running(page)).sort()).toEqual([
-      'led-breathe part-led1::after',
-      'signal signal',
-      'signal signal',
-      'signal signal',
-      'signal signal',
-    ]);
+    expect((await running(page)).sort()).toEqual(AT_REST_FRONT);
   });
 
   test('the language switch is a view transition', async ({ page }) => {
