@@ -1425,4 +1425,14 @@
 <circle cx="568" cy="768" r="3" fill="#050506" fill-opacity=".6"/>
 <circle cx="148" cy="588" r="3" fill="#050506" fill-opacity=".6"/>
 <circle cx="388" cy="204" r="3" fill="#050506" fill-opacity=".6"/>
+<rect x="627" y="306" width="30" height="40" rx="3" fill="#c4c4bf"/><rect x="629" y="308" width="26" height="36" rx="2" fill="none" stroke="#9a9a95"/>
+<rect x="433.5" y="293.5" width="144" height="144" rx="1.5" fill="#141518"/>
+<rect x="470.5" y="480.5" width="64" height="71" rx="1.5" fill="#141518"/>
+<rect x="520.5" y="706.5" width="39" height="35" rx="1.5" fill="#141518"/>
+<rect x="422.5" y="752.5" width="35" height="39" rx="1.5" fill="#141518"/>
+<rect x="197.5" y="420.5" width="47" height="76" rx="1.5" fill="#141518"/>
+<rect x="700.5" y="526.5" width="42" height="39" rx="1.5" fill="#141518"/>
+<rect x="620.5" y="458.5" width="59" height="51" rx="1.5" fill="#141518"/>
+<rect x="440.5" y="156.5" width="35" height="35" rx="1.5" fill="#141518"/>
+<rect x="650.5" y="695.5" width="35" height="27" rx="1.5" fill="#141518"/>
 </svg>

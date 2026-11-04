@@ -243,6 +243,11 @@
   }
 
   /* The pads and the body of a part: those of the parts of the front (parts.css); the debug header shows its gold pads over a dark strip. */
+  /* The bodies and their markings are in the art (circuit/art.ts): a part draws its pads and its outline over them. */
+  .back-part .pcb-body {
+    fill: none;
+  }
+
   .back-part[data-look="header"] .pcb-body {
     fill-opacity: 0.55;
   }

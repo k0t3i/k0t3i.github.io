@@ -20,6 +20,18 @@ const GOLD = '#c9a45c';
 const DRILL = '#050506';
 const SILK = '#a29e95';
 const MONO = 'JetBrains Mono,ui-monospace,Consolas,Menlo,monospace';
+/** The engraving of a moulded body: dark grey on black, discreet. */
+const ENGRAVE = '#4c4f56';
+
+/** What is printed on the packages big enough for it: the part number, the frequency (the 32.768 kHz crystal has room for its number only). The 0402 inductor is unmarked, as such parts are. */
+const MARKINGS: Readonly<Record<string, string>> = {
+  U11: 'W25Q128',
+  U14: 'TCA9554',
+  U15: 'PCA9633',
+  U16: 'PCF8563',
+  Y1: '40.000 MHz',
+  Y2: '32.768',
+};
 
 /** The eleven parts of the bill of materials are drawn live, not here. */
 export const LIVE = ['U10', 'U11', 'U12', 'U13', 'U14', 'U15', 'U16', 'U17', 'U18', 'Y1', 'J6'];
@@ -39,11 +51,32 @@ function bodyOf(p: PlacedPart): { x: number; y: number; w: number; h: number } {
   return { x: p.x + bx, y: p.y + by, w: bw, h: bh };
 }
 
-/** Where the reference of a passive goes: beside it, on the side with room, at the size of the silkscreen of passives. */
-function refAt(p: PlacedPart): { x: number; y: number; anchor: string } {
-  const { box } = p;
-  const wide = box.w >= box.h;
-  return wide ? { x: box.x + box.w / 2, y: box.y - 3, anchor: 'middle' } : { x: box.x + box.w + 3, y: box.y + box.h / 2 + 3, anchor: 'start' };
+/**
+ * Where the references of the parts out of the table go: beside each one, on the first side (by its
+ * shape) where the text meets no part and no other reference, at the size of the silkscreen of
+ * passives (8 units, 5 a character).
+ */
+function refsAt(parts: PlacedPart[]): Map<string, { x: number; y: number; anchor: string }> {
+  type Box = { x: number; y: number; w: number; h: number };
+  const meets = (a: Box, b: Box) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+  const taken: Box[] = BACK_PLACED.map((q) => ({ x: q.box.x - 1, y: q.box.y - 1, w: q.box.w + 2, h: q.box.h + 2 }));
+  const out = new Map<string, { x: number; y: number; anchor: string }>();
+  for (const q of parts) {
+    const { box } = q;
+    const w = 5 * q.part.ref.length;
+    const sides = {
+      n: { x: box.x + box.w / 2 - w / 2, y: box.y - 10, w, h: 8 },
+      s: { x: box.x + box.w / 2 - w / 2, y: box.y + box.h + 2, w, h: 8 },
+      e: { x: box.x + box.w + 3, y: box.y + box.h / 2 - 4, w, h: 8 },
+      w: { x: box.x - 3 - w, y: box.y + box.h / 2 - 4, w, h: 8 },
+    };
+    const order = (box.w >= box.h ? ['n', 's', 'e', 'w'] : ['e', 'w', 'n', 's']) as (keyof typeof sides)[];
+    const side = order.find((k) => !taken.some((t) => meets(sides[k], t))) ?? order[0] ?? 'n';
+    const b = sides[side];
+    taken.push(b);
+    out.set(q.part.ref, { x: b.x, y: b.y + 7, anchor: 'start' });
+  }
+  return out;
 }
 
 export function renderBackArt({ refs = true }: { refs?: boolean } = {}): string {
@@ -149,11 +182,43 @@ export function renderBackArt({ refs = true }: { refs?: boolean } = {}): string 
       push(`<circle cx="${cx}" cy="${cy}" r="3" fill="${DRILL}" fill-opacity=".6"/>`);
     }
   }
+  // The bodies of the parts of the table (their pads and outline are live, BackCircuit.vue), and the
+  // markings of the packages, engraved: the reference and the part on the chip with a radio glyph, the
+  // part number of the other chips big enough for one, the frequency on the crystals. Small packages
+  // stay blank, as on a real board.
+  for (const q of BACK_PLACED.filter((x) => LIVE.includes(x.part.ref) && x.fp.look === 'can')) {
+    const b = bodyOf(q);
+    push(`<rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="3" fill="#c4c4bf"/><rect x="${b.x + 2}" y="${b.y + 2}" width="${b.w - 4}" height="${b.h - 4}" rx="2" fill="none" stroke="#9a9a95"/>`);
+  }
+  for (const q of BACK_PLACED.filter((x) => LIVE.includes(x.part.ref) && (x.fp.look === 'qfn' || x.fp.look === 'gull'))) {
+    const b = bodyOf(q);
+    push(`<rect x="${b.x + 0.5}" y="${b.y + 0.5}" width="${b.w - 1}" height="${b.h - 1}" rx="1.5" fill="#141518"/>`);
+  }
+  if (refs) {
+    const engrave = (x: number, y: number, size: number, text: string, colour = ENGRAVE, rotate = 0) =>
+      push(`<text x="${r1(x)}" y="${r1(y)}" fill="${colour}" font-family="${MONO}" font-size="${size}" text-anchor="middle"${rotate ? ` transform="rotate(${rotate} ${r1(x)} ${r1(y)})"` : ''}>${text}</text>`);
+    for (const q of BACK_PLACED) {
+      const b = bodyOf(q);
+      const [cx, cy] = [b.x + b.w / 2, b.y + b.h / 2];
+      const mark = MARKINGS[q.part.ref];
+      if (q.part.ref === 'U10') {
+        // A generic radio glyph: a dot and three arcs, no maker's logo.
+        const [gx, gy] = [cx, cy - 22];
+        push(`<g fill="none" stroke="${ENGRAVE}" stroke-width="1.6" stroke-linecap="round">${[5, 9, 13].map((r) => `<path d="M${r1(gx - r * 0.71)} ${r1(gy - r * 0.71)}A${r} ${r} 0 0 1 ${r1(gx + r * 0.71)} ${r1(gy - r * 0.71)}"/>`).join('')}</g><circle cx="${gx}" cy="${gy}" r="1.6" fill="${ENGRAVE}"/>`);
+        engrave(cx, cy + 6, 11, 'U10');
+        engrave(cx, cy + 20, 9, 'ESP32-S3');
+      } else if (mark) {
+        const vertical = b.h > b.w * 1.4 && mark.length * 3.6 > b.w - 4;
+        engrave(cx, cy + 2, mark.length > 8 ? 5 : 6, mark, q.fp.look === 'can' || q.fp.look === 'xtal' ? '#55554f' : ENGRAVE, vertical ? -90 : 0);
+      }
+    }
+  }
   // Their references, and the pin names of the debug header J6.
   if (refs) {
     push(`<g fill="${SILK}" font-family="${MONO}" font-size="8" letter-spacing=".3">`);
+    const at = refsAt(drawn);
     for (const q of drawn) {
-      const { x, y, anchor } = refAt(q);
+      const { x, y, anchor } = at.get(q.part.ref) ?? { x: 0, y: 0, anchor: 'start' };
       push(`<text x="${r1(x)}" y="${r1(y)}"${anchor === 'start' ? '' : ` text-anchor="${anchor}"`}>${q.part.ref}</text>`);
     }
     const j6 = BACK_PLACED.find((q) => q.part.ref === 'J6');

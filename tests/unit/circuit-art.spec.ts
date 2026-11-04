@@ -37,8 +37,12 @@ describe('the art of the back face', () => {
     for (const p of BACK_PLACED.filter((q) => !LIVE.includes(q.part.ref))) expect(svg, p.part.ref).toContain(`>${p.part.ref}</text>`);
     for (const name of ['3V3', 'EN', 'IO0', 'TX', 'RX', 'GND']) expect(svg).toContain(`>${name}</text>`);
     // The parts of the table are live, not drawn here; the small drawing has no reference at all.
-    for (const ref of LIVE) expect(svg).not.toContain(`>${ref}</text>`);
+    for (const ref of LIVE.filter((r) => r !== 'U10')) expect(svg).not.toContain(`>${ref}</text>`);
     expect(renderBackArt({ refs: false })).not.toMatch(/<text/);
+    // The markings of the packages: the chip, the 40 MHz crystal in its metal can (spec 4.10), the part
+    // numbers of the chips big enough for them; engraved, never a maker's logo.
+    for (const mark of ['U10', 'ESP32-S3', '40.000 MHz', '32.768', 'W25Q128', 'TCA9554', 'PCA9633', 'PCF8563']) expect(svg, mark).toContain(`>${mark}</text>`);
+    expect(svg).not.toMatch(/espressif/i);
     // Two status LEDs lit, still: a glow, no animation.
     expect(Object.keys(LIT).sort()).toEqual(['D2', 'D3']);
     for (const ref of Object.keys(LIT)) expect(svg).toContain(`url(#glow-${ref})`);

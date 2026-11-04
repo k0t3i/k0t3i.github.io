@@ -160,7 +160,10 @@ export function liveLayer(): Live {
       box: [p.box.x, p.box.y, p.box.w, p.box.h],
       look: p.fp.look,
       label: LABEL[ref],
-      pads: placedPads(p).map((q) => [q.x - p.box.x - q.w / 2, q.y - p.box.y - q.h / 2, q.w, q.h]),
+      // Its pads as seen: the exposed pad of a QFN is under its body.
+      pads: placedPads(p)
+        .filter((q) => !(q.w > 30 && q.h > 30))
+        .map((q) => [q.x - p.box.x - q.w / 2, q.y - p.box.y - q.h / 2, q.w, q.h]),
       body: bodyBox(p),
       mark: p.fp.mark ? markOf(p) : null,
       links: links.map((l) => l.to).join(' '),
