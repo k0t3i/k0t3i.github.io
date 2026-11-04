@@ -12,7 +12,7 @@ export interface PartContent {
   label: string;
   title: string;
   body?: string;
-  /** Language of label and title when it differs from the page (Kit d'urgence is French). */
+  /** Language of label and title when it differs from the page (a French name on the English page). */
   labelLang?: Locale;
   link?: { href: string; text: string };
   /** J1 only. */

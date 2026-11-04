@@ -3,9 +3,24 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-export const SITE: { baseUrl: string; email: string; github: string } = JSON.parse(
-  readFileSync(fileURLToPath(new URL('../../src/content/site.json', import.meta.url)), 'utf8'),
-);
+/**
+ * The names and links bound to change, read from site.json, the one place they are written (spec
+ * §4.4, Anthony's rule of 04/11/2026): the site URL, the e-mail, the GitHub profile, and the name and
+ * link of each project. The texts written by hand below hold the wording around them, never them.
+ */
+export const SITE: {
+  baseUrl: string;
+  email: string;
+  github: string;
+  projects: Record<'kitUrgence' | 'splitr', { name: string; href: string }>;
+} = JSON.parse(readFileSync(fileURLToPath(new URL('../../src/content/site.json', import.meta.url)), 'utf8'));
+
+/** A link of site.json as the page writes it: absolute, a relative one resolved against the site URL. */
+export const absolute = (href: string): string => new URL(href, SITE.baseUrl).href;
+
+const { kitUrgence: KIT, splitr: SPLITR } = SITE.projects;
+/** The GitHub profile as its link text shows it: the address without its scheme. */
+const GITHUB_TEXT = SITE.github.replace(/^https?:\/\//, '');
 
 const NB = ' ';
 const NN = ' ';
@@ -15,6 +30,8 @@ export interface CopyPart {
   ref: string;
   kind: string;
   label: string;
+  /** The language of the label and the title, when it is not the language of the page (a French name on /en/). */
+  lang?: 'fr';
   body?: string;
 }
 
@@ -201,28 +218,25 @@ export const FR: Copy = {
       id: 'j1',
       ref: 'J1',
       kind: 'projet',
-      label: 'Kit d’urgence',
+      label: KIT.name,
       body: `Simulateur 3D qui calcule le kit d’urgence de votre foyer (adultes, enfants, de 72${NB}h à 3 semaines). Chaque objet arrive quand la voix le nomme. Un sac d’évacuation par personne, et des listes à cocher en PDF. Contenu comparé aux guides officiels d’une trentaine de pays.`,
-      link: { text: 'Ouvrir le simulateur', href: `${SITE.baseUrl}kit-urgence/` },
-      mediaAlt: `Le simulateur Kit d’urgence${NB}: une réserve de 3 semaines pour 2 adultes et 4 enfants, avec les objets numérotés en 3D.`,
+      link: { text: 'Ouvrir le simulateur', href: absolute(KIT.href) },
+      mediaAlt: `Le simulateur ${KIT.name}${NB}: une réserve de 3 semaines pour 2 adultes et 4 enfants, avec les objets numérotés en 3D.`,
     },
     {
       id: 'j2',
       ref: 'J2',
       kind: 'projet',
-      label: 'SplitR',
+      label: SPLITR.name,
       body: 'Application de bureau (Windows, macOS) pour découper, traiter et exporter des fichiers médias simplement, sans la complexité de FFmpeg.',
-      link: {
-        text: 'Télécharger la dernière version',
-        href: 'https://github.com/k0t3i/splitr-releases/releases/latest',
-      },
+      link: { text: 'Télécharger la dernière version', href: absolute(SPLITR.href) },
     },
     {
       id: 'j3',
       ref: 'J3',
       kind: 'contact',
       label: 'Contact',
-      contacts: [`E-mail${NB}: ${SITE.email}`, `GitHub${NB}: github.com/k0t3i`],
+      contacts: [`E-mail${NB}: ${SITE.email}`, `GitHub${NB}: ${GITHUB_TEXT}`],
     },
   ],
 };
@@ -327,29 +341,26 @@ export const EN: Copy = {
       id: 'j1',
       ref: 'J1',
       kind: 'project',
-      label: 'Kit d’urgence',
+      label: KIT.name,
+      lang: 'fr',
       body: 'A 3D simulator that plans the emergency kit for your home: adults, children, from 72 hours to 3 weeks. Each item appears when the voice says its name. One evacuation bag for each person, and checklists in PDF. The content is checked against official guides from about thirty countries.',
-      link: { text: 'Open the simulator (in French)', href: `${SITE.baseUrl}kit-urgence/` },
-      mediaAlt:
-        'The Kit d’urgence simulator: a 3-week supply for 2 adults and 4 children, with numbered items in 3D.',
+      link: { text: 'Open the simulator (in French)', href: absolute(KIT.href) },
+      mediaAlt: `The ${KIT.name} simulator: a 3-week supply for 2 adults and 4 children, with numbered items in 3D.`,
     },
     {
       id: 'j2',
       ref: 'J2',
       kind: 'project',
-      label: 'SplitR',
+      label: SPLITR.name,
       body: 'A desktop app (Windows, macOS) to split, process and export media files. Simple and fast, without the complexity of FFmpeg.',
-      link: {
-        text: 'Download the latest version',
-        href: 'https://github.com/k0t3i/splitr-releases/releases/latest',
-      },
+      link: { text: 'Download the latest version', href: absolute(SPLITR.href) },
     },
     {
       id: 'j3',
       ref: 'J3',
       kind: 'contact',
       label: 'Contact',
-      contacts: [`Email: ${SITE.email}`, 'GitHub: github.com/k0t3i'],
+      contacts: [`Email: ${SITE.email}`, `GitHub: ${GITHUB_TEXT}`],
     },
   ],
 };

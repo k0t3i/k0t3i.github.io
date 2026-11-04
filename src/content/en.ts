@@ -1,5 +1,9 @@
-import { SITE } from './site';
+import { GITHUB_TEXT, SITE, project } from './site';
 import type { SiteContent } from './types';
+
+// The names and links of the projects: site.json.
+const KIT = project('kitUrgence');
+const SPLITR = project('splitr');
 
 export const en: SiteContent = {
   locale: 'en',
@@ -112,26 +116,23 @@ export const en: SiteContent = {
       id: 'j1',
       ref: 'J1',
       kind: 'project',
-      label: 'Kit d’urgence',
-      title: 'Kit d’urgence',
+      label: KIT.name,
+      title: KIT.name,
       labelLang: 'fr',
       body: 'A 3D simulator that plans the emergency kit for your home: adults, children, from 72 hours to 3 weeks. Each item appears when the voice says its name. One evacuation bag for each person, and checklists in PDF. The content is checked against official guides from about thirty countries.',
-      link: { href: `${SITE.baseUrl}kit-urgence/`, text: 'Open the simulator (in French)' },
+      link: { href: KIT.href, text: 'Open the simulator (in French)' },
       media: {
-        alt: 'The Kit d’urgence simulator: a 3-week supply for 2 adults and 4 children, with numbered items in 3D.',
+        alt: `The ${KIT.name} simulator: a 3-week supply for 2 adults and 4 children, with numbered items in 3D.`,
       },
     },
     {
       id: 'j2',
       ref: 'J2',
       kind: 'project',
-      label: 'SplitR',
-      title: 'SplitR',
+      label: SPLITR.name,
+      title: SPLITR.name,
       body: 'A desktop app (Windows, macOS) to split, process and export media files. Simple and fast, without the complexity of FFmpeg.',
-      link: {
-        href: 'https://github.com/k0t3i/splitr-releases/releases/latest',
-        text: 'Download the latest version',
-      },
+      link: { href: SPLITR.href, text: 'Download the latest version' },
     },
     {
       id: 'j3',
@@ -141,7 +142,7 @@ export const en: SiteContent = {
       title: 'Contact',
       contacts: [
         { label: 'Email:', href: `mailto:${SITE.email}`, text: SITE.email },
-        { label: 'GitHub:', href: SITE.github, text: 'github.com/k0t3i' },
+        { label: 'GitHub:', href: SITE.github, text: GITHUB_TEXT },
       ],
     },
   ],

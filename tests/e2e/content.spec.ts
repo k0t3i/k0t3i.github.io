@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { expect, test } from '@playwright/test';
-import { EN, FR, LANG_LINKS, SITE, type Copy } from '../helpers/copy';
+import { EN, FR, LANG_LINKS, SITE, absolute, type Copy } from '../helpers/copy';
 
 // The private project names are never written in this public repository: they are read from the
 // untracked local list (tests/static/repo.test.mjs checks the sources against the same list).
@@ -161,11 +161,11 @@ for (const copy of [FR, EN] as Copy[]) {
       const allowed = new Set([
         baseUrl,
         `${baseUrl}en/`,
-        `${baseUrl}kit-urgence/`,
         `${baseUrl}img/og-fr.jpg`,
         `${baseUrl}img/og-en.jpg`,
         github,
-        `${github}/splitr-releases/releases/latest`,
+        // The link of each project, as site.json gives it.
+        ...Object.values(SITE.projects).map((p) => absolute(p.href)),
         `mailto:${email}`,
         'https://schema.org',
       ]);

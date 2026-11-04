@@ -1,5 +1,9 @@
 {
   "baseUrl": "https://k0t3i.github.io/",
   "email": "contact@tisserands.ai",
-  "github": "https://github.com/k0t3i"
+  "github": "https://github.com/k0t3i",
+  "projects": {
+    "kitUrgence": { "name": "Kit d’urgence", "href": "kit-urgence/" },
+    "splitr": { "name": "SplitR", "href": "https://github.com/k0t3i/splitr-releases/releases/latest" }
+  }
 }

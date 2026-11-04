@@ -4,7 +4,9 @@ The home page of Anthony, front-end engineer, drawn as an electronic circuit boa
 
 Vue 3, Vite and TypeScript, prerendered at build time (vite-ssg): the page reads in full without
 JavaScript, in French (`/`) and in English (`/en/`), then Vue adds the interactions. The texts live in
-`src/content/` (`fr.ts`, `en.ts`, `site.json`).
+`src/content/` (`fr.ts`, `en.ts`, `site.json`). What is bound to change is written once, in `site.json`:
+the site URL, the contact e-mail, the GitHub profile, and the name and the link of each project. The
+texts and the tests read them from there, so changing one is a single edit.
 
 The sources live on the `source` branch; `master` holds the built site only (the sources of the 2020
 site are on `dev/master`).

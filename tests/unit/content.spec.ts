@@ -1,6 +1,9 @@
+// @vitest-environment node
+// Node: the oracle of the copy (tests/helpers/copy.ts) reads site.json from the disk.
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { READOUTS as ORACLE_READOUTS, SITE as ORACLE_SITE, absolute } from '../helpers/copy';
 import { en } from '../../src/content/en';
 import { fr } from '../../src/content/fr';
 import { READOUTS } from '../../src/content/readouts';
@@ -29,6 +32,13 @@ function shape(value: unknown): unknown {
 }
 
 const parts = (c: { principles: PartContent[]; connectors: PartContent[] }) => [...c.principles, ...c.connectors];
+
+/** Every text file of src/ but site.json, with its path. */
+const sources = (): { file: string; text: string }[] =>
+  readdirSync(SRC, { recursive: true, withFileTypes: true })
+    .filter((d) => d.isFile() && /\.(ts|vue|json|css|svg|html)$/.test(d.name) && d.name !== 'site.json')
+    .map((d) => join(d.parentPath, d.name))
+    .map((file) => ({ file, text: readFileSync(file, 'utf8') }));
 
 describe('content', () => {
   it('fr and en share the same shape', () => {
@@ -78,11 +88,11 @@ describe('content', () => {
     const allowed = new Set([
       SITE.baseUrl,
       `${SITE.baseUrl}en/`,
-      `${SITE.baseUrl}kit-urgence/`,
       `${SITE.baseUrl}img/og-fr.jpg`,
       `${SITE.baseUrl}img/og-en.jpg`,
       SITE.github,
-      'https://github.com/k0t3i/splitr-releases/releases/latest',
+      // The link of each project, as site.json gives it.
+      ...Object.values(ORACLE_SITE.projects).map((p) => absolute(p.href)),
       `mailto:${SITE.email}`,
       'https://schema.org',
     ]);
@@ -101,11 +111,35 @@ describe('content', () => {
 
   it('site.json is the only e-mail', () => {
     const email = /[\w.+-]+@[\w-]+(\.[\w-]+)+/;
-    const hits = readdirSync(SRC, { recursive: true, withFileTypes: true })
-      .filter((d) => d.isFile() && /\.(ts|vue|json|css|svg|html)$/.test(d.name) && d.name !== 'site.json')
-      .map((d) => join(d.parentPath, d.name))
-      .filter((file) => email.test(readFileSync(file, 'utf8')));
+    const hits = sources()
+      .filter(({ text }) => email.test(text))
+      .map(({ file }) => file);
     expect(hits).toEqual([]);
     expect(SITE.email).toMatch(email);
+  });
+
+  it('the names and links of the projects, and the e-mail, are written in site.json only', () => {
+    // Anthony's rule (spec §4.4): a name or a link bound to change is written in one place. The copy
+    // interpolates them: renaming a product or changing a link in site.json is the only edit.
+    const written = [
+      ORACLE_SITE.email,
+      ORACLE_SITE.github,
+      ...Object.values(ORACLE_SITE.projects).flatMap((p) => [p.name, p.href, absolute(p.href)]),
+    ];
+    const hits = sources().flatMap(({ file, text }) => written.filter((w) => text.includes(w)).map((w) => `${file}: ${w}`));
+    expect(hits).toEqual([]);
+    // The copy reads them: each name is on the board and each link in a sheet, in both languages.
+    for (const c of [fr, en]) {
+      const labels = c.connectors.map((p) => p.label);
+      const links = c.connectors.map((p) => p.link?.href);
+      for (const p of Object.values(ORACLE_SITE.projects)) {
+        expect(labels, `${c.locale}: ${p.name}`).toContain(p.name);
+        expect(links, `${c.locale}: ${p.href}`).toContain(absolute(p.href));
+      }
+    }
+  });
+
+  it('DISP1 has a readout for every part, as written in annex A', () => {
+    expect(READOUTS).toEqual(ORACLE_READOUTS);
   });
 });

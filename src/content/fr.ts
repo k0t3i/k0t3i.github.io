@@ -1,8 +1,11 @@
-import { SITE } from './site';
+import { GITHUB_TEXT, SITE, project } from './site';
 import type { SiteContent } from './types';
 
 // U+00A0 before : and before "h", U+2019 for the apostrophe.
 const NB = ' ';
+// The names and links of the projects: site.json.
+const KIT = project('kitUrgence');
+const SPLITR = project('splitr');
 
 export const fr: SiteContent = {
   locale: 'fr',
@@ -114,25 +117,22 @@ export const fr: SiteContent = {
       id: 'j1',
       ref: 'J1',
       kind: 'projet',
-      label: 'Kit d’urgence',
-      title: 'Kit d’urgence',
+      label: KIT.name,
+      title: KIT.name,
       body: `Simulateur 3D qui calcule le kit d’urgence de votre foyer (adultes, enfants, de 72${NB}h à 3 semaines). Chaque objet arrive quand la voix le nomme. Un sac d’évacuation par personne, et des listes à cocher en PDF. Contenu comparé aux guides officiels d’une trentaine de pays.`,
-      link: { href: `${SITE.baseUrl}kit-urgence/`, text: 'Ouvrir le simulateur' },
+      link: { href: KIT.href, text: 'Ouvrir le simulateur' },
       media: {
-        alt: `Le simulateur Kit d’urgence${NB}: une réserve de 3 semaines pour 2 adultes et 4 enfants, avec les objets numérotés en 3D.`,
+        alt: `Le simulateur ${KIT.name}${NB}: une réserve de 3 semaines pour 2 adultes et 4 enfants, avec les objets numérotés en 3D.`,
       },
     },
     {
       id: 'j2',
       ref: 'J2',
       kind: 'projet',
-      label: 'SplitR',
-      title: 'SplitR',
+      label: SPLITR.name,
+      title: SPLITR.name,
       body: 'Application de bureau (Windows, macOS) pour découper, traiter et exporter des fichiers médias simplement, sans la complexité de FFmpeg.',
-      link: {
-        href: 'https://github.com/k0t3i/splitr-releases/releases/latest',
-        text: 'Télécharger la dernière version',
-      },
+      link: { href: SPLITR.href, text: 'Télécharger la dernière version' },
     },
     {
       id: 'j3',
@@ -142,7 +142,7 @@ export const fr: SiteContent = {
       title: 'Contact',
       contacts: [
         { label: `E-mail${NB}:`, href: `mailto:${SITE.email}`, text: SITE.email },
-        { label: `GitHub${NB}:`, href: SITE.github, text: 'github.com/k0t3i' },
+        { label: `GitHub${NB}:`, href: SITE.github, text: GITHUB_TEXT },
       ],
     },
   ],
