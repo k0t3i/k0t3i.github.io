@@ -12,7 +12,7 @@ export const en: SiteContent = {
   meta: {
     title: 'Anthony · Principal front-end engineer',
     description:
-      'Principal front-end engineer since 2004: accessibility, performance, architecture, debugging. Five principles and two projects, on a circuit board.',
+      'Principal front-end engineer since 2004: accessibility, performance, architecture, debugging. Five principles and four projects, on a circuit board.',
     ogImageAlt: 'Green circuit board: Front-end, no shortcuts.',
   },
   skipLink: 'Skip to content',

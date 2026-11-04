@@ -126,7 +126,7 @@ export const FR: Copy = {
   lang: 'fr',
   path: '/',
   title: 'Anthony · Ingénieur front-end principal',
-  description: `Ingénieur front-end principal depuis 2004${NB}: accessibilité, performance, architecture, debug. Cinq principes et deux projets, sur une carte électronique.`,
+  description: `Ingénieur front-end principal depuis 2004${NB}: accessibilité, performance, architecture, debug. Cinq principes et quatre projets, sur une carte électronique.`,
   ogImageAlt: `Carte électronique verte${NB}: Front-end, sans raccourcis.`,
   skipLink: 'Aller au contenu',
   langNavLabel: 'Langue',
@@ -266,7 +266,7 @@ export const EN: Copy = {
   path: '/en/',
   title: 'Anthony · Principal front-end engineer',
   description:
-    'Principal front-end engineer since 2004: accessibility, performance, architecture, debugging. Five principles and two projects, on a circuit board.',
+    'Principal front-end engineer since 2004: accessibility, performance, architecture, debugging. Five principles and four projects, on a circuit board.',
   ogImageAlt: 'Green circuit board: Front-end, no shortcuts.',
   skipLink: 'Skip to content',
   langNavLabel: 'Language',
