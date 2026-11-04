@@ -187,4 +187,20 @@ test.describe('the open-circuit page', () => {
     await expect(page.locator('html')).toHaveAttribute('lang', 'fr');
     await context.close();
   });
+
+  test('the English link back is remembered too: / then sends a French browser to /en/', async ({ browser, baseURL }) => {
+    // A browser in French: without a choice, / would stay in French.
+    const context = await browser.newContext({ baseURL, locale: 'fr-FR', reducedMotion: 'no-preference' });
+    const page = await context.newPage();
+    await page.goto('/nope');
+    await page.waitForFunction(() => Boolean((document.querySelector('#app') as { __vue_app__?: unknown } | null)?.__vue_app__));
+    await page.locator('main a', { hasText: EN.notFound.back }).click();
+    await page.waitForLoadState('networkidle');
+    expect(new URL(page.url()).pathname).toBe('/en/');
+    expect(await page.evaluate(() => localStorage.getItem('k0t3i.lang'))).toBe('en');
+    await page.goto('/');
+    await expect(page).toHaveURL(/\/en\/$/);
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+    await context.close();
+  });
 });
