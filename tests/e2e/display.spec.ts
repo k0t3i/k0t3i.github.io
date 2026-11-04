@@ -121,6 +121,9 @@ async function startMorse(page: Page): Promise<void> {
   await expect(figure(page)).toHaveAttribute('data-led', 'on');
 }
 
+/** An animation of LED1 itself: the glint of the flowing board that runs on its trace is not one. */
+const ledAnimation = (r: string): boolean => r.includes('part-led1') && !r.startsWith('trace-glint');
+
 test.describe('DISP1 and SW1', () => {
   test.use({ reducedMotion: 'no-preference' });
 
@@ -265,7 +268,7 @@ test.describe('DISP1 and SW1', () => {
     await expect(caption(page)).toHaveText(FR.captions.morse);
     await page.waitForTimeout(1000);
     expect((await ledLog(page)).length).toBe(log.length);
-    expect((await running(page)).filter((r) => r.includes('part-led1'))).toEqual(['led-breathe part-led1::after']);
+    expect((await running(page)).filter(ledAnimation)).toEqual(['led-breathe part-led1::after']);
   });
 
   test('language switch during morse leaves no blinking LED', async ({ page }) => {
@@ -281,7 +284,7 @@ test.describe('DISP1 and SW1', () => {
     const count = (await ledLog(page)).length;
     await page.waitForTimeout(1500);
     expect(await ledLog(page)).toHaveLength(count);
-    expect((await running(page)).filter((r) => r.includes('part-led1'))).toEqual(['led-breathe part-led1::after']);
+    expect((await running(page)).filter(ledAnimation)).toEqual(['led-breathe part-led1::after']);
   });
 
   test('turning the board during the morse stops it, and the front face comes back on the avatar', async ({ page }) => {
