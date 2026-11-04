@@ -160,6 +160,42 @@ describe('the play of Routage', () => {
     expect(parts()).not.toContain('pause');
   });
 
+  it('a sheet open over the board pauses it and keeps its keys; closed, the game goes on, unless B paused it', () => {
+    key('a');
+    const sheet = document.createElement('div');
+    sheet.className = 'sheet';
+    const link = document.createElement('a');
+    sheet.append(link);
+    document.body.append(sheet);
+    const toggle = (state: 'open' | 'closed') => sheet.dispatchEvent(Object.assign(new Event('toggle'), { newState: state }));
+    toggle('open');
+    expect(parts()).toContain('pause');
+    const head = cellAt(part('head'));
+    vi.advanceTimersByTime(stepMs(0) * 4);
+    expect(cellAt(part('head'))).toEqual(head);
+    // A key in the sheet is the sheet's: it scrolls it, it steers nothing, B and A do nothing.
+    const fromSheet = (k: string) => {
+      const e = new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true });
+      link.dispatchEvent(e);
+      return e;
+    };
+    expect(fromSheet('ArrowDown').defaultPrevented).toBe(false);
+    fromSheet('b');
+    expect(parts()).toContain('pause');
+    toggle('closed');
+    expect(parts()).not.toContain('pause');
+    vi.advanceTimersByTime(stepMs(0));
+    expect(cellAt(part('head'))).toEqual({ x: head.x + 1, y: head.y });
+    // Paused with B, it stays paused after a sheet.
+    key('b');
+    toggle('open');
+    toggle('closed');
+    expect(parts()).toContain('pause');
+    // Keys from inside a sheet are ignored while it runs too.
+    key('b');
+    expect(fromSheet('ArrowUp').defaultPrevented).toBe(false);
+  });
+
   it('a whole game: the signal connects the pad, then meets the edge: DRC ERR and the score, A plays again', () => {
     key('a');
     // The same game, played here: each step, the safe move that brings it closest to the pad.

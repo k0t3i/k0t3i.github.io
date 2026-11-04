@@ -155,12 +155,22 @@ export function useDisplay(locale: () => Locale, screen: Ref<HTMLElement | null>
   }
   useKonami(screen, toggleGame, { enabled: () => !flip?.flipped.value, touch: () => !game.on.value });
 
+  /** A sheet is open (an engine without popovers has none). */
+  const sheetOpen = (): boolean => {
+    try {
+      return document.querySelector('.sheet:popover-open') !== null;
+    } catch {
+      return false;
+    }
+  };
+
   // Escape stops what DISP1 runs, the game first; it also closes sheets, which should not change a
-  // still screen (nor have the caption announce it).
+  // still screen (nor have the caption announce it). With a sheet open over the game, one Escape
+  // closes the sheet only: the next one ends the game.
   const onKey = (event: KeyboardEvent): void => {
     if (event.key !== 'Escape') return;
-    if (game.on.value) game.quit(true);
-    else rest(true);
+    if (!game.on.value) rest(true);
+    else if (!sheetOpen()) game.quit(true);
   };
   onMounted(() => document.addEventListener('keydown', onKey));
   onBeforeUnmount(() => {

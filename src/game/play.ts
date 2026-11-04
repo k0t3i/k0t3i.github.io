@@ -70,7 +70,8 @@ const via = (c: Cell): string => cell(c, (dx, dy) => dx % 3 === 0 || dy % 3 === 
  * Runs the game on DISP1 until the returned stop(). On its title, A (or a tap of the screen) plays;
  * the arrows (or swipes on the screen) steer, and only while a game runs are they kept from
  * scrolling the page; B pauses and goes on; a hidden tab or a window that loses the focus pauses
- * too. At the end of a game, A or a tap plays again. Each change is drawn once: nothing blinks.
+ * too, and so does a sheet opened over the board until it closes. At the end of a game, A or a tap
+ * plays again. Each change is drawn once: nothing blinks.
  */
 export function play(host: GameHost): () => void {
   const rand = seeded(host.seed ?? Date.now());
@@ -130,8 +131,9 @@ export function play(host: GameHost): () => void {
     draw();
   }
 
+  // A key typed in a sheet is the sheet's: it scrolls it, it never steers the game under it.
   const onKey = (event: KeyboardEvent): void => {
-    if (event.ctrlKey || event.altKey || event.metaKey) return;
+    if (event.ctrlKey || event.altKey || event.metaKey || (event.target as Element | null)?.closest?.('.sheet')) return;
     const key = codeKey(event.key);
     if (key === 'up' || key === 'down' || key === 'left' || key === 'right') {
       if (state !== 'play' || !game) return;
@@ -172,10 +174,24 @@ export function play(host: GameHost): () => void {
   const onHide = (): void => {
     if (document.visibilityState === 'hidden') pause();
   };
+  // A sheet open over the board pauses the game, the sheet closed lets it go on (unless B paused it).
+  // The toggle of a popover does not bubble: it is caught on its way down.
+  let bySheet = false;
+  const onSheet = (event: Event): void => {
+    if (!(event.target as Element | null)?.closest?.('.sheet')) return;
+    if ((event as ToggleEvent).newState === 'open') {
+      bySheet ||= state === 'play';
+      pause();
+    } else if (bySheet) {
+      bySheet = false;
+      resume();
+    }
+  };
 
   const el = host.el;
   document.addEventListener('keydown', onKey);
   document.addEventListener('visibilitychange', onHide);
+  document.addEventListener('toggle', onSheet, { capture: true });
   window.addEventListener('blur', pause);
   el?.addEventListener('touchstart', onStart, { passive: true });
   el?.addEventListener('touchmove', onMove, { passive: true });
@@ -188,6 +204,7 @@ export function play(host: GameHost): () => void {
     game = null;
     document.removeEventListener('keydown', onKey);
     document.removeEventListener('visibilitychange', onHide);
+    document.removeEventListener('toggle', onSheet, { capture: true });
     window.removeEventListener('blur', pause);
     el?.removeEventListener('touchstart', onStart);
     el?.removeEventListener('touchmove', onMove);
