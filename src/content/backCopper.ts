@@ -6,7 +6,8 @@ import { BACK_PASSIVES, passiveBox, passiveRef } from './backPassives';
  * The copper of the back face that names nothing: what a real bottom side shows besides its parts.
  * In the units of the wide board, x mirrored from the front (1600 - x of the front art):
  * - the through-hole pads of the parts of the front, seen from behind: the header of DISP1 (pin 1,
- *   GND, square, at its right end now), SW1, J1, J2 and the shield tabs of J3;
+ *   GND, square, at its right end now), SW1, the headers J1 and J2, the legs of the shell of the
+ *   microSD slot J3, the three pins of J4 and the shield tabs of J5 (the rows of wide.css);
  * - the mounting holes in the corners, each with its ring of stitching vias, and the fiducials;
  * - the ground pour under the circuit, cut back round every trace, part and pad, its ground pads
  *   joined to it by thermal spokes, and stitched to the ground plane by vias wherever it is free
@@ -38,16 +39,27 @@ export const FRONT_PADS: readonly ThroughHole[] = [
   { x: 376, y: 634, r: 4, drill: 2 },
   { x: 366, y: 634, r: 4, drill: 2 },
   { x: 356, y: 634, r: 4, drill: 2 },
-  { x: 406, y: 698, r: 4, drill: 2, square: true },
-  { x: 396, y: 698, r: 4, drill: 2 },
-  { x: 386, y: 698, r: 4, drill: 2 },
-  { x: 376, y: 698, r: 4, drill: 2 },
-  { x: 406, y: 762, r: 5, drill: 2, square: true },
-  { x: 354, y: 762, r: 5, drill: 2, square: true },
+  { x: 406, y: 670, r: 4, drill: 2, square: true },
+  { x: 396, y: 670, r: 4, drill: 2 },
+  { x: 386, y: 670, r: 4, drill: 2 },
+  { x: 376, y: 670, r: 4, drill: 2 },
+  { x: 406, y: 706, r: 5, drill: 2, square: true },
+  { x: 356, y: 706, r: 4, drill: 2 },
+  { x: 401, y: 742, r: 4, drill: 2, square: true },
+  { x: 391, y: 742, r: 4, drill: 2 },
+  { x: 381, y: 742, r: 4, drill: 2 },
+  { x: 406, y: 778, r: 5, drill: 2, square: true },
+  { x: 354, y: 778, r: 5, drill: 2, square: true },
 ];
 
-/** Thermal spokes of the ground pads among them (DISP1 GND, J1 GND, J2 GND, the shield of J3). */
-export const SPOKES = 'M359 188H385M372 175V201M345 634H367M356 623V645M395 698H417M406 687V709M394 762H418M406 750V774M342 762H366M354 750V774';
+/**
+ * Thermal spokes of the ground pads among them: DISP1 GND, the last pin of J1, pin 1 of J2, both legs
+ * of J3, pin 3 of J4 and both tabs of J5. A pad beside another pin has no spoke towards it, and the
+ * tabs of J5 none down to the clearance of N5 under them.
+ */
+export const SPOKES =
+  'M359 188H385M372 175V201M345 634H356M356 623V645M406 670H417M406 659V681M394 706H418M406 694V718M345 706H367M356 695V717' +
+  'M370 742H381M381 731V753M394 778H418M406 766V778M342 778H366M354 766V778';
 
 export const HOLES: readonly Point[] = [
   [56, 52],

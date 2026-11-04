@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { BACK_NETS as ORACLE_NETS, EN, FR } from '../helpers/copy';
 import { BACK_NETS, BACK_PARTS, BACK_REFS, CIRCUIT_VIEW, linkedTo, netPoints, type BackPart } from '../../src/content/backNets';
-import { FIDUCIALS, FRONT_PADS, HOLES, POUR, STITCH, VIA, labelRoom } from '../../src/content/backCopper';
+import { FIDUCIALS, FRONT_PADS, HOLES, POUR, SPOKES, STITCH, VIA, labelRoom } from '../../src/content/backCopper';
 import { BACK_PASSIVES, PASSIVE_REF, passiveBox, passiveRef, passiveUse } from '../../src/content/backPassives';
 import { PACKAGES, padCenter } from '../../src/lib/packages';
 import { PASSIVES, PASSIVE_IDS } from '../../src/lib/passives';
@@ -123,6 +123,62 @@ describe('the nets of the back face', () => {
       expect(box.x >= view.x && box.y >= view.y && box.x + box.w <= view.x + view.w && box.y + box.h <= view.y + view.h, `${p.ref} inside`).toBe(true);
       for (const q of BACK_PARTS.slice(i + 1)) expect(apart(grow(box, 24), footprint(q)), `${p.ref} / ${q.ref}`).toBe(true);
       for (const d of FRONT_PADS) expect(apart(grow(box, 10), { x: d.x - d.r, y: d.y - d.r, w: 2 * d.r, h: 2 * d.r }), `${p.ref} by ${d.x},${d.y}`).toBe(true);
+    }
+  });
+});
+
+describe('the connectors of the front, seen from behind', () => {
+  /*
+   * The through-hole pads of each connector, in the units of its symbol (PartSprite.vue), on the line
+   * of its first pad (y = 16): the centre of each pad, its radius, which are square, which are ground.
+   * The microSD slot and the USB-C receptacle hold to the board by the legs of their shell (ground);
+   * the SMD contacts of the cards and of the USB-C show nothing on the back.
+   */
+  const THT: Record<string, { x: number[]; r: number[]; square: number[]; ground: number[] }> = {
+    j1: { x: [6, 16, 26, 36, 46, 56], r: [4, 4, 4, 4, 4, 4], square: [6], ground: [56] },
+    j2: { x: [6, 16, 26, 36], r: [4, 4, 4, 4], square: [6], ground: [6] },
+    j3: { x: [6, 56], r: [5, 4], square: [6], ground: [6, 56] },
+    j4: { x: [11, 21, 31], r: [4, 4, 4], square: [11], ground: [31] },
+    j5: { x: [6, 58], r: [5, 5], square: [6, 58], ground: [6, 58] },
+  };
+  const wide = readFileSync(new URL('../../src/styles/wide.css', import.meta.url), 'utf8');
+  const column = Number(wide.match(/\.parts \+ \.parts \.part \{\s*--x: (\d+);/)?.[1]);
+  const row = (id: string): number => Number(wide.match(new RegExp(String.raw`#part-${id} \{\s*--y: (\d+);`))?.[1]);
+  const mirrored = (id: string, x: number): Point => [1600 - (column + x), row(id) + 16];
+  /** The spokes, as segments. */
+  const spokes: [Point, Point][] = [...SPOKES.matchAll(/M(\d+) (\d+)([HV])(\d+)/g)].map(([, x, y, k, to]) => {
+    const a: Point = [Number(x), Number(y)];
+    return [a, k === 'H' ? [Number(to), a[1]] : [a[0], Number(to)]];
+  });
+
+  it('every pad of a connector sits under its pad on the front, mirrored', () => {
+    expect(column).toBe(1188);
+    const expected = Object.entries(THT).flatMap(([id, t]) =>
+      t.x.map((x, i) => ({ at: mirrored(id, x), r: t.r[i], square: t.square.includes(x) })),
+    );
+    // DISP1 (6 pads at y = 188) and SW1 (4 small ones), then the connectors, and nothing else.
+    const connectors = FRONT_PADS.filter((d) => d.y > 600);
+    expect(connectors.map((d) => ({ at: [d.x, d.y], r: d.r, square: Boolean(d.square) }))).toEqual(expected);
+    expect(FRONT_PADS).toHaveLength(10 + expected.length);
+  });
+
+  it('every ground pad is joined to the pour by thermal spokes, and no spoke reaches another pad', () => {
+    for (const [id, t] of Object.entries(THT)) {
+      for (const x of t.ground) {
+        const [cx, cy] = mirrored(id, x);
+        const own = spokes.filter((s) => toSegment([cx, cy], s) < 0.5);
+        // At least three spokes: a horizontal and a vertical one through the centre of the pad.
+        expect(own.some(([a, b]) => a[1] === b[1]), `${id} at ${x}: a horizontal spoke`).toBe(true);
+        expect(own.some(([a, b]) => a[0] === b[0]), `${id} at ${x}: a vertical spoke`).toBe(true);
+      }
+    }
+    for (const s of spokes) {
+      const owner = FRONT_PADS.filter((d) => toSegment([d.x, d.y], s) < 0.5);
+      expect(owner, `spoke ${s.join(' ')}`).toHaveLength(1);
+      for (const d of FRONT_PADS) {
+        if (d === owner[0]) continue;
+        expect(toSegment([d.x, d.y], s), `spoke ${s.join(' ')} by the pad at ${d.x},${d.y}`).toBeGreaterThan(d.r + 1);
+      }
     }
   });
 });
