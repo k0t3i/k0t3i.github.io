@@ -1,7 +1,6 @@
 import { PASSIVES, type PassiveId } from '../lib/passives';
 import type { Rect } from '../lib/packages';
-import type { BackRef, LabelSide, Point } from './backNets';
-import { pinAt } from './backNets';
+import type { LabelSide } from './backNets';
 
 /**
  * The passive parts of the back face: decoration, in colour, around the skills. Each skill chip has
@@ -14,7 +13,8 @@ import { pinAt } from './backNets';
  * board; x, y is the top-left corner of the part as drawn (turned or not). Their silkscreen
  * references are smaller and quieter than those of the skills.
  * Hand-edited: tests/unit/back-nets.spec.ts keeps them clear of the parts, the nets, the references,
- * the through-hole pads and the holes, and the stitching clear of them.
+ * the through-hole pads and the holes, and the stitching clear of them; PASSIVE_REF equals the size
+ * of their references in back.css.
  */
 
 export type PassiveTone = 'red' | 'green' | 'amber' | 'blue';
@@ -32,61 +32,64 @@ export interface BackPassive {
   label: LabelSide;
 }
 
-const cap = (ref: string, x: number, y: number, label: LabelSide, turned = true): BackPassive => ({ ref, pkg: 'c0603', x, y, turned, label });
-const res = (ref: string, x: number, y: number, label: LabelSide, turned = false): BackPassive => ({ ref, pkg: 'r0805', x, y, turned, label });
+/*
+ * One part a line: its reference, its package, x, y, the side of its reference, "^" when it stands
+ * upright (a quarter turn), the colour of an LED. In order: U10, the main chip (two decoupling
+ * capacitors, its crystal and the two load capacitors); a decoupling capacitor by each chip; U18,
+ * a switching regulator (its inductor and its output capacitor); U20, the regulator (an electrolytic
+ * at its input, a tantalum at its output, its power LED and its resistor); pull-ups and series
+ * resistors; by the header of DISP1 seen from behind, its backlight resistors and a capacitor; by
+ * the pads of SW1, its pull-up and its debounce capacitor; the four status LEDs over their resistors.
+ */
+const TABLE = `
+C1 c0603 506 304 e ^
+C2 c0603 342 416 w ^
+Y1 xtal 324 334 n ^
+C3 c0603 308 326 w ^
+C4 c0603 308 352 w ^
+C5 c0603 462 566 e ^
+C6 c0603 164 646 w ^
+C7 c0603 152 388 w ^
+C8 c0603 741 626 e ^
+C9 c0603 741 650 e ^
+C10 c0603 266 286 w ^
+C11 c0603 692 304 e ^
+C12 c0603 542 706 e ^
+C14 c0603 754 436 s ^
+L1 ind 500 150 n
+C13 c0603 474 162 n
+C15 elec 626 168 n
+C16 tant 726 214 s
+R16 r0805 744 250 n ^
+D5 led 762 250 n ^ green
+R5 r0805 250 384 e
+R6 r0805 250 402 e
+R7 r0805 548 470 w
+R8 r0805 548 488 w
+R13 r0805 660 520 w
+R14 r0805 660 538 w
+R9 r0805 296 722 e
+R10 r0805 296 740 e
+R11 r0805 160 150 n
+R12 r0805 192 150 n
+C17 c0603 224 151 n
+R15 r0805 158 562 s
+C18 c0603 210 520 e ^
+D1 led 140 712 n ^ red
+D2 led 158 712 n ^ green
+D3 led 176 712 n ^ amber
+D4 led 194 712 n ^ blue
+R1 r0805 140 738 s ^
+R2 r0805 158 738 s ^
+R3 r0805 176 738 s ^
+R4 r0805 194 738 s ^`;
 
-const LEDS: readonly [PassiveTone, number][] = [
-  ['red', 140],
-  ['green', 158],
-  ['amber', 176],
-  ['blue', 194],
-];
-
-export const BACK_PASSIVES: readonly BackPassive[] = [
-  // U10, the main chip: two decoupling capacitors, its crystal and the two load capacitors.
-  cap('C1', 506, 304, 'e'),
-  cap('C2', 342, 416, 'w'),
-  { ref: 'Y1', pkg: 'xtal', x: 324, y: 334, turned: true, label: 'n' },
-  cap('C3', 308, 326, 'w'),
-  cap('C4', 308, 352, 'w'),
-  // A decoupling capacitor by each chip.
-  cap('C5', 462, 566, 'e'),
-  cap('C6', 164, 646, 'w'),
-  cap('C7', 152, 388, 'w'),
-  cap('C8', 741, 626, 'e'),
-  cap('C9', 741, 650, 'e'),
-  cap('C10', 266, 286, 'w'),
-  cap('C11', 692, 304, 'e'),
-  cap('C12', 542, 706, 'e'),
-  cap('C14', 754, 436, 's'),
-  // U18, a switching regulator: its inductor and its output capacitor.
-  { ref: 'L1', pkg: 'ind', x: 500, y: 150, label: 'n' },
-  cap('C13', 474, 162, 'n', false),
-  // U20, the regulator: an electrolytic at its input, a tantalum at its output, its power LED.
-  { ref: 'C15', pkg: 'elec', x: 626, y: 168, label: 'n' },
-  { ref: 'C16', pkg: 'tant', x: 726, y: 214, label: 's' },
-  res('R16', 744, 250, 'n', true),
-  { ref: 'D5', pkg: 'led', x: 762, y: 250, turned: true, tone: 'green', label: 'n' },
-  // Pull-ups and series resistors.
-  res('R5', 250, 384, 'e'),
-  res('R6', 250, 402, 'e'),
-  res('R7', 548, 470, 'w'),
-  res('R8', 548, 488, 'w'),
-  res('R13', 660, 520, 'w'),
-  res('R14', 660, 538, 'w'),
-  res('R9', 296, 722, 'e'),
-  res('R10', 296, 740, 'e'),
-  // By the header of DISP1, seen from behind: its backlight resistors and a capacitor.
-  res('R11', 160, 150, 'n'),
-  res('R12', 192, 150, 'n'),
-  cap('C17', 224, 151, 'n', false),
-  // By the pads of SW1: its pull-up and its debounce capacitor.
-  res('R15', 158, 562, 's'),
-  cap('C18', 210, 520, 'e'),
-  // The status LEDs, each over its resistor.
-  ...LEDS.map(([tone, x], i): BackPassive => ({ ref: `D${i + 1}`, pkg: 'led', x, y: 712, turned: true, tone, label: 'n' })),
-  ...LEDS.map(([, x], i) => res(`R${i + 1}`, x, 738, 's', true)),
-];
+export const BACK_PASSIVES: readonly BackPassive[] = TABLE.trim()
+  .split('\n')
+  .map((line) => {
+    const [ref = '', pkg, x, y, label, turned, tone] = line.split(' ');
+    return { ref, pkg: pkg as PassiveId, x: Number(x), y: Number(y), label: label as LabelSide, turned: turned === '^', tone: tone as PassiveTone | undefined };
+  });
 
 /** The box of a passive on the face, as drawn. */
 export function passiveBox(p: BackPassive): Rect {
@@ -94,75 +97,27 @@ export function passiveBox(p: BackPassive): Rect {
   return p.turned ? { x: p.x, y: p.y, w: h, h: w } : { x: p.x, y: p.y, w, h };
 }
 
-/** How the copper draws it: its symbol at its place, turned about its centre if it is upright. */
-export function passiveUse(p: BackPassive): { x: number; y: number; width: number; height: number; transform?: string } {
+/**
+ * How the copper draws it: its symbol (drawn at one unit for one unit, no viewBox) at its place,
+ * turned about its centre if it is upright.
+ */
+export function passiveUse(p: BackPassive): { x: number; y: number; transform?: string } {
   const { w, h } = PASSIVES[p.pkg];
   const box = passiveBox(p);
   const [cx, cy] = [box.x + box.w / 2, box.y + box.h / 2];
-  return { x: cx - w / 2, y: cy - h / 2, width: w, height: h, ...(p.turned ? { transform: `rotate(90 ${cx} ${cy})` } : {}) };
+  return { x: cx - w / 2, y: cy - h / 2, ...(p.turned ? { transform: `rotate(90 ${cx} ${cy})` } : {}) };
 }
 
-/** The silkscreen of a reference: its size in units (back.css), the advance of one character. */
+/** The silkscreen of a reference: its size in units (back.css), the advance of one character, its gap from the part. */
 export const PASSIVE_REF = { size: 8, advance: 5, gap: 3 };
+const [SIZE, ADVANCE, GAP] = [8, 5, 3];
 
-/** Where its reference is printed: its baseline, its anchor, and the room it takes. */
-export function passiveRef(p: BackPassive): { x: number; y: number; anchor: 'start' | 'end'; room: Rect } {
+/** Where its reference is printed: its baseline, whether it ends there (on the west side), and the room it takes. */
+export function passiveRef(p: BackPassive): { x: number; y: number; end: boolean; room: Rect } {
   const b = passiveBox(p);
-  const { size, advance, gap } = PASSIVE_REF;
-  const w = advance * p.ref.length;
-  const middle = b.y + Math.round(b.h / 2) + 3;
-  const at: Record<LabelSide, { x: number; y: number; anchor: 'start' | 'end'; left: number }> = {
-    n: { x: b.x, y: b.y - gap, anchor: 'start', left: b.x },
-    s: { x: b.x, y: b.y + b.h + gap + size - 1, anchor: 'start', left: b.x },
-    e: { x: b.x + b.w + gap, y: middle, anchor: 'start', left: b.x + b.w + gap },
-    w: { x: b.x - gap, y: middle, anchor: 'end', left: b.x - gap - w },
-  };
-  const { x, y, anchor, left } = at[p.label];
-  return { x, y, anchor, room: { x: left, y: y - size + 1, w, h: size + 1 } };
-}
-
-/**
- * The short traces of ordinary copper from a decoupling capacitor to the supply pin of its chip:
- * the capacitor, the pad it leaves by (1 or 2), the chip and its pin, and the bends in between.
- */
-export interface Stub {
-  from: string;
-  pad: 1 | 2;
-  to: BackRef;
-  pin: number;
-  bends: Point[];
-}
-
-export const STUBS: readonly Stub[] = [
-  { from: 'C1', pad: 2, to: 'U10', pin: 36, bends: [[511, 326]] },
-  { from: 'C2', pad: 1, to: 'U10', pin: 12, bends: [[352, 414]] },
-  { from: 'C5', pad: 1, to: 'U11', pin: 11, bends: [[462, 564]] },
-  { from: 'C6', pad: 1, to: 'U12', pin: 14, bends: [[173, 645]] },
-  { from: 'C7', pad: 1, to: 'U13', pin: 16, bends: [[164, 384]] },
-  { from: 'C8', pad: 1, to: 'U14', pin: 18, bends: [[741, 634]] },
-  { from: 'C11', pad: 1, to: 'U16', pin: 9, bends: [[695, 305]] },
-  { from: 'C12', pad: 2, to: 'U17', pin: 7, bends: [[547, 738]] },
-  { from: 'C14', pad: 1, to: 'U19', pin: 5, bends: [[755, 435]] },
-  { from: 'L1', pad: 2, to: 'U18', pin: 6, bends: [[544, 154]] },
-];
-
-/** The centre of a pad of a passive, on the face (a turned part has pad 1 at its top). */
-export function passivePad(p: BackPassive, pad: 1 | 2): Point {
-  const r = PASSIVES[p.pkg].pads[pad - 1];
-  if (!r) throw new Error(`${p.ref} has no pad ${pad}`);
-  const [px, py] = [r.x + r.w / 2, r.y + r.h / 2];
-  if (!p.turned) return [p.x + px, p.y + py];
-  // A quarter turn clockwise about the centre: (x, y) of the symbol goes to (h - y, x) of the box.
-  return [p.x + PASSIVES[p.pkg].h - py, p.y + px];
-}
-
-const passive = (ref: string): BackPassive => {
-  const p = BACK_PASSIVES.find((q) => q.ref === ref);
-  if (!p) throw new Error(`no passive ${ref}`);
-  return p;
-};
-
-/** Every point of a stub: the pad of the passive, its bends, the pin of the chip. */
-export function stubPoints(s: Stub): Point[] {
-  return [passivePad(passive(s.from), s.pad), ...s.bends, pinAt(s.to, s.pin)];
+  const w = ADVANCE * p.ref.length;
+  const side = p.label;
+  const x = side === 'e' ? b.x + b.w + GAP : side === 'w' ? b.x - GAP : b.x;
+  const y = side === 'n' ? b.y - GAP : side === 's' ? b.y + b.h + GAP + SIZE - 1 : b.y + Math.round(b.h / 2) + 3;
+  return { x, y, end: side === 'w', room: { x: side === 'w' ? x - w : x, y: y - SIZE + 1, w, h: SIZE + 1 } };
 }

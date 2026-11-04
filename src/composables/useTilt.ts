@@ -59,6 +59,8 @@ export function useTilt(target: Ref<HTMLElement | null>): void {
   /** Where the pointer is, while it is over the board. */
   let pointer: { x: number; y: number } | null = null;
   let sheet: EventTarget | null = null;
+  /** The loop is holding the board while it turns over. */
+  let held = false;
 
   const active = (): boolean => Boolean(media?.matches) && !reduced.value;
 
@@ -118,11 +120,15 @@ export function useTilt(target: Ref<HTMLElement | null>): void {
     const dt = last ? time - last : FRAME;
     last = time;
     // The turn is a transition of the same transform: the tilt waits for its end, then measures the
-    // board again (on the flowing board, the face that is up sets its height).
+    // board again, once (on the flowing board, the face that is up sets its height).
     if (el.hasAttribute('data-turning')) {
-      view = null;
+      held = true;
       frame = requestAnimationFrame(step);
       return;
+    }
+    if (held) {
+      held = false;
+      view = null;
     }
     // The window scrolled or changed since: the board turns about the middle of the part now in
     // view, and the pointer is aimed at again from it.
@@ -168,7 +174,9 @@ export function useTilt(target: Ref<HTMLElement | null>): void {
     if (to) aim(...to);
   }
 
-  function onLeave(): void {
+  // A finger lifting off a hybrid device leaves the board too: only a mouse or a pen flattens it.
+  function onLeave(event: PointerEvent): void {
+    if (event.pointerType === 'touch') return;
     pointer = null;
     aim(0, 0);
   }

@@ -352,6 +352,44 @@ describe('useTilt', () => {
     expect(isFlat(board)).toBe(true);
   });
 
+  it('measures the board once after a turn, not on each move during it', () => {
+    stubMedia({ fine: true, reduced: false });
+    const { board } = mountBoard();
+    const measure = vi.fn(() => new DOMRect(0, 0, 1600, 900));
+    board.getBoundingClientRect = measure;
+    board.dispatchEvent(new PointerEvent('pointerenter'));
+    move(board, 1500, 450);
+    runFrames(5);
+    expect(measure).toHaveBeenCalledTimes(1);
+    board.dataset.turning = 'run';
+    for (let i = 0; i < 6; i++) {
+      move(board, 1500 - i * 100, 450);
+      runFrames(3);
+    }
+    expect(measure).toHaveBeenCalledTimes(1);
+    delete board.dataset.turning;
+    runFrames(1);
+    expect(measure).toHaveBeenCalledTimes(2);
+    move(board, 900, 450);
+    runFrames(3);
+    expect(measure).toHaveBeenCalledTimes(2);
+  });
+
+  it('a finger lifting off a hybrid device does not flatten the board under the mouse', () => {
+    stubMedia({ fine: true, reduced: false });
+    const { board, body } = mountBoard();
+    move(board, 1600, 450);
+    runFrames(200);
+    const leaning = angle(body, 'y');
+    expect(leaning).toBeGreaterThan(4);
+    board.dispatchEvent(new PointerEvent('pointerleave', { pointerType: 'touch' }));
+    runFrames(200);
+    expect(angle(body, 'y')).toBe(leaning);
+    board.dispatchEvent(new PointerEvent('pointerleave', { pointerType: 'mouse' }));
+    runFrames(1000);
+    expect(isFlat(board)).toBe(true);
+  });
+
   it('holds still while the board turns over', () => {
     stubMedia({ fine: true, reduced: false });
     const { board, body } = mountBoard();

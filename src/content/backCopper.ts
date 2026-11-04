@@ -1,6 +1,6 @@
 import { PACKAGES } from '../lib/packages';
 import { BACK_PARTS, BACK_NETS, CIRCUIT_VIEW, netPoints, type BackPart, type Point } from './backNets';
-import { BACK_PASSIVES, STUBS, passiveBox, passiveRef, stubPoints } from './backPassives';
+import { BACK_PASSIVES, passiveBox, passiveRef } from './backPassives';
 
 /**
  * The copper of the back face that names nothing: what a real bottom side shows besides its parts.
@@ -127,7 +127,7 @@ function stitching(): Point[] {
     ...BACK_PARTS.flatMap((p) => [{ x: p.x, y: p.y, w: PACKAGES[p.pkg].w, h: PACKAGES[p.pkg].h }, labelRoom(p)]),
     ...BACK_PASSIVES.flatMap((p) => [passiveBox(p), passiveRef(p).room]),
   ];
-  const traces = [...BACK_NETS.map(netPoints), ...STUBS.map(stubPoints)];
+  const traces = BACK_NETS.map(netPoints);
   const out: Point[] = [];
   for (let row = 0, y = POUR.y + step / 2; y < POUR.y + POUR.h - keep; row++, y += step) {
     for (let x = POUR.x + step / 2 + (row % 2) * (step / 2); x < POUR.x + POUR.w - keep; x += step) {

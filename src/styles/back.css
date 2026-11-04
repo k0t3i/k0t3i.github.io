@@ -285,7 +285,7 @@
   }
 
   /*
-   * The passive parts (BackCopper.vue, drawn by PartSprite.vue from lib/passives.ts): decoration in
+   * The passive parts (BackCopper.vue, which draws their packages from lib/passives.ts): decoration in
    * the colours of their materials (tokens.css), on the gold pads and the tin of the skills. In forced
    * colours they are drawn in outline (--psv-line, modes.css).
    */
@@ -452,24 +452,6 @@
     --ref: var(--gold);
   }
 
-  .back-part:is(
-      [data-active="U10"] [data-links~="U10"],
-      [data-active="U11"] [data-links~="U11"],
-      [data-active="U12"] [data-links~="U12"],
-      [data-active="U13"] [data-links~="U13"],
-      [data-active="U14"] [data-links~="U14"],
-      [data-active="U15"] [data-links~="U15"],
-      [data-active="U16"] [data-links~="U16"],
-      [data-active="U17"] [data-links~="U17"],
-      [data-active="U18"] [data-links~="U18"],
-      [data-active="U19"] [data-links~="U19"],
-      [data-active="U20"] [data-links~="U20"]
-    ) {
-    --pad: var(--pad-linked);
-    --body-edge: var(--linked);
-    --ref: var(--linked);
-  }
-
   .back-net:is(
       [data-active="U10"] :is([data-from="U10"], [data-to="U10"]),
       [data-active="U11"] :is([data-from="U11"], [data-to="U11"]),
@@ -505,7 +487,8 @@
     --row-to: var(--linked);
   }
 
-  .bom tr:is(
+  /* The parts linked to the lit one, on the circuit and in the table: the second colour, a finer rule. */
+  :is(.back-part, .bom tr):is(
       [data-active="U10"] [data-links~="U10"],
       [data-active="U11"] [data-links~="U11"],
       [data-active="U12"] [data-links~="U12"],
@@ -518,6 +501,9 @@
       [data-active="U19"] [data-links~="U19"],
       [data-active="U20"] [data-links~="U20"]
     ) {
+    --pad: var(--pad-linked);
+    --body-edge: var(--linked);
+    --ref: var(--linked);
     --row: var(--row-linked);
     --row-ref: var(--linked);
     --row-rule: var(--linked);

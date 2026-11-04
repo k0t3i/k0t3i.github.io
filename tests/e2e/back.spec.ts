@@ -292,6 +292,25 @@ test.describe('the parts linked to the lit one', () => {
           refs: Object.fromEntries(rows.map((tr) => [tr.dataset.ref, getComputedStyle(tr.cells[0] as Element).color])),
           to: Object.fromEntries(rows.map((tr) => [tr.dataset.ref, [...tr.querySelectorAll('td.bom__linked .bom__to')].map((t) => getComputedStyle(t).color)])),
           edges: Object.fromEntries([...el.querySelectorAll<HTMLElement>('.back-part')].map((p) => [p.dataset.ref, getComputedStyle(p).getPropertyValue('--body-edge').trim()])),
+          // A pad of the symbol, drawn in the part's own svg: its computed fill is the one of its pads.
+          pads: Object.fromEntries(
+            [...el.querySelectorAll<HTMLElement>('.back-part')].map((p) => {
+              const svg = p.querySelector('svg') as SVGSVGElement;
+              const pad = svg.appendChild(document.createElementNS('http://www.w3.org/2000/svg', 'rect'));
+              pad.setAttribute('class', 'pcb-pad');
+              const fill = getComputedStyle(pad).fill;
+              pad.remove();
+              return [p.dataset.ref, fill];
+            }),
+          ),
+          padLinked: (() => {
+            const probe = el.ownerDocument.createElement('i');
+            probe.style.color = 'var(--pad-linked)';
+            el.append(probe);
+            const colour = getComputedStyle(probe).color;
+            probe.remove();
+            return colour;
+          })(),
         };
       });
       for (const other of REFS.filter((r) => r !== ref)) {
@@ -301,9 +320,12 @@ test.describe('the parts linked to the lit one', () => {
           expect(look.refs[other], `${other} reference`).toBe(linked);
           const rule = await ruleOf(page, other);
           expect([rule.colour, rule.width], `${other} rule`).toEqual([linked, 1]);
-          // Their packages on the circuit, in the second colour too.
+          // Their packages on the circuit, in the second colour too: the edge of the body, and the
+          // pads as drawn (the fill a pad of the symbol takes inside the part).
           expect(look.edges[other], `${other} package`).toBe(edge);
+          expect(look.pads[other], `${other} pads`).toBe(look.padLinked);
         } else {
+          expect(look.pads[other], `${other} pads`).not.toBe(look.padLinked);
           expect(parseColour(look.tint[other] ?? '')[3], `${other} not tinted`).toBe(0);
           expect(look.refs[other], `${other} reference`).not.toBe(linked);
           expect(look.edges[other], `${other} package`).not.toBe(edge);
@@ -315,6 +337,29 @@ test.describe('the parts linked to the lit one', () => {
       for (const other of REFS.filter((r) => r !== ref)) for (const c of look.to[other] ?? []) expect(c, `${other} links`).not.toBe(linked);
       await page.mouse.move(1, 1);
       await expect.poll(async () => (await lighting(page)).linkedRows).toEqual([]);
+    }
+  });
+
+  test('on a phone, the « Relié à » printed under the value takes the second colour too', async ({ page }) => {
+    await booted(page);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await showBack(page);
+    const linked = await linkedColour(page);
+    await row(page, 'U14').evaluate((el) => el.scrollIntoView({ block: 'center' }));
+    await row(page, 'U14').hover();
+    await expectLit(page, 'U14');
+    const inline = await face(page).evaluate((el) =>
+      Object.fromEntries(
+        [...el.querySelectorAll<HTMLTableRowElement>('tbody tr')].map((tr) => [
+          tr.dataset.ref,
+          [...tr.querySelectorAll<HTMLElement>('.bom__links .bom__to')].filter((t) => t.checkVisibility()).map((t) => getComputedStyle(t).color),
+        ]),
+      ),
+    );
+    expect(inline.U14).toEqual((NEIGHBOURS.U14 ?? []).map(() => linked));
+    for (const other of REFS.filter((r) => r !== 'U14')) {
+      expect(inline[other]?.length, other).toBeGreaterThan(0);
+      for (const c of inline[other] ?? []) expect(c, other).not.toBe(linked);
     }
   });
 
@@ -431,16 +476,18 @@ test.describe('the circuit on a flowing board', () => {
 });
 
 test.describe('the description of a part', () => {
-  for (const viewport of [WIDE, { width: 390, height: 844 }]) {
-    test(`a part is described by its value and the parts it is linked to, labelled, at ${viewport.width}px`, async ({ page, isMobile }) => {
-      test.skip(isMobile && viewport.width > 390, 'the phone sizes only');
-      if (!isMobile) await page.setViewportSize(viewport);
-      await showBack(page);
-      for (const [ref = '', , value, links] of FR.back.rows) {
-        // Not its name again: the reference and the skill are its name already.
-        await expect(part(page, ref)).toHaveAccessibleDescription(`${value} ${FR.back.columns[3]} ${links}`);
-      }
-    });
+  for (const copy of [FR, EN] as Copy[]) {
+    for (const viewport of [WIDE, { width: 390, height: 844 }]) {
+      test(`a part is described by its value and the parts it is linked to, labelled (${copy.path}, ${viewport.width}px)`, async ({ page, isMobile }) => {
+        test.skip(isMobile && viewport.width > 390, 'the phone sizes only');
+        if (!isMobile) await page.setViewportSize(viewport);
+        await showBack(page, copy.path);
+        for (const [ref = '', , value, links] of copy.back.rows) {
+          // Not its name again: the reference and the skill are its name already.
+          await expect(part(page, ref)).toHaveAccessibleDescription(`${value} ${copy.back.columns[3]} ${links}`);
+        }
+      });
+    }
   }
 });
 

@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { BACK_NETS as ORACLE_NETS, EN, FR } from '../helpers/copy';
 import { BACK_NETS, BACK_PARTS, BACK_REFS, CIRCUIT_VIEW, linkedTo, netPoints, type BackPart } from '../../src/content/backNets';
 import { FIDUCIALS, FRONT_PADS, HOLES, POUR, STITCH, VIA, labelRoom } from '../../src/content/backCopper';
-import { BACK_PASSIVES, PASSIVE_REF, STUBS, passiveBox, passivePad, passiveRef, passiveUse, stubPoints } from '../../src/content/backPassives';
+import { BACK_PASSIVES, PASSIVE_REF, passiveBox, passiveRef, passiveUse } from '../../src/content/backPassives';
 import { PACKAGES, padCenter } from '../../src/lib/packages';
 import { PASSIVES, PASSIVE_IDS } from '../../src/lib/passives';
 import { en } from '../../src/content/en';
@@ -183,40 +183,6 @@ describe('the passive parts of the back face', () => {
     }
   });
 
-  it('the short traces of the decoupling capacitors are ordinary copper, clear of the nets', () => {
-    expect(STUBS.length).toBeGreaterThan(5);
-    const used = new Set(BACK_NETS.flatMap((n) => [`${n.from} ${n.pins[0]}`, `${n.to} ${n.pins[1]}`]));
-    for (const stub of STUBS) {
-      const pts = stubPoints(stub);
-      const id = `${stub.from} to ${stub.to}`;
-      for (const [x, y] of pts) expect(Number.isInteger(x) && Number.isInteger(y), `${id} ${x},${y}`).toBe(true);
-      for (const [[ax, ay], [bx, by]] of segments(pts)) {
-        const [dx, dy] = [Math.abs(bx - ax), Math.abs(by - ay)];
-        expect(dx === 0 || dy === 0 || dx === dy, `${id} at 45°`).toBe(true);
-        expect(dx + dy, `${id}: a segment of no length`).toBeGreaterThan(0);
-      }
-      // Short, from a pad of its passive to a pin of its chip that no net uses.
-      const length = segments(pts).reduce((sum, [[ax, ay], [bx, by]]) => sum + Math.hypot(bx - ax, by - ay), 0);
-      expect(length, id).toBeLessThan(48);
-      expect(used.has(`${stub.to} ${stub.pin}`), `${id}: pin ${stub.pin} carries a net`).toBe(false);
-      // Clear of every net, and of the bodies of the parts, its own chip's body included.
-      for (const net of BACK_NETS) {
-        let gap = Infinity;
-        for (const a of segments(pts)) for (const b of segments(netPoints(net))) gap = Math.min(gap, between(a, b));
-        expect(gap, `${id} / ${net.id}`).toBeGreaterThanOrEqual(10);
-      }
-      for (const q of BACK_PARTS) {
-        const keep = q.ref === stub.to ? body(q) : grow(footprint(q), 6);
-        for (const sgm of segments(pts)) expect(crosses(sgm, keep), `${id} through ${q.ref}`).toBe(false);
-        for (const sgm of segments(pts)) expect(crosses(sgm, labelRoom(q)), `${id} on the reference of ${q.ref}`).toBe(false);
-      }
-      for (const p of BACK_PASSIVES) {
-        for (const sgm of segments(pts)) expect(crosses(sgm, grow(passiveRef(p).room, 1)), `${id} on the reference of ${p.ref}`).toBe(false);
-        if (p.ref !== stub.from) for (const sgm of segments(pts)) expect(crosses(sgm, grow(passiveBox(p), 4)), `${id} through ${p.ref}`).toBe(false);
-      }
-    }
-  });
-
   it('the stitching vias keep clear of the passives and their references', () => {
     for (const p of BACK_PASSIVES) {
       for (const box of [passiveBox(p), passiveRef(p).room]) {
@@ -226,16 +192,15 @@ describe('the passive parts of the back face', () => {
     }
   });
 
-  it('a turned part stays on whole units, its pads within its box', () => {
+  it('a turned part stays on whole units, about the centre of its box', () => {
     for (const p of BACK_PASSIVES) {
       const use = passiveUse(p);
-      for (const v of [use.x, use.y, use.width, use.height]) expect(Number.isInteger(v), p.ref).toBe(true);
+      for (const v of [use.x, use.y]) expect(Number.isInteger(v), p.ref).toBe(true);
       const b = passiveBox(p);
-      for (const n of PASSIVES[p.pkg].pads.keys()) {
-        if (n > 1) continue;
-        const [x, y] = passivePad(p, (n + 1) as 1 | 2);
-        expect(x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h, `${p.ref} pad ${n + 1}`).toBe(true);
-      }
+      const { w, h } = PASSIVES[p.pkg];
+      // Its symbol, centred on its box: upright, the box is the symbol turned a quarter turn.
+      expect([use.x + w / 2, use.y + h / 2], p.ref).toEqual([b.x + b.w / 2, b.y + b.h / 2]);
+      expect(use.transform !== undefined, p.ref).toBe(Boolean(p.turned));
     }
   });
 

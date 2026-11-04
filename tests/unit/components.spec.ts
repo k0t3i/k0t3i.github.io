@@ -390,21 +390,6 @@ describe('PartSprite', () => {
     }
   });
 
-  it('draws the passive parts of the back face from their packages, their colours from the CSS', () => {
-    const wrapper = mount(PartSprite);
-    for (const id of PASSIVE_IDS) {
-      const pkg = PASSIVES[id];
-      const symbol = wrapper.get(`symbol#psv-${id}`);
-      expect(symbol.attributes('viewBox'), id).toBe(`0 0 ${pkg.w} ${pkg.h}`);
-      expect(symbol.findAll('.pcb-pad'), id).toHaveLength(pkg.pads.length);
-      expect(symbol.element.children, id).toHaveLength(pkg.shapes.length);
-      // Every shape in a material: the pads and tin of the skills, or a material of the passives.
-      for (const shape of symbol.element.children) expect(shape.getAttribute('class'), id).toMatch(/^(pcb-pad|pcb-tin|psv-[a-z-]+)$/);
-      expect(symbol.html(), id).not.toMatch(/fill=|stroke=|style=/);
-      // Whole units, so a part turned a quarter turn about its centre stays on whole units.
-      expect([pkg.w % 2, pkg.h % 2], id).toEqual([0, 0]);
-    }
-  });
 });
 
 describe('BackFace', () => {
@@ -475,6 +460,24 @@ describe('BackFace', () => {
 });
 
 describe('BackCopper', () => {
+  it('draws the packages of the passive parts in its own defs, from their footprints, their colours from the CSS', () => {
+    const wrapper = mount(BackCopper);
+    expect(mount(PartSprite).findAll('symbol[id^="psv-"]')).toHaveLength(0);
+    for (const id of PASSIVE_IDS) {
+      const pkg = PASSIVES[id];
+      const symbol = wrapper.get(`svg.back__copper > defs > symbol#psv-${id}`);
+      // One unit for one unit: the copper places each one at its size (no viewBox to scale it).
+      expect(symbol.attributes('viewBox'), id).toBeUndefined();
+      expect(symbol.findAll('.pcb-pad'), id).toHaveLength(pkg.pads.length);
+      expect(symbol.element.children, id).toHaveLength(pkg.shapes.length);
+      // Every shape in a material: the pads and tin of the skills, or a material of the passives.
+      for (const shape of symbol.element.children) expect(shape.getAttribute('class'), id).toMatch(/^(pcb-pad|pcb-tin|psv-[a-z-]+)$/);
+      expect(symbol.html(), id).not.toMatch(/fill=|stroke=|style=/);
+      // Whole units, so a part turned a quarter turn about its centre stays on whole units.
+      expect([pkg.w % 2, pkg.h % 2], id).toEqual([0, 0]);
+    }
+  });
+
   it('is a static drawing: no input, and a part that lights up never draws it again', async () => {
     expect(BackCopper.props).toBeUndefined();
     const wrapper = mount(BoardBack, { props: { back: fr.back }, global: { provide: { [FLIP as symbol]: flipState() } } });

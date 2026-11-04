@@ -220,12 +220,18 @@
 
     /*
      * A far corner of the leaning board, out of view, may come out of its sides by more than the
-     * margin of the page: it is cut 0.5rem from them, so the page never scrolls sideways (its soft
-     * shadow is lost there, the faint end of it).
+     * margin of the page. The app reaches 0.5rem beyond the board on both sides (no change to the
+     * layout: its padding gives back its negative margin) and, while the board leans, cuts there: the
+     * page never scrolls sideways, the near edge of the board keeps its 0.5rem to come forward (only
+     * the faint end of its shadow is lost).
      */
-    .board--home[data-tilting]:not([data-turning]) {
+    :root[data-js] #app {
+      margin-inline: -0.5rem;
+      padding-inline: 0.5rem;
+    }
+
+    :root[data-js] #app:has(> .board--home[data-tilting]:not([data-turning])) {
       overflow-x: clip;
-      overflow-clip-margin: 0.5rem;
     }
   }
 

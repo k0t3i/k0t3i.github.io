@@ -72,7 +72,11 @@ test('the back face ships its circuit inline: a static drawing, its eleven nets 
     assert.match(copper, /aria-hidden="true"/);
     assert.match(copper, /focusable="false"/);
     assert.match(copper, /viewBox="0 0 1600 900"/);
-    assertStaticDrawing(copper, `${page} copper`);
+    // Its defs hold drawings of parts (the via, the packages of the passives), as the sprite does:
+    // static too, not on the grid of whole units of the copper itself.
+    const defs = copper.match(/<defs>[\s\S]*?<\/defs>/)?.[0] ?? '';
+    assert.doesNotMatch(defs, /<script|filter|<style|\sstyle=|(href|src)="(?!#)/i, `${page}: defs`);
+    assertStaticDrawing(copper.replace(defs, ''), `${page} copper`);
     const paths = tags(copper, 'path');
     const nets = paths.filter((t) => t.class === 'back-net');
     assert.deepEqual(nets.map((t) => t['data-net']), Array.from({ length: 11 }, (_, i) => `N${i + 1}`));
@@ -124,7 +128,7 @@ test('passives are decorative: in the hidden copper, drawn by the sprite, never 
     for (const u of uses) {
       assert.match(u.href ?? '', /^#psv-/);
       assert.ok(symbols.has((u.href ?? '').slice(1)), `${page}: no symbol for ${u.href}`);
-      for (const k of ['x', 'y', 'width', 'height']) assert.match(u[k] ?? '', /^-?\d+$/, `${page}: ${k}="${u[k]}"`);
+      for (const k of ['x', 'y']) assert.match(u[k] ?? '', /^-?\d+$/, `${page}: ${k}="${u[k]}"`);
     }
     // Their references: silkscreen marks of their kind, one each.
     const refs = [...copper.matchAll(/<text class="back__psv-ref"[^>]*>([^<]*)<\/text>/g)].map(([, t]) => t);

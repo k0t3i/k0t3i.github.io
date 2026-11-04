@@ -113,9 +113,10 @@ test.describe('the tilt', () => {
       [body, page.locator('.board__edge')].map((l) => l.evaluate((el) => getComputedStyle(el).transform)),
     );
     expect(e).toBe(b);
-    // Out of the board, it comes back flat within a second, and leaves nothing behind.
+    // Out of the board, it comes back flat in under a second (a second or so at the 10 fps of a
+    // headless Firefox), and leaves nothing behind.
     await page.mouse.move(4, 4);
-    await expect.poll(() => isFlat(body), { timeout: 1000 }).toBe(true);
+    await expect.poll(() => isFlat(body), { timeout: 2000 }).toBe(true);
     expect(await noTiltLeft(page)).toBe(true);
     await expect(board(page)).not.toHaveAttribute('data-tilting', /.*/);
   });
@@ -159,6 +160,61 @@ test.describe('the tilt', () => {
       expect(await noTiltLeft(page)).toBe(true);
     });
   }
+
+  test('the leaning flowing board never makes the page scroll sideways', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'the tilt needs a mouse');
+    await page.setViewportSize(FLOWING);
+    await open(page);
+    // Towards each corner of the window in turn: a far corner of the board, out of view, comes forward.
+    for (const [fx, fy] of [
+      [0.05, 0.05],
+      [0.95, 0.05],
+      [0.05, 0.95],
+      [0.95, 0.95],
+    ] as const) {
+      await page.mouse.move(FLOWING.width * fx, FLOWING.height * fy, { steps: 4 });
+      await expect(board(page)).toHaveAttribute('data-tilting', '');
+      // Once the board has come to its angle.
+      let last = '';
+      await expect
+        .poll(async () => {
+          const now = (await tiltOf(page)).join();
+          const still = now === last;
+          last = now;
+          return still;
+        }, { intervals: [150] })
+        .toBe(true);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), `${fx},${fy}`).toBe(0);
+    }
+  });
+
+  test('a leaning back face takes the pointer on its parts', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'the tilt needs a mouse');
+    await page.setViewportSize(WIDE);
+    await open(page);
+    await turn(page, 'front');
+    for (const ref of ['U10', 'U12']) {
+      const part = page.locator(`button.back-part[data-ref="${ref}"]`);
+      const box = await part.boundingBox();
+      if (!box) throw new Error(`no box for ${ref}`);
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 4 });
+      await expect(board(page)).toHaveAttribute('data-tilting', '');
+      await page.waitForTimeout(1200);
+      // A grid of points inside the part, as it is drawn now: each one lands on it, none on the body.
+      const misses = await part.evaluate((el) => {
+        const b = el.getBoundingClientRect();
+        const out: string[] = [];
+        for (let fx = 0.2; fx < 0.85; fx += 0.15) {
+          for (let fy = 0.2; fy < 0.85; fy += 0.15) {
+            const hit = document.elementFromPoint(b.left + b.width * fx, b.top + b.height * fy);
+            if (hit?.closest('.back-part') !== el) out.push(`${fx.toFixed(2)},${fy.toFixed(2)} ${hit?.className ?? hit?.tagName}`);
+          }
+        }
+        return out;
+      });
+      expect(misses, ref).toEqual([]);
+    }
+  });
 
   test('the flowing board leans with its back face up too', async ({ page, isMobile }) => {
     test.skip(isMobile, 'the tilt needs a mouse');
