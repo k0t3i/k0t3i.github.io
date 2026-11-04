@@ -92,3 +92,14 @@ test('no kit-urgence folder in dist', () => {
   assert.ok(!existsSync(at('kit-urgence')));
   assert.ok(!distFiles().some((f) => f.startsWith('kit-urgence/')));
 });
+
+test('one build date: the client bundle and the lastmod of the sitemap', () => {
+  const scripts = distFiles().filter((f) => /^assets\/[^/]+\.js$/.test(f));
+  const dates = new Set(scripts.flatMap((f) => [...readFileSync(at(f), 'utf8').matchAll(/["'`](\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{3}Z)["'`]/g)].map(([, d]) => d)));
+  assert.equal(dates.size, 1, `the build dates of the client bundle: ${[...dates].join(', ')}`);
+  const [date] = dates;
+  const sitemap = readFileSync(at('sitemap.xml'), 'utf8');
+  const lastmods = [...sitemap.matchAll(/<lastmod>([^<]*)<\/lastmod>/g)].map(([, d]) => d);
+  assert.ok(lastmods.length >= 2);
+  for (const d of lastmods) assert.equal(d, date.slice(0, 10));
+});

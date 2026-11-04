@@ -4,7 +4,8 @@
 //      and its data-critical scripts right after the CSP: the theme, then the language redirect;
 //   3. fails if a page has an inline style (the CSP forbids it);
 //   4. fails if dist/kit-urgence exists (that folder belongs to another repository);
-//   5. writes dist/robots.txt and dist/sitemap.xml, from the baseUrl of src/content/site.json.
+//   5. writes dist/robots.txt and dist/sitemap.xml, from the baseUrl of src/content/site.json, the
+//      lastmod of the sitemap being the day of BUILD_DATE, the date of the whole build (scripts/build.mjs).
 // It also removes dist/.vite (the SSR manifest is of no use once pages are prerendered).
 import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync, renameSync, rmdirSync, rmSync, writeFileSync } from 'node:fs';
@@ -101,6 +102,15 @@ export function robotsTxt(baseUrl) {
   return `User-agent: *\nAllow: /\nSitemap: ${baseUrl}sitemap.xml\n`;
 }
 
+/**
+ * The day of the build (YYYY-MM-DD, UTC), from BUILD_DATE: the very date the client and the prerender
+ * were built with (vite.config.ts). Run alone, without it, this step fails: run `npm run build`.
+ */
+export function buildDay(buildDate) {
+  if (!buildDate || Number.isNaN(Date.parse(buildDate))) throw new Error(`BUILD_DATE is not an ISO date ("${buildDate ?? ''}"): run \`npm run build\``);
+  return new Date(buildDate).toISOString().slice(0, 10);
+}
+
 const xml = (text) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 /**
@@ -133,6 +143,7 @@ function htmlFiles(dir) {
 
 function main() {
   if (!existsSync(DIST)) throw new Error(`${DIST} does not exist: run vite-ssg build first`);
+  const day = buildDay(process.env.BUILD_DATE);
   const errors = [];
 
   rmSync(join(DIST, '.vite'), { recursive: true, force: true });
@@ -156,7 +167,7 @@ function main() {
   if (!/^https:\/\/[^/]+\/$/.test(baseUrl ?? '')) errors.push(`site.json: baseUrl must be https://host/, got ${baseUrl}`);
   else {
     writeFileSync(join(DIST, 'robots.txt'), robotsTxt(baseUrl));
-    writeFileSync(join(DIST, 'sitemap.xml'), sitemapXml(baseUrl, new Date().toISOString().slice(0, 10)));
+    writeFileSync(join(DIST, 'sitemap.xml'), sitemapXml(baseUrl, day));
   }
 
   if (errors.length) {

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { hoistCritical, inlineScriptBodies, inlineStyleProblems, insertCsp, robotsTxt, sitemapXml, transformHtml } from '../../scripts/postbuild.mjs';
+import { buildDay, hoistCritical, inlineScriptBodies, inlineStyleProblems, insertCsp, robotsTxt, sitemapXml, transformHtml } from '../../scripts/postbuild.mjs';
 
 const hashOf = (body) => `'sha256-${createHash('sha256').update(body, 'utf8').digest('base64')}'`;
 const CHARSET = '<meta charset="utf-8">';
@@ -92,4 +92,10 @@ test('the sitemap lists both pages with their date and their three alternates', 
 
 test('the sitemap escapes its URLs', () => {
   assert.match(sitemapXml('https://example.org/?a=1&b=2/', '2026-11-04'), /<loc>https:\/\/example\.org\/\?a=1&amp;b=2\/<\/loc>/);
+});
+
+test('the lastmod of the sitemap is the day of the build date, never a date of its own', () => {
+  assert.equal(buildDay('2026-11-03T23:59:59.900Z'), '2026-11-03');
+  assert.equal(buildDay('2026-11-04T00:00:00.000Z'), '2026-11-04');
+  for (const missing of [undefined, '', 'yesterday']) assert.throws(() => buildDay(missing), /npm run build/);
 });
