@@ -1,5 +1,5 @@
 /*
- * The parts: the five principles and the three connectors. Each list has a bus at its left, a 2px
+ * The parts: the five principles and the five connectors. Each list has a bus at its left, a 2px
  * trace under the mask that runs from via to via; each part draws its own trace to the bus.
  */
 @layer parts {
@@ -29,6 +29,15 @@
 
   .pcb-lens {
     fill: var(--lens);
+  }
+
+  /* The housing of J4 and its inside, a shade deeper. */
+  .pcb-nylon {
+    fill: var(--nylon);
+  }
+
+  .pcb-nylon-in {
+    fill: var(--nylon-in);
   }
 
   .pcb-mark {
@@ -170,6 +179,16 @@
   }
 
   #part-j3 {
+    --fp: 61;
+    --fp-h: 22;
+  }
+
+  #part-j4 {
+    --fp: 41;
+    --fp-h: 20;
+  }
+
+  #part-j5 {
     --fp: 63;
     --fp-h: 20;
   }
@@ -311,7 +330,7 @@
 
   /*
    * Two columns from 46rem, where the board reaches its 44rem width. They fill column by column, so
-   * each bus carries a run of parts in reading order: ceil(n / 2) rows (5 parts: 3 + 2; 3 parts: 2 + 1).
+   * each bus carries a run of parts in reading order: ceil(n / 2) rows (5 parts: 3 + 2).
    */
   @media (min-width: 46rem) {
     .parts__list {

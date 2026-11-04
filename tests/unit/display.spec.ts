@@ -164,8 +164,8 @@ describe('useDisplay', () => {
 
   it('SW1 pressed while the readout of a part just left lingers shows the screen it chose at once', async () => {
     const { d, board } = mountDisplay();
-    // From J3 to SW1 (Tab, or the mouse): J3's readout would stay READOUT_HOLD_MS.
-    board.setActive('j3');
+    // From J5 to SW1 (Tab, or the mouse): J5's readout would stay READOUT_HOLD_MS.
+    board.setActive('j5');
     await nextTick();
     board.setActive(null);
     await nextTick();
@@ -456,6 +456,21 @@ describe('DisplayModule', () => {
     board.setActive('j1');
     await nextTick();
     expect(pixelsOf(svg.get('.px--value').attributes('d') ?? '')).toEqual(textPixels(READOUTS.j1, 1));
+    // The two projects of revision 7: MYCARD and SCORE, with their references, and a trace of their own.
+    const waves = new Set<string>();
+    for (const [id, ref, value] of [
+      ['j3', 'J3', 'MYCARD'],
+      ['j4', 'J4', 'SCORE'],
+      ['j5', 'J5', 'MAIL'],
+    ] as const) {
+      board.setActive(id);
+      await nextTick();
+      expect(pixelsOf(svg.get('.px--ref').attributes('d') ?? ''), id).toEqual(textPixels(ref, 2));
+      expect(pixelsOf(svg.get('.px--value').attributes('d') ?? ''), id).toEqual(textPixels(value, 1));
+      waves.add(svg.get('polyline.disp__wave').attributes('points') ?? '');
+      inGrid();
+    }
+    expect(waves.size).toBe(3);
     inGrid();
     board.setActive('led1');
     await nextTick();

@@ -42,7 +42,7 @@ const sources = (): { file: string; text: string }[] =>
 
 describe('content', () => {
   it('fr and en share the same shape', () => {
-    // labelLang exists only on the English Kit d'urgence, everything else must match.
+    // labelLang exists only on the French names of the English page (J1, J4), everything else must match.
     const strip = (c: typeof en) => ({
       ...c,
       connectors: c.connectors.map((p) => {
@@ -57,7 +57,9 @@ describe('content', () => {
     expect(parts(fr).map((p) => p.contacts?.length)).toEqual(parts(en).map((p) => p.contacts?.length));
     expect(Object.keys(READOUTS)).toEqual(parts(fr).map((p) => p.id));
     expect(fr.principles).toHaveLength(5);
-    expect(fr.connectors).toHaveLength(3);
+    // J1 to J4, the projects, then J5, the contact.
+    expect(fr.connectors.map((p) => p.id)).toEqual(['j1', 'j2', 'j3', 'j4', 'j5']);
+    expect(en.connectors.filter((p) => p.labelLang === 'fr').map((p) => p.id)).toEqual(['j1', 'j4']);
   });
 
   it('french typography', () => {
@@ -126,6 +128,7 @@ describe('content', () => {
       ORACLE_SITE.github,
       ...Object.values(ORACLE_SITE.projects).flatMap((p) => [p.name, p.href, absolute(p.href)]),
     ];
+    expect(Object.keys(ORACLE_SITE.projects)).toHaveLength(4);
     const hits = sources().flatMap(({ file, text }) => written.filter((w) => text.includes(w)).map((w) => `${file}: ${w}`));
     expect(hits).toEqual([]);
     // The copy reads them: each name is on the board and each link in a sheet, in both languages.

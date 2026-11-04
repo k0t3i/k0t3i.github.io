@@ -9,5 +9,7 @@ export const PART_SYMBOLS: Record<PartId, string> = {
   u2: 'part-chip',
   j1: 'part-header-6',
   j2: 'part-header-4',
-  j3: 'part-usb-c',
+  j3: 'part-microsd',
+  j4: 'part-jst-3',
+  j5: 'part-usb-c',
 };

@@ -37,10 +37,19 @@ for (const copy of [FR, EN] as Copy[]) {
       for (const { id } of sheets) await expect(page.locator(`#sheet-${id} h3`), id).toHaveCount(1);
     });
 
-    test('five principles in order, three connectors in order', async ({ page }) => {
+    test('five principles in order, five connectors in order', async ({ page }) => {
       const { principles, connectors } = copy.sections;
       await expect(page.locator(`#${principles.id} .part__label`)).toHaveText(copy.principles.map((p) => p.label));
       await expect(page.locator(`#${connectors.id} .part__label`)).toHaveText(copy.connectors.map((p) => p.label));
+      await expect(page.locator(`#${connectors.id} .part__ref`)).toHaveText(['J1', 'J2', 'J3', 'J4', 'J5']);
+      // A French name on the English page is marked as French, on the board and on its sheet: J1 and J4.
+      for (const part of copy.connectors) {
+        for (const el of [page.locator(`#part-${part.id} .part__label`), page.locator(`#sheet-${part.id}-title`)]) {
+          if (part.lang) await expect(el, part.id).toHaveAttribute('lang', part.lang);
+          else await expect(el, part.id).not.toHaveAttribute('lang', /.*/);
+        }
+      }
+      expect(copy.connectors.filter((p) => p.lang).map((p) => p.id)).toEqual(copy.lang === 'en' ? ['j1', 'j4'] : []);
       await expect(page.locator(`#${principles.id}`)).toHaveAttribute('aria-labelledby', `${principles.id}-title`);
       await expect(page.locator(`#${connectors.id}`)).toHaveAttribute('aria-labelledby', `${connectors.id}-title`);
     });
@@ -59,6 +68,10 @@ for (const copy of [FR, EN] as Copy[]) {
     });
 
     test('the project and contact sheets', async ({ page }) => {
+      // Four projects, each with the name and the link of site.json, then the contact.
+      expect(copy.connectors.filter((p) => p.link).map((p) => [p.label, p.link?.href])).toEqual(
+        Object.values(SITE.projects).map((p) => [p.name, absolute(p.href)]),
+      );
       for (const part of copy.connectors) {
         if (part.link) {
           const link = page.locator(`#sheet-${part.id} a.sheet__link`);
@@ -71,13 +84,16 @@ for (const copy of [FR, EN] as Copy[]) {
       await page.locator('.part__trigger[popovertarget="sheet-j1"]').click();
       await expect(page.locator('#sheet-j1 img')).toHaveAttribute('alt', copy.connectors[0]?.mediaAlt ?? '');
       await page.keyboard.press('Escape');
-      const contacts = page.locator('#sheet-j3 ul.sheet__links > li');
+      // The contact, J5: the e-mail and GitHub of site.json.
+      const contact = copy.connectors.find((p) => p.contacts);
+      expect(contact?.id).toBe('j5');
+      const contacts = page.locator('#sheet-j5 ul.sheet__links > li');
       await expect(contacts).toHaveCount(2);
-      for (const [i, text] of (copy.connectors[2]?.contacts ?? []).entries()) {
+      for (const [i, text] of (contact?.contacts ?? []).entries()) {
         expect(await contacts.nth(i).evaluate((el) => el.textContent?.replace(/ ↗$/, '')), text).toBe(text);
       }
-      await expect(page.locator('#sheet-j3 a[href^="mailto:"]')).toHaveAttribute('href', `mailto:${SITE.email}`);
-      await expect(page.locator('#sheet-j3 a[href="https://github.com/k0t3i"]')).toHaveCount(1);
+      await expect(page.locator('#sheet-j5 a[href^="mailto:"]')).toHaveAttribute('href', `mailto:${SITE.email}`);
+      await expect(page.locator(`#sheet-j5 a[href="${SITE.github}"]`)).toHaveCount(1);
     });
 
     test('static parts of the board', async ({ page }) => {

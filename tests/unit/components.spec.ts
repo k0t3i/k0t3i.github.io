@@ -21,6 +21,7 @@ import { BACK_NETS, BACK_PARTS, linkedTo, type BackRef } from '../../src/content
 import { en } from '../../src/content/en';
 import { fr } from '../../src/content/fr';
 import { SITE } from '../../src/content/site';
+import { EN as ORACLE_EN, FR as ORACLE_FR, SITE as ORACLE_SITE, absolute } from '../helpers/copy';
 import type { PartContent, PartId } from '../../src/content/types';
 import { BACK_PASSIVES } from '../../src/content/backPassives';
 import { PACKAGES, PACKAGE_IDS } from '../../src/lib/packages';
@@ -55,6 +56,8 @@ describe('PartTrigger', () => {
       '#part-chip',
       '#part-header-6',
       '#part-header-4',
+      '#part-microsd',
+      '#part-jst-3',
       '#part-usb-c',
     ]);
   });
@@ -129,8 +132,8 @@ describe('PartSheet', () => {
     ]);
   });
 
-  it('J3 uses SITE.email and SITE.github', () => {
-    const wrapper = mount(PartSheet, { props: { part: part(fr, 'j3'), close: fr.close } });
+  it('J5 uses SITE.email and SITE.github', () => {
+    const wrapper = mount(PartSheet, { props: { part: part(fr, 'j5'), close: fr.close } });
     const hrefs = wrapper.findAll('ul.sheet__links a').map((a) => a.attributes('href'));
     expect(hrefs).toEqual([`mailto:${SITE.email}`, SITE.github]);
     // VoiceOver drops the list role of an unstyled list: it is restated.
@@ -140,6 +143,32 @@ describe('PartSheet', () => {
   it('puts the language of the title on the heading', () => {
     const wrapper = mount(PartSheet, { props: { part: part(en, 'j1'), close: en.close } });
     expect(wrapper.get('h3.sheet__title').attributes('lang')).toBe('fr');
+  });
+
+  it('every project sheet gives the name and the link of site.json, with the text of annex A', () => {
+    const names = Object.values(ORACLE_SITE.projects).map((p) => p.name);
+    for (const [content, oracle] of [
+      [fr, ORACLE_FR],
+      [en, ORACLE_EN],
+    ] as const) {
+      const projects = oracle.connectors.filter((c) => c.link);
+      expect(projects.map((c) => c.label)).toEqual(names);
+      for (const c of projects) {
+        const wrapper = mount(PartSheet, { props: { part: part(content, c.id), close: content.close } });
+        expect(wrapper.get('h3.sheet__title').text(), c.id).toBe(c.label);
+        expect(wrapper.get('.sheet__ref').text(), c.id).toBe(`${c.ref} · ${c.kind}`);
+        expect(wrapper.get('.sheet__body').text(), c.id).toBe(c.body);
+        const link = wrapper.get('a.sheet__link');
+        expect(link.attributes('href'), c.id).toBe(c.link?.href);
+        expect(link.element.firstChild?.textContent, c.id).toBe(c.link?.text);
+        // A French name on the English page says so, on the board and on its sheet.
+        expect(wrapper.get('h3.sheet__title').attributes('lang'), c.id).toBe(c.lang);
+        const trigger = mount(PartTrigger, { props: { part: part(content, c.id) } });
+        expect(trigger.get('.part__label').attributes('lang'), c.id).toBe(c.lang);
+      }
+    }
+    expect(ORACLE_EN.connectors.find((c) => c.id === 'j4')?.lang).toBe('fr');
+    expect(absolute(ORACLE_SITE.projects.monscoreimmo.href)).toBe(part(en, 'j4').link?.href);
   });
 });
 

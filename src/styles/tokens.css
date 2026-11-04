@@ -57,6 +57,9 @@
     --body-edge-lit: #4a4d55;
     --ceramic: #7c6a50;
     --lens: #ffdcb0;
+    /* The natural nylon of a connector housing (J4), and its inside. */
+    --nylon: #b5ab91;
+    --nylon-in: #7f765f;
     /* The lens of LED1 while it is off between two signals of the Morse code (SW1): a dim, warm grey. */
     --lens-off: color-mix(in srgb, var(--lens) 30%, var(--body));
     --mark: #8f8b83;

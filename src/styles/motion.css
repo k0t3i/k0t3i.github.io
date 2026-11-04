@@ -351,7 +351,8 @@
     /*
      * The wide board: each trace lights up from DISP1, its signal at the head, and the light runs on
      * into the part (the dash offset goes from 100 to -100, wide.css), in a cascade that sweeps from
-     * DISP1 across the board: the connectors under it first, then the principles from U2 to R1.
+     * DISP1 across the board: the connectors under it first, from J5 up to J1 a little closer
+     * together (their rows are), then the principles from U2 to R1.
      */
     .board--home[data-booting] .trace-live {
       animation: boot-trace 760ms both;
@@ -361,12 +362,20 @@
       animation: boot-pulse 760ms both;
     }
 
-    .board--home[data-booting] [data-part="j3"] {
+    .board--home[data-booting] [data-part="j5"] {
       animation-delay: 60ms;
     }
 
-    .board--home[data-booting] [data-part="j2"] {
+    .board--home[data-booting] [data-part="j4"] {
+      animation-delay: 82ms;
+    }
+
+    .board--home[data-booting] [data-part="j3"] {
       animation-delay: 105ms;
+    }
+
+    .board--home[data-booting] [data-part="j2"] {
+      animation-delay: 128ms;
     }
 
     .board--home[data-booting] [data-part="j1"] {

@@ -4,6 +4,8 @@ import type { SiteContent } from './types';
 // The names and links of the projects: site.json.
 const KIT = project('kitUrgence');
 const SPLITR = project('splitr');
+const MYCARD = project('mycard');
+const SCORE = project('monscoreimmo');
 
 export const en: SiteContent = {
   locale: 'en',
@@ -130,6 +132,23 @@ export const en: SiteContent = {
     {
       id: 'j3',
       ref: 'J3',
+      kind: 'project',
+      label: MYCARD.name,
+      body: 'SaaS platform for digital business cards. Live editor, QR-code sharing, and a form that turns every exchange into a usable lead. For freelancers, sales reps and agencies.',
+      link: { href: MYCARD.href, text: `Discover ${MYCARD.name}` },
+    },
+    {
+      id: 'j4',
+      ref: 'J4',
+      kind: 'project',
+      label: SCORE.name,
+      labelLang: 'fr',
+      body: 'SaaS that scores the online presence of real-estate agents, then delivers a detailed audit report with coaching. Launching soon.',
+      link: { href: SCORE.href, text: `Discover ${SCORE.name}` },
+    },
+    {
+      id: 'j5',
+      ref: 'J5',
       kind: 'contact',
       label: 'Contact',
       contacts: [

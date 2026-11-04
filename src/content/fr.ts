@@ -6,6 +6,8 @@ const NB = ' ';
 // The names and links of the projects: site.json.
 const KIT = project('kitUrgence');
 const SPLITR = project('splitr');
+const MYCARD = project('mycard');
+const SCORE = project('monscoreimmo');
 
 export const fr: SiteContent = {
   locale: 'fr',
@@ -130,6 +132,22 @@ export const fr: SiteContent = {
     {
       id: 'j3',
       ref: 'J3',
+      kind: 'projet',
+      label: MYCARD.name,
+      body: 'Plateforme SaaS de cartes de visite digitales. Éditeur en direct, partage par QR code, et un formulaire qui transforme chaque échange en contact exploitable. Pour les indépendants, les commerciaux et les agences.',
+      link: { href: MYCARD.href, text: `Découvrir ${MYCARD.name}` },
+    },
+    {
+      id: 'j4',
+      ref: 'J4',
+      kind: 'projet',
+      label: SCORE.name,
+      body: `SaaS qui mesure la présence en ligne des mandataires immobiliers${NB}: un score, puis un rapport d’audit détaillé avec du coaching. En lancement.`,
+      link: { href: SCORE.href, text: `Découvrir ${SCORE.name}` },
+    },
+    {
+      id: 'j5',
+      ref: 'J5',
       kind: 'contact',
       label: 'Contact',
       contacts: [

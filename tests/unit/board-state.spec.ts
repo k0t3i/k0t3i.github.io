@@ -166,7 +166,7 @@ describe('BoardPage reflects the state on the board', () => {
         .map((w) => (w.attributes('id') ? `${w.element.tagName.toLowerCase()}#${w.attributes('id')}` : `${w.classes().join('.')}[${w.attributes('data-part')}]`))
         .sort();
     expect(lit()).toEqual([]);
-    for (const id of ['r1', 'j3'] as const) {
+    for (const id of ['r1', 'j4', 'j5'] as const) {
       enter(wrapper.get(`button[popovertarget="sheet-${id}"]`).element);
       await nextTick();
       expect(lit()).toEqual([`li#part-${id}`, `trace-live[${id}]`, `trace-pulse[${id}]`]);

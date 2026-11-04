@@ -4,6 +4,8 @@
   "github": "https://github.com/k0t3i",
   "projects": {
     "kitUrgence": { "name": "Kit d’urgence", "href": "kit-urgence/" },
-    "splitr": { "name": "SplitR", "href": "https://github.com/k0t3i/splitr-releases/releases/latest" }
+    "splitr": { "name": "SplitR", "href": "https://github.com/k0t3i/splitr-releases/releases/latest" },
+    "mycard": { "name": "MyCard", "href": "https://my-card.tisserands.ai/" },
+    "monscoreimmo": { "name": "MonScoreImmo", "href": "https://monscoreimmo.fr/" }
   }
 }

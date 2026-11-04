@@ -1,6 +1,6 @@
 export type Locale = 'fr' | 'en';
 
-export type PartId = 'r1' | 'c1' | 'led1' | 'd1' | 'u2' | 'j1' | 'j2' | 'j3';
+export type PartId = 'r1' | 'c1' | 'led1' | 'd1' | 'u2' | 'j1' | 'j2' | 'j3' | 'j4' | 'j5';
 
 export interface PartContent {
   id: PartId;
@@ -16,7 +16,7 @@ export interface PartContent {
   link?: { href: string; text: string };
   /** J1 only. */
   media?: { alt: string };
-  /** J3 only. */
+  /** J5 only: the contact. */
   contacts?: { label: string; href: string; text: string }[];
 }
 

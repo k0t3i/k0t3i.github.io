@@ -6,7 +6,7 @@ export interface Project {
   href: string;
 }
 
-export type ProjectId = 'kitUrgence' | 'splitr';
+export type ProjectId = 'kitUrgence' | 'splitr' | 'mycard' | 'monscoreimmo';
 
 export interface Site {
   baseUrl: string;

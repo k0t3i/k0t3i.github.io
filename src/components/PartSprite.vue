@@ -353,7 +353,79 @@ import { PACKAGES, PACKAGE_IDS } from '../lib/packages';
       />
     </symbol>
 
-    <!-- J3: USB-C receptacle. Tin shell on its two shield legs, gold contacts on the tongue. -->
+    <!--
+      J3: microSD card slot, the card in it. The tin shell is held by its legs (ground): the trace
+      lands on the one at its end, the other is under the shell. Black card, its cut corner and its contacts.
+    -->
+    <symbol
+      id="part-microsd"
+      viewBox="0 0 64 32"
+    >
+      <rect
+        class="pcb-pad"
+        x="1"
+        y="11"
+        width="10"
+        height="10"
+        rx="1"
+      />
+      <rect
+        class="pcb-tin"
+        x="7"
+        y="5"
+        width="54"
+        height="22"
+        rx="1"
+      />
+      <path
+        class="pcb-body"
+        d="M20 8h33l3 3v13H20z"
+      />
+      <path
+        class="pcb-pad"
+        d="M22 9.5h4V11h-4zM22 12.5h4V14h-4zM22 15.5h4V17h-4zM22 18.5h4V20h-4zM22 21.5h4V23h-4z"
+      />
+    </symbol>
+
+    <!--
+      J4: JST connector, 3 pins at 2.5 mm, upright: a nylon housing over the pads (pin 1 square, where
+      the trace goes in), its three pins seen in it.
+    -->
+    <symbol
+      id="part-jst-3"
+      viewBox="0 0 64 32"
+    >
+      <rect
+        class="pcb-pad"
+        x="7"
+        y="12"
+        width="8"
+        height="8"
+        rx="0.5"
+      />
+      <rect
+        class="pcb-nylon"
+        x="1"
+        y="6"
+        width="40"
+        height="20"
+        rx="1"
+      />
+      <rect
+        class="pcb-nylon-in"
+        x="3.5"
+        y="8.5"
+        width="35"
+        height="15"
+        rx="0.5"
+      />
+      <path
+        class="pcb-pad"
+        d="M9.5 14.5h3v3h-3zM19.5 14.5h3v3h-3zM29.5 14.5h3v3h-3z"
+      />
+    </symbol>
+
+    <!-- J5: USB-C receptacle. Tin shell on its two shield legs, gold contacts on the tongue. -->
     <symbol
       id="part-usb-c"
       viewBox="0 0 64 32"

@@ -9,7 +9,9 @@ export const READOUTS: Record<PartId, string> = {
   u2: 'SOIC-8',
   j1: 'KIT 72H',
   j2: 'SPLITR',
-  j3: 'MAIL',
+  j3: 'MYCARD',
+  j4: 'SCORE',
+  j5: 'MAIL',
 };
 
 /** The two lines DISP1 prints while the board powers on, one after the other. */

@@ -56,7 +56,9 @@ const SIGNALS: Record<PartId, (x: number) => number> = {
   // The connectors: data, a few bits each period.
   j1: bits('11100110'),
   j2: bits('11011000'),
-  j3: bits('10001110'),
+  j3: bits('10110100'),
+  j4: bits('11101010'),
+  j5: bits('10001110'),
 };
 
 /** A signal as a polyline of horizontal and vertical runs, through the centres of its pixels. */

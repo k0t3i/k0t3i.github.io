@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
+import { FR } from '../helpers/copy';
 
-const IDS = ['r1', 'c1', 'led1', 'd1', 'u2', 'j1', 'j2', 'j3'];
+const IDS = [...FR.principles, ...FR.connectors].map((p) => p.id);
 const trigger = (page: Page, id: string) => page.locator(`.part__trigger[popovertarget="sheet-${id}"]`);
 const isOpen = (page: Page, id: string) =>
   page.evaluate((i) => document.getElementById(`sheet-${i}`)?.matches(':popover-open') ?? false, id);
@@ -17,7 +18,8 @@ test('tab order', async ({ page, browserName, isMobile }) => {
   const withLinks = browserName !== 'webkit';
   const tab = 'Tab';
   const seen: string[] = [];
-  for (let i = 0; i < (withLinks ? 14 : 11); i++) {
+  // Three links (WebKit: none), JP1, SW2, SW1 and every part.
+  for (let i = 0; i < (withLinks ? 3 : 0) + 3 + IDS.length; i++) {
     await page.keyboard.press(tab);
     seen.push(
       await page.evaluate(() => {
@@ -32,6 +34,7 @@ test('tab order', async ({ page, browserName, isMobile }) => {
       }),
     );
   }
+  expect(IDS).toHaveLength(10);
   // The SW2 of the back face is inert while the front face is up: out of the tab order.
   const buttons = ['jp1', 'sw2', 'sw1', ...IDS.map((id) => `sheet-${id}`)];
   expect(seen).toEqual(withLinks ? ['skip', 'lang:fr', 'lang:en', ...buttons] : buttons);

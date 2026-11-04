@@ -1,6 +1,7 @@
 // Independent oracle: the exact texts of Annexe A, written by hand. Never import from src/.
 // NB = U+00A0 (before : ; ! ? and before "h"), NN = U+202F (thousands separator).
 import { readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 /**
@@ -12,13 +13,14 @@ export const SITE: {
   baseUrl: string;
   email: string;
   github: string;
-  projects: Record<'kitUrgence' | 'splitr', { name: string; href: string }>;
-} = JSON.parse(readFileSync(fileURLToPath(new URL('../../src/content/site.json', import.meta.url)), 'utf8'));
+  projects: Record<'kitUrgence' | 'splitr' | 'mycard' | 'monscoreimmo', { name: string; href: string }>;
+  // A path from a string, not a URL object: happy-dom replaces URL in the unit tests of components.
+} = JSON.parse(readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../../src/content/site.json'), 'utf8'));
 
 /** A link of site.json as the page writes it: absolute, a relative one resolved against the site URL. */
 export const absolute = (href: string): string => new URL(href, SITE.baseUrl).href;
 
-const { kitUrgence: KIT, splitr: SPLITR } = SITE.projects;
+const { kitUrgence: KIT, splitr: SPLITR, mycard: MYCARD, monscoreimmo: SCORE } = SITE.projects;
 /** The GitHub profile as its link text shows it: the address without its scheme. */
 const GITHUB_TEXT = SITE.github.replace(/^https?:\/\//, '');
 
@@ -91,7 +93,9 @@ export const READOUTS = {
   u2: 'SOIC-8',
   j1: 'KIT 72H',
   j2: 'SPLITR',
-  j3: 'MAIL',
+  j3: 'MYCARD',
+  j4: 'SCORE',
+  j5: 'MAIL',
 };
 
 export const BOOT_SCREENS = ['BOOT...', 'OK'];
@@ -234,6 +238,22 @@ export const FR: Copy = {
     {
       id: 'j3',
       ref: 'J3',
+      kind: 'projet',
+      label: MYCARD.name,
+      body: 'Plateforme SaaS de cartes de visite digitales. Éditeur en direct, partage par QR code, et un formulaire qui transforme chaque échange en contact exploitable. Pour les indépendants, les commerciaux et les agences.',
+      link: { text: `Découvrir ${MYCARD.name}`, href: absolute(MYCARD.href) },
+    },
+    {
+      id: 'j4',
+      ref: 'J4',
+      kind: 'projet',
+      label: SCORE.name,
+      body: `SaaS qui mesure la présence en ligne des mandataires immobiliers${NB}: un score, puis un rapport d’audit détaillé avec du coaching. En lancement.`,
+      link: { text: `Découvrir ${SCORE.name}`, href: absolute(SCORE.href) },
+    },
+    {
+      id: 'j5',
+      ref: 'J5',
       kind: 'contact',
       label: 'Contact',
       contacts: [`E-mail${NB}: ${SITE.email}`, `GitHub${NB}: ${GITHUB_TEXT}`],
@@ -358,6 +378,23 @@ export const EN: Copy = {
     {
       id: 'j3',
       ref: 'J3',
+      kind: 'project',
+      label: MYCARD.name,
+      body: 'SaaS platform for digital business cards. Live editor, QR-code sharing, and a form that turns every exchange into a usable lead. For freelancers, sales reps and agencies.',
+      link: { text: `Discover ${MYCARD.name}`, href: absolute(MYCARD.href) },
+    },
+    {
+      id: 'j4',
+      ref: 'J4',
+      kind: 'project',
+      label: SCORE.name,
+      lang: 'fr',
+      body: 'SaaS that scores the online presence of real-estate agents, then delivers a detailed audit report with coaching. Launching soon.',
+      link: { text: `Discover ${SCORE.name}`, href: absolute(SCORE.href) },
+    },
+    {
+      id: 'j5',
+      ref: 'J5',
       kind: 'contact',
       label: 'Contact',
       contacts: [`Email: ${SITE.email}`, `GitHub: ${GITHUB_TEXT}`],

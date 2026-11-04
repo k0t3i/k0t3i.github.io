@@ -338,7 +338,12 @@
       margin-top: 0;
     }
 
-    /* The connectors, down the right side under DISP1, each fed from the left. */
+    /*
+     * The connectors, down the right side under DISP1, each fed from the left by its trace of the
+     * art: one row each, 36 units apart, the first on the line of the principles. The part, its
+     * reference and its name on one line, centred on the row; a row grows with its text (root font
+     * at 125 %, WCAG text spacing), the part stays at the top, on its copper.
+     */
     .board--home .parts + .parts .part {
       --x: 1188;
 
@@ -350,15 +355,46 @@
     }
 
     #part-j2 {
-      --y: 682;
+      --y: 654;
     }
 
     #part-j3 {
-      --y: 746;
+      --y: 690;
+    }
+
+    #part-j4 {
+      --y: 726;
+    }
+
+    #part-j5 {
+      --y: 762;
     }
 
     .board--home .parts + .parts .part__trigger {
+      grid-template-columns: calc(64 * var(--u)) auto minmax(0, 1fr);
+      grid-template-rows: minmax(calc(32 * var(--u)), auto);
+      align-items: center;
       column-gap: calc(12 * var(--u));
+      min-height: 0;
+    }
+
+    .board--home .parts + .parts .part__body,
+    .board--home .parts + .parts .part__trigger::before {
+      grid-row: 1;
+      align-self: start;
+    }
+
+    .board--home .parts + .parts .part__ref,
+    .board--home .parts + .parts .part__label {
+      grid-row: 1;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* One line: a tighter leading keeps the row 36 units high with the root font at 125 %. */
+    .board--home .parts + .parts .part__label {
+      grid-column: 3;
+      line-height: 1.3;
     }
 
     /* Footer: the uptime and the marks along the bottom edge, centred on the line of the bottom holes. */
@@ -482,6 +518,14 @@
         anchor-name: --j3;
       }
 
+      #part-j4 {
+        anchor-name: --j4;
+      }
+
+      #part-j5 {
+        anchor-name: --j5;
+      }
+
       #sheet-r1 {
         position-anchor: --r1;
       }
@@ -512,6 +556,14 @@
 
       #sheet-j3 {
         position-anchor: --j3;
+      }
+
+      #sheet-j4 {
+        position-anchor: --j4;
+      }
+
+      #sheet-j5 {
+        position-anchor: --j5;
       }
 
       /*

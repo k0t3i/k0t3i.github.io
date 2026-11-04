@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import { FR } from '../helpers/copy';
 
 /*
  * Interactions 1 and 2: the power-on of the board (once per session) and the current that follows
@@ -8,7 +9,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 
 const GOLD = 'rgb(201, 164, 92)';
 const WIDE = { width: 1600, height: 900 };
-const IDS = ['r1', 'c1', 'led1', 'd1', 'u2', 'j1', 'j2', 'j3'] as const;
+const IDS = [...FR.principles, ...FR.connectors].map((p) => p.id);
 /** What runs on the wide board at rest: the ambient signals and the LED (motion.spec.ts). */
 const AT_REST_WIDE = ['led-breathe part-led1::after', 'signal signal', 'signal signal', 'signal signal', 'signal signal'];
 
@@ -94,33 +95,38 @@ test.describe('the current follows the pointer', () => {
     await expect.poll(async () => (await running(page)).sort()).toEqual(AT_REST_WIDE);
   });
 
-  test('a signal leaves DISP1 and runs along the trace to the part', async ({ page }) => {
-    await booted(page);
-    await page.setViewportSize(WIDE);
-    await open(page);
-    const pulse = page.locator('path.trace-pulse[data-part="j3"]');
-    // At rest the signal waits before the start of its route (at DISP1): nothing of it is drawn.
-    expect(await pulse.evaluate((p) => [p.getAttribute('d'), p.getAttribute('pathLength')])).toEqual(
-      await page.locator('path.trace-live[data-part="j3"]').evaluate((p) => [p.getAttribute('d'), p.getAttribute('pathLength')]),
-    );
-    const before = await pulse.evaluate((p) => parseFloat(getComputedStyle(p).strokeDashoffset));
-    expect(before).toBeGreaterThan(0);
+  // The connectors of revision 7 (J3, J4) and the contact, now J5, as the others.
+  for (const id of ['j3', 'j4', 'j5']) {
+    test(`a signal leaves DISP1 and runs along the trace to the part (${id})`, async ({ page }) => {
+      await booted(page);
+      await page.setViewportSize(WIDE);
+      await open(page);
+      const pulse = page.locator(`path.trace-pulse[data-part="${id}"]`);
+      // At rest the signal waits before the start of its route (at DISP1): nothing of it is drawn.
+      expect(await pulse.evaluate((p) => [p.getAttribute('d'), p.getAttribute('pathLength')])).toEqual(
+        await page.locator(`path.trace-live[data-part="${id}"]`).evaluate((p) => [p.getAttribute('d'), p.getAttribute('pathLength')]),
+      );
+      const before = await pulse.evaluate((p) => parseFloat(getComputedStyle(p).strokeDashoffset));
+      expect(before).toBeGreaterThan(0);
 
-    await trigger(page, 'j3').hover();
-    // It runs: one transition of its dash offset, the same course as the trace drawing itself.
-    const moving = await page.evaluate(() =>
-      ['trace-pulse', 'trace-live'].map((c) =>
-        (document.querySelector(`path.${c}[data-part="j3"]`) as Element)
-          .getAnimations()
-          .map((a) => `${(a as CSSTransition).transitionProperty} ${a.effect?.getTiming().duration} ${a.effect?.getTiming().easing}`)
-          .filter((t) => t.startsWith('stroke-dashoffset')),
-      ),
-    );
-    expect(moving[0]).toHaveLength(1);
-    expect(moving[0]).toEqual(moving[1]);
-    // Then it has gone into the part: past the end of the route, drawn no more.
-    await expect.poll(() => pulse.evaluate((p) => parseFloat(getComputedStyle(p).strokeDashoffset))).toBeLessThan(-100);
-  });
+      await trigger(page, id).hover();
+      await expect(board(page)).toHaveAttribute('data-active', id);
+      // It runs: one transition of its dash offset, the same course as the trace drawing itself.
+      const moving = await page.evaluate((part) =>
+        ['trace-pulse', 'trace-live'].map((c) =>
+          (document.querySelector(`path.${c}[data-part="${part}"]`) as Element)
+            .getAnimations()
+            .map((a) => `${(a as CSSTransition).transitionProperty} ${a.effect?.getTiming().duration} ${a.effect?.getTiming().easing}`)
+            .filter((t) => t.startsWith('stroke-dashoffset')),
+        ),
+      id);
+      expect(moving[0]).toHaveLength(1);
+      expect(moving[0]).toEqual(moving[1]);
+      // Then it has gone into the part: past the end of the route, drawn no more; its own trace only is lit.
+      await expect.poll(() => pulse.evaluate((p) => parseFloat(getComputedStyle(p).strokeDashoffset))).toBeLessThan(-100);
+      await expect.poll(() => litTraces(page)).toEqual(onlyLit(id));
+    });
+  }
 
   test('keyboard focus lights the trace too', async ({ page }) => {
     await booted(page);
@@ -283,9 +289,19 @@ test.describe('the power-on', () => {
       // The flowing board: a glint runs down each bus.
       expect(names.filter((n) => n === 'boot-glint').length).toBeGreaterThanOrEqual(2);
     } else {
-      // The wide board: each of the eight traces lights up from DISP1, a signal running ahead.
-      expect(names.filter((n) => n === 'boot-trace')).toHaveLength(8);
-      expect(names.filter((n) => n === 'boot-pulse')).toHaveLength(8);
+      // The wide board: the trace of each part lights up from DISP1, a signal running ahead.
+      expect(names.filter((n) => n === 'boot-trace')).toHaveLength(IDS.length);
+      expect(names.filter((n) => n === 'boot-pulse')).toHaveLength(IDS.length);
+      // A cascade from DISP1 across the board: the connectors from J5 up to J1, then U2 to R1, all within the 1.2 s of the boot.
+      const timing = await page.locator('path.trace-live').evaluateAll((paths) =>
+        paths.map((p) => {
+          const t = p.getAnimations()[0]?.effect?.getTiming();
+          return { part: (p as SVGPathElement).dataset.part ?? '', delay: Number(t?.delay), end: Number(t?.delay) + Number(t?.duration) };
+        }),
+      );
+      expect([...timing].sort((a, b) => a.delay - b.delay).map((t) => t.part)).toEqual(['j5', 'j4', 'j3', 'j2', 'j1', 'u2', 'd1', 'led1', 'c1', 'r1']);
+      expect(new Set(timing.map((t) => t.delay)).size).toBe(IDS.length);
+      expect(Math.max(...timing.map((t) => t.end))).toBeLessThanOrEqual(1200);
     }
     expect(names).toContain('boot-led');
     expect(names).toContain('boot-veil');

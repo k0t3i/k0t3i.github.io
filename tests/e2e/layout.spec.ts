@@ -114,7 +114,7 @@ test.describe('flowing board', () => {
     await page.goto('/');
     const rings: Record<string, string> = {};
     // Tab through the page; WebKit skips the links, so the loop goes by count, not by position.
-    for (let i = 0; i < 16 && Object.keys(rings).length < IDS.length + 1; i++) {
+    for (let i = 0; i < 20 && Object.keys(rings).length < IDS.length + 1; i++) {
       await page.keyboard.press('Tab');
       const ring = await page.evaluate(() => {
         const el = document.activeElement as HTMLElement | null;
@@ -336,7 +336,11 @@ test.describe('flowing board', () => {
         read: ['part-r1', 'part-c1', 'part-led1', 'part-d1', 'part-u2'],
         perColumn: [5],
       },
-      { dom: ['part-j1', 'part-j2', 'part-j3'], read: ['part-j1', 'part-j2', 'part-j3'], perColumn: [2, 1] },
+      {
+        dom: ['part-j1', 'part-j2', 'part-j3', 'part-j4', 'part-j5'],
+        read: ['part-j1', 'part-j2', 'part-j3', 'part-j4', 'part-j5'],
+        perColumn: [3, 2],
+      },
     ]);
   });
 
@@ -616,6 +620,82 @@ function wideProblems(page: Page): Promise<string[]> {
   );
 }
 
+/** Where each live trace of the wide board starts and ends: `<part> <on a pad of DISP1> <on a pad of its part>`. */
+function traceEnds(page: Page): Promise<string[]> {
+  return page.evaluate(() => {
+    type Box = { left: number; right: number; top: number; bottom: number };
+    const within = (p: DOMPoint, b: Box) => p.x >= b.left - 0.5 && p.x <= b.right + 0.5 && p.y >= b.top - 0.5 && p.y <= b.bottom + 0.5;
+    // The pads of DISP1: the ::before of each pin label, centred above it.
+    const dispPads: Box[] = [...document.querySelectorAll('.disp__pin')].map((pin) => {
+      const r = pin.getBoundingClientRect();
+      const s = getComputedStyle(pin, '::before');
+      const [w, h] = [parseFloat(s.width), parseFloat(s.height)];
+      return { left: r.left + (r.width - w) / 2, right: r.left + (r.width + w) / 2, top: r.top, bottom: r.top + h };
+    });
+    // The pads of a part: the rects of its symbol (64 x 32 units), over the drawing of the part.
+    const partPads = (id: string): Box[] => {
+      const body = document.querySelector(`#part-${id} .part__body`) as SVGSVGElement;
+      const symbol = document.querySelector((body.querySelector('use') as SVGUseElement).getAttribute('href') ?? '') as Element;
+      const b = body.getBoundingClientRect();
+      const k = b.width / 64;
+      return [...symbol.querySelectorAll('rect.pcb-pad')].map((p) => {
+        const [x = 0, y = 0, w = 0, h = 0] = ['x', 'y', 'width', 'height'].map((a) => parseFloat(p.getAttribute(a) ?? '0'));
+        return { left: b.left + x * k, right: b.left + (x + w) * k, top: b.top + y * k, bottom: b.top + (y + h) * k };
+      });
+    };
+    return [...document.querySelectorAll<SVGPathElement>('path.trace-live')].map((path) => {
+      const points: number[][] = [];
+      for (const [, cmd, args = ''] of (path.getAttribute('d') ?? '').matchAll(/([MHVL])([^MHVL]*)/g)) {
+        const n = args.trim().split(/\s+/).map(Number);
+        const [lx = 0, ly = 0] = points.at(-1) ?? [];
+        points.push(cmd === 'H' ? [n[0] ?? 0, ly] : cmd === 'V' ? [lx, n[0] ?? 0] : [n[0] ?? 0, n[1] ?? 0]);
+      }
+      const m = path.getScreenCTM() as DOMMatrix;
+      const [start, end] = [points[0], points.at(-1)].map((p) => new DOMPoint(p?.[0], p?.[1]).matrixTransform(m)) as [DOMPoint, DOMPoint];
+      const id = path.dataset.part ?? '';
+      return `${id} ${dispPads.some((b) => within(start, b))} ${partPads(id).some((b) => within(end, b))}`;
+    });
+  });
+}
+
+/**
+ * Problems of the right column of the wide board: the connectors, under their heading, in DOM order,
+ * each on one row (its reference, then its name on the same line), within the width of DISP1 above
+ * them, one row clear of the next, and all of them above the footer. Empty when it holds.
+ */
+function connectorColumn(page: Page): Promise<string[]> {
+  return page.evaluate(() => {
+    const problems: string[] = [];
+    const box = (el: Element | null): DOMRect => (el as Element).getBoundingClientRect();
+    const disp = box(document.querySelector('.disp'));
+    const section = document.querySelector('.parts + .parts') as Element;
+    const heading = box(section.querySelector('.silk-heading'));
+    const footer = box(document.querySelector('.board__footer'));
+    const parts = [...section.querySelectorAll('.part')];
+    if (parts.length !== 5) problems.push(`${parts.length} connectors`);
+    let above = heading.bottom;
+    for (const part of parts) {
+      const t = box(part.querySelector('.part__trigger'));
+      const ref = box(part.querySelector('.part__ref'));
+      const label = part.querySelector('.part__label') as Element;
+      const name = box(label);
+      if (t.left < disp.left - 0.5 || t.right > disp.right + 0.5) problems.push(`${part.id} leaves the column of DISP1`);
+      if (t.top < above - 0.5) problems.push(`${part.id} runs into what is above it (${t.top} < ${above})`);
+      above = t.bottom;
+      const range = document.createRange();
+      range.selectNodeContents(label);
+      // Its lines, by their top (WebKit splits a line at a word space when the word spacing is set).
+      const lines = new Set([...range.getClientRects()].map((r) => Math.round(r.top))).size;
+      if (lines !== 1) problems.push(`${part.id}: its name takes ${lines} lines`);
+      if (name.left < ref.right || Math.abs(ref.top + ref.bottom - name.top - name.bottom) / 2 > 2) {
+        problems.push(`${part.id}: its reference and its name are not on one line`);
+      }
+    }
+    if (above > footer.top + 0.5) problems.push(`the connectors run into the footer (${above} > ${footer.top})`);
+    return problems;
+  });
+}
+
 test.describe('wide board', () => {
   for (const viewport of [
     { width: 1264, height: 800 },
@@ -677,41 +757,20 @@ test.describe('wide board', () => {
     test(`every live trace runs from a DISP1 pad to a pad of its part at ${width}px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
       await page.goto('/');
-      const ends = await page.evaluate(() => {
-        type Box = { left: number; right: number; top: number; bottom: number };
-        const within = (p: DOMPoint, b: Box) => p.x >= b.left - 0.5 && p.x <= b.right + 0.5 && p.y >= b.top - 0.5 && p.y <= b.bottom + 0.5;
-        // The pads of DISP1: the ::before of each pin label, centred above it.
-        const dispPads: Box[] = [...document.querySelectorAll('.disp__pin')].map((pin) => {
-          const r = pin.getBoundingClientRect();
-          const s = getComputedStyle(pin, '::before');
-          const [w, h] = [parseFloat(s.width), parseFloat(s.height)];
-          return { left: r.left + (r.width - w) / 2, right: r.left + (r.width + w) / 2, top: r.top, bottom: r.top + h };
-        });
-        // The pads of a part: the rects of its symbol (64 x 32 units), over the drawing of the part.
-        const partPads = (id: string): Box[] => {
-          const body = document.querySelector(`#part-${id} .part__body`) as SVGSVGElement;
-          const symbol = document.querySelector((body.querySelector('use') as SVGUseElement).getAttribute('href') ?? '') as Element;
-          const b = body.getBoundingClientRect();
-          const k = b.width / 64;
-          return [...symbol.querySelectorAll('rect.pcb-pad')].map((p) => {
-            const [x = 0, y = 0, w = 0, h = 0] = ['x', 'y', 'width', 'height'].map((a) => parseFloat(p.getAttribute(a) ?? '0'));
-            return { left: b.left + x * k, right: b.left + (x + w) * k, top: b.top + y * k, bottom: b.top + (y + h) * k };
-          });
-        };
-        return [...document.querySelectorAll<SVGPathElement>('path.trace-live')].map((path) => {
-          const points: number[][] = [];
-          for (const [, cmd, args = ''] of (path.getAttribute('d') ?? '').matchAll(/([MHVL])([^MHVL]*)/g)) {
-            const n = args.trim().split(/\s+/).map(Number);
-            const [lx = 0, ly = 0] = points.at(-1) ?? [];
-            points.push(cmd === 'H' ? [n[0] ?? 0, ly] : cmd === 'V' ? [lx, n[0] ?? 0] : [n[0] ?? 0, n[1] ?? 0]);
-          }
-          const m = path.getScreenCTM() as DOMMatrix;
-          const [start, end] = [points[0], points.at(-1)].map((p) => new DOMPoint(p?.[0], p?.[1]).matrixTransform(m)) as [DOMPoint, DOMPoint];
-          const id = path.dataset.part ?? '';
-          return `${id} ${dispPads.some((b) => within(start, b))} ${partPads(id).some((b) => within(end, b))}`;
-        });
-      });
-      expect(ends).toEqual(['r1', 'c1', 'led1', 'd1', 'u2', 'j1', 'j2', 'j3'].map((id) => `${id} true true`));
+      expect(await traceEnds(page)).toEqual(IDS.map((id) => `${id} true true`));
+    });
+  }
+
+  for (const viewport of [
+    { width: 1264, height: 800 },
+    { width: 1600, height: 900 },
+  ]) {
+    test(`the five connectors stand in the right column, one a row, above the footer, at ${viewport.width}x${viewport.height}`, async ({ page }) => {
+      await page.setViewportSize(viewport);
+      for (const path of [FR.path, EN.path]) {
+        await page.goto(path);
+        expect(await connectorColumn(page), path).toEqual([]);
+      }
     });
   }
 
@@ -748,7 +807,7 @@ test.describe('wide board', () => {
     await page.goto('/');
     const anchored = await page.evaluate(() => CSS.supports('position-area: center'));
     const rem = 16;
-    for (const id of ['r1', 'u2', 'j1', 'j3']) {
+    for (const id of ['r1', 'u2', ...FR.connectors.map((p) => p.id)]) {
       await trigger(page, id).click();
       const sheet = page.locator(`#sheet-${id}`);
       await expect(sheet).toBeVisible();
@@ -892,4 +951,31 @@ test.describe('wide board with user text settings', () => {
       expect(await wideProblems(page), path).toEqual([]);
     }
   });
+
+  /*
+   * The right column holds five connectors: it holds with either setting at both sizes, its parts on
+   * their copper. The whole board is checked as a visitor can see it: a root font at 125 % moves the
+   * wide board to 1580px (79rem), so at 1264px it is a stress case of the column only.
+   */
+  for (const viewport of [
+    { width: 1264, height: 800 },
+    { width: 1600, height: 900 },
+  ]) {
+    for (const [setting, css] of [
+      ['the root font at 125%', 'html { font-size: 125% !important; }'],
+      ['text spacing', TEXT_SPACING],
+    ] as const) {
+      test(`the right column holds at ${viewport.width}x${viewport.height} with ${setting}`, async ({ page }) => {
+        await page.setViewportSize(viewport);
+        for (const path of [FR.path, EN.path]) {
+          await page.goto(path);
+          await page.addStyleTag({ content: css });
+          await expect(page.locator('.board__signal')).toBeVisible();
+          expect(await connectorColumn(page), path).toEqual([]);
+          if (viewport.width >= 1580 || css === TEXT_SPACING) expect(await wideProblems(page), path).toEqual([]);
+          expect(await traceEnds(page), path).toEqual(IDS.map((id) => `${id} true true`));
+        }
+      });
+    }
+  }
 });

@@ -39,6 +39,8 @@
       --ceramic: Canvas;
       --lens: Canvas;
       --lens-off: Canvas;
+      --nylon: CanvasText;
+      --nylon-in: Canvas;
       --mark: CanvasText;
       --silk-line: CanvasText;
       --line: CanvasText;

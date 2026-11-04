@@ -8,7 +8,7 @@ import { DIST_ROOT, PUBLISHED_ROOT, distFiles } from '../helpers/pages.mjs';
 // The static art of the wide board (src/assets/img/board-wide.svg) and the live trace layer drawn
 // over it (BoardSignal.vue), checked in the source and in the output of `npm run build`.
 const ART = readFileSync(join(PUBLISHED_ROOT, 'src/assets/img/board-wide.svg'), 'utf8');
-const PART_IDS = ['r1', 'c1', 'led1', 'd1', 'u2', 'j1', 'j2', 'j3'];
+const PART_IDS = ['r1', 'c1', 'led1', 'd1', 'u2', 'j1', 'j2', 'j3', 'j4', 'j5'];
 
 /** Attributes of every tag named `name` in some markup. */
 function tags(markup, name) {
@@ -95,12 +95,19 @@ test('art text colors meet contrast', () => {
 
 for (const file of ['index.html', 'en/index.html']) {
   test(`ambient signals follow real traces (${file})`, () => {
-    const signals = layer(file).paths.filter((p) => p.class === 'signal');
+    const { paths } = layer(file);
+    const signals = paths.filter((p) => p.class === 'signal');
     assert.equal(signals.length, 4);
     for (const s of signals) {
       assert.equal(s.pathLength, '100');
       assert.ok(artDs.has(s.d), `signal ${s.d} is not a trace of the art`);
     }
+    // They run to R1, LED1, U2 and the contact, J5: the routes of their live traces.
+    const route = Object.fromEntries(paths.filter((p) => p.class === 'trace-live').map((p) => [p['data-part'], p.d]));
+    assert.deepEqual(
+      signals.map((s) => s.d),
+      ['r1', 'led1', 'u2', 'j5'].map((id) => route[id]),
+    );
   });
 
   test(`one live trace per part (${file})`, () => {
@@ -160,7 +167,7 @@ test('the wide stylesheet points to the hashed art, and the page preloads it for
   assert.doesNotMatch(readFileSync(join(DIST_ROOT, '404.html'), 'utf8'), /board-wide/);
 });
 
-test('the front lights its active part through one attribute, data-lit: no list of the eight parts kept by hand', () => {
+test('the front lights its active part through one attribute, data-lit: no list of the ten parts kept by hand', () => {
   const styles = ['board', 'parts', 'wide', 'motion', 'modes', 'depth', 'back', 'sheets', 'base'].map((f) => ({
     f,
     css: readFileSync(join(PUBLISHED_ROOT, `src/styles/${f}.css`), 'utf8').replace(/\/\*[\s\S]*?\*\//g, ''),
