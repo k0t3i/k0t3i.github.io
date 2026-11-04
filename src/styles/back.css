@@ -165,6 +165,11 @@
     translate: 0 -50%;
   }
 
+  /* The bodies and their markings are in the art (circuit/art.ts): a part draws its pads and its outline over them. */
+  .back-part .pcb-body {
+    fill: none;
+  }
+
   .back-part[data-ref="U10"] {
     --x: 430;
     --y: 290;
