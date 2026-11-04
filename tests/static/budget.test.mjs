@@ -11,8 +11,12 @@ import { firstLoad, jsLoadedBy, wireSize } from '../helpers/load.mjs';
 // CSS raised from 12 to 13 KB with Anthony’s approval of 2026-11-04 (revision 8: the workbench mat
 // of the page, its wave and its glow, then the retro mode of the mini-game), once the savings found
 // were not enough: 13 KB is the cap he approved.
+// JS raised from 62 to 66 KB with Anthony’s approval of 2026-11-04 (revision 8: the glow of the page,
+// the code of the easter egg and its mini-game, the game itself a lazy chunk counted here too), once
+// the savings found were not enough (Vite builds its preload helper in with any dynamic import):
+// 66 KB is the cap he approved.
 const KB = 1024;
-const BUDGET = { page: 20 * KB, css: 13 * KB, js: 62 * KB, wide: 170 * KB };
+const BUDGET = { page: 20 * KB, css: 13 * KB, js: 66 * KB, wide: 170 * KB };
 
 /** The two home pages: the JavaScript and the first load are the same budget for both languages. */
 const HOMES = ['/', '/en/'];
@@ -38,7 +42,7 @@ test('all the CSS under 13 KB', (t) => {
   assert.ok(total <= BUDGET.css, `${sheets.join(', ')}: ${total} B gzip -9 > ${BUDGET.css} B`);
 });
 
-test('the JavaScript loaded by / under 62 KB (entry and static imports)', (t) => {
+test('the JavaScript loaded by / under 66 KB (entry and static imports)', (t) => {
   for (const page of HOMES) {
     const rows = jsLoadedBy(page).map((path) => ({ path, bytes: wireSize(path) }));
     assert.ok(rows.length > 0, `${page} loads no JavaScript`);
@@ -48,7 +52,7 @@ test('the JavaScript loaded by / under 62 KB (entry and static imports)', (t) =>
   }
 });
 
-test('all the JavaScript of the build under 62 KB too, lazy chunks included', (t) => {
+test('all the JavaScript of the build under 66 KB too, lazy chunks included', (t) => {
   // A chunk split off from / (a dynamic import) leaves the test above: the site's JavaScript as a whole stays in budget.
   const scripts = distFiles().filter((f) => /^assets\/[^/]+\.m?js$/.test(f));
   assert.ok(scripts.length > 0, 'no JavaScript built');
