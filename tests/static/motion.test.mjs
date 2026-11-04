@@ -157,3 +157,11 @@ test('the retro mode of the mini-game: a layer of its own after motion and befor
   assert.ok(rules.length >= 3);
   for (const r of rules) for (const s of splitTopLevel(r.prelude)) assert.match(s, /^:root\[data-retro\]/, s);
 });
+
+test('the retro greens are a palette of their own: none of the classic handheld screen', () => {
+  // Revision 8: the look of an old LCD, never the colours of an existing game.
+  const CLASSIC = ['#0f380f', '#306230', '#8bac0f', '#9bbc0f'];
+  const sources = files.filter((f) => /\.(css|vue|ts|svg|html)$/.test(f)).map((f) => ({ f, text: read(f).toLowerCase() }));
+  assert.ok(sources.length > 20);
+  for (const { f, text } of sources) for (const hex of CLASSIC) assert.ok(!text.includes(hex), `src/${f}: ${hex}`);
+});
