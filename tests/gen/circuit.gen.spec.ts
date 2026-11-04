@@ -5,14 +5,26 @@ import { route, type Routed } from './route';
 
 /** Routes the back face and writes src/circuit/routes.json (npm run gen:circuit), and a log of what failed. */
 it('routes the back face', () => {
-  const order = ['USB_DP', 'USB_DN', 'USB_DP_C', 'USB_DN_C', 'XTAL_P', 'XTAL_N', 'LNA_IN', 'RF', 'VDD_SPI', 'FLASH_CLK', 'FLASH_IO0', 'FLASH_IO3', 'FLASH_CS', 'FLASH_IO1', 'FLASH_IO2'];
+  // The fan-out of U10 first, side by side (the bottom and left sides to the connectors, the top to
+  // DISP1 and J6), the short local nets, then the long buses that go round it.
+  const order = [
+    'USB_DP', 'USB_DN', 'USB_DP_C', 'USB_DN_C', 'XTAL_P', 'XTAL_N', 'LNA_IN', 'RF', 'VDD_SPI',
+    'FLASH_CLK', 'FLASH_IO0', 'FLASH_IO3', 'FLASH_CS', 'FLASH_IO1', 'FLASH_IO2',
+    // Nested fans from the innermost line out: DISP1's from SCK (its nearest pad) to CS; then ONEWIRE,
+    // SD_CS and J1's from EXT1 to EXT4.
+    'SPI_SCK', 'SPI_MOSI', 'DISP_DC', 'DISP_CS',
+    'ONEWIRE', 'SD_CS', 'EXT1', 'EXT2', 'EXT3', 'EXT4', 'LED_DRV', 'RTC_INT',
+    'SPI_MISO', 'EXP_INT', 'EN', 'IO0', 'TXD', 'RXD',
+  ];
   // Several passes: each puts the nets that failed in the best pass so far first, in a seeded order
-  // of the rest; the pass with the fewest failures, then the fewest hops, is kept.
+  // of the rest; every pass runs, and the one with the fewest failures, then the fewest hops (the
+  // most copper drawn on the back), is kept.
   const passes = Number(process.env.PASSES ?? 16);
   let used: { order: string[]; seed: number } = { order, seed: 0 };
   const best = (): Routed => {
     let r = route(order, 0);
-    for (let seed = 1; seed < passes && r.failed.length; seed++) {
+    for (let seed = 1; seed < passes; seed++) {
+      // The nets that failed in the best pass so far are routed first (a rip-up and reroute).
       const first = [...new Set(r.failed.map((f) => f.split(':')[0] ?? ''))].filter((n) => !n.includes('.'));
       const next = route([...first, ...order], seed);
       if (next.failed.length < r.failed.length || (next.failed.length === r.failed.length && next.hops.length < r.hops.length)) {

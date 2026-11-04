@@ -615,10 +615,14 @@ function backFaceProblems(page: Page): Promise<string[]> {
     }
     // The parts: in their circuit, apart from each other, their references too, none under the table.
     const circuit = faceEl.querySelector('.back__circuit')?.getBoundingClientRect();
-    const drawn = [...faceEl.querySelectorAll<HTMLElement>('.back-part')].flatMap((p) => [
-      { name: `${p.dataset.ref}`, r: (p.querySelector('svg') as Element).getBoundingClientRect() },
-      { name: `${p.dataset.ref} ref`, r: (p.querySelector('.part__ref') as Element).getBoundingClientRect() },
-    ]);
+    const drawn: { name: string; r: DOMRect }[] = [];
+    for (const p of faceEl.querySelectorAll<HTMLElement>('.back-part')) {
+      drawn.push({ name: `${p.dataset.ref}`, r: (p.querySelector('svg') as Element).getBoundingClientRect() });
+      const ref = p.querySelector('.part__ref') as Element;
+      if (ref.checkVisibility()) drawn.push({ name: `${p.dataset.ref} ref`, r: ref.getBoundingClientRect() });
+    }
+    // On a narrow circuit the references are drawn in the live layer instead (silkscreen at its scale).
+    for (const t of faceEl.querySelectorAll<SVGTextElement>('text.back-ref')) if (t.checkVisibility()) drawn.push({ name: `${t.dataset.ref} ref`, r: t.getBoundingClientRect() });
     const meet = (a: DOMRect, b: DOMRect) => Math.min(a.right, b.right) - Math.max(a.left, b.left) > 0.5 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 0.5;
     for (const [i, a] of drawn.entries()) {
       if (circuit && !(a.r.left >= circuit.left - 0.5 && a.r.right <= circuit.right + 0.5 && a.r.top >= circuit.top - 0.5 && a.r.bottom <= circuit.bottom + 0.5)) out.push(`${a.name} leaves the circuit`);

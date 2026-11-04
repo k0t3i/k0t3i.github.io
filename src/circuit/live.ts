@@ -1,5 +1,5 @@
 import { ALL_VIAS, BACK_PADS, BACK_TRACES, HOPS, VIA, backVias } from './copper';
-import { BACK_PLACED, THROUGH_PADS, placedPads, pointsPath, type Point, type Trace } from './layout';
+import { BACK_PLACED, CIRCUIT, THROUGH_PADS, placedPads, pointsPath, type Point, type Trace } from './layout';
 import { MASTER, linksOf } from './links';
 import { NETS } from './netlist';
 
@@ -17,8 +17,41 @@ import { NETS } from './netlist';
 
 export const BOM = ['U10', 'U11', 'U12', 'U13', 'U14', 'U15', 'U16', 'U17', 'U18', 'Y1', 'J6'] as const;
 
-/** Where the reference of each of them is printed, clear of its traces. */
-const LABEL: Record<(typeof BOM)[number], LivePart['label']> = { U10: 'n', U11: 'w', U12: 'n', U13: 'e', U14: 'n', U15: 'n', U16: 'n', U17: 'w', U18: 'n', Y1: 'n', J6: 'w' };
+/**
+ * Where the reference of each of them is printed (HTML, in rem: its box in units is largest on the
+ * narrowest wide board, 1264 px, with the text spacing of WCAG 1.4.12): on the first side, above, right, left or under, inside the circuit
+ * (the window of the flowing board), where it meets no part, no through-hole pad of the front and no
+ * other reference; where every side is taken, over a small passive rather than a part of the table.
+ */
+export function labels(size: { w: number; h: number } = { w: 17, h: 36 }): Map<string, { side: LivePart['label']; box: { x: number; y: number; w: number; h: number } }> {
+  type Box = { x: number; y: number; w: number; h: number };
+  const meets = (a: Box, b: Box) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+  const pads = THROUGH_PADS.map((p) => ({ x: p.x - p.w / 2, y: p.y - p.h / 2, w: p.w, h: p.h }));
+  const taken: Box[] = [];
+  const out = new Map<string, { side: LivePart['label']; box: Box }>();
+  for (const ref of BOM) {
+    const p = BACK_PLACED.find((q) => q.part.ref === ref);
+    if (!p) continue;
+    const { box } = p;
+    const [w, h] = [size.w * ref.length, size.h];
+    const sides: Record<LivePart['label'], Box> = {
+      n: { x: box.x, y: box.y - h, w, h },
+      e: { x: box.x + box.w, y: box.y + box.h / 2 - h / 2, w, h },
+      w: { x: box.x - w, y: box.y + box.h / 2 - h / 2, w, h },
+      s: { x: box.x, y: box.y + box.h, w, h },
+    };
+    const others = BACK_PLACED.filter((q) => q !== p).map((q) => q.box);
+    const live = BACK_PLACED.filter((q) => q !== p && (BOM as readonly string[]).includes(q.part.ref)).map((q) => q.box);
+    const within = (b: Box) => b.x >= CIRCUIT.x && b.y >= CIRCUIT.y && b.x + b.w <= CIRCUIT.x + CIRCUIT.w && b.y + b.h <= CIRCUIT.y + CIRCUIT.h;
+    const order = ['n', 'e', 'w', 's'] as const;
+    const free = (k: (typeof order)[number], boxes: Box[]) => within(sides[k]) && ![...boxes, ...pads, ...taken].some((b) => meets(sides[k], b));
+    // Clear of every part if it can; else clear of the parts of the table (over a small passive).
+    const side = order.find((k) => free(k, others)) ?? order.find((k) => free(k, live)) ?? 'n';
+    taken.push(sides[side]);
+    out.set(ref, { side, box: sides[side] });
+  }
+  return out;
+}
 
 export interface LivePart {
   ref: string;
@@ -27,6 +60,11 @@ export interface LivePart {
   look: string;
   /** The side its reference is printed on: above it, under it, at its left or at its right. */
   label: 'n' | 's' | 'w' | 'e';
+  /**
+   * On a narrow circuit (a phone), its reference drawn in the live layer: its baseline in units, and
+   * whether it ends there (at the left of the part: user text spacing then widens it away from it).
+   */
+  tag: [number, number, 'start' | 'end'];
   /** Its pads, body and mark of pin 1, from the top-left corner of its box. */
   pads: [number, number, number, number][];
   body: [number, number, number, number];
@@ -85,7 +123,7 @@ function waysOf(net: string, from: string, to: string | null): Trace[] {
     });
     vias.forEach((v, k) => {
       const r = v.kind === 'through' ? VIA.through : VIA.blind;
-      if ([t.pts[0], t.pts.at(-1)].some((e) => Math.hypot((e as Point)[0] - v.x, (e as Point)[1] - v.y) <= r)) edge(`t${i}`, `v${k}`);
+      if (segs(t).some((sg) => toSeg([v.x, v.y], sg) <= r)) edge(`t${i}`, `v${k}`);
     });
     traces.forEach((o, j) => {
       if (j !== i && [o.pts[0], o.pts.at(-1)].some((e) => segs(t).some((s) => toSeg(e as Point, s) < 0.01))) edge(`t${i}`, `t${j}`);
@@ -159,7 +197,8 @@ export function liveLayer(): Live {
       ref,
       box: [p.box.x, p.box.y, p.box.w, p.box.h],
       look: p.fp.look,
-      label: LABEL[ref],
+      label: labels().get(ref)?.side ?? 'n',
+      tag: tagOf(ref),
       // Its pads as seen: the exposed pad of a QFN is under its body.
       pads: placedPads(p)
         .filter((q) => !(q.w > 30 && q.h > 30))
@@ -174,6 +213,14 @@ export function liveLayer(): Live {
     nets: [...by.values()].map((e) => ({ d: pointsPath(e.t.pts), by: [...e.by].join(' '), rev: [...e.rev].join(' ') })),
     marks: [...marks.values()].map(({ set, ...m }) => ({ ...m, by: [...set].join(' ') })),
   };
+}
+
+/** The silkscreen of the reference on a narrow circuit: 20 units high, 12 a character, beside the part. */
+export const TAG = { size: 20, advance: 12 };
+function tagOf(ref: string): [number, number, 'start' | 'end'] {
+  const l = labels({ w: TAG.advance + 2, h: TAG.size + 14 }).get(ref);
+  if (!l) return [0, 0, 'start'];
+  return l.side === 'w' ? [l.box.x + l.box.w - 2, l.box.y + TAG.size + 4, 'end'] : [l.box.x + 2, l.box.y + TAG.size + 4, 'start'];
 }
 
 /** The mark of pin 1, turned with the part. */

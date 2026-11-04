@@ -139,8 +139,9 @@ export const FOOTPRINTS = {
   header6smd: {
     w: 236,
     h: 40,
-    pads: Array.from({ length: 6 }, (_, k): Pad => ({ pin: String(k + 1), x: 8 + k * 44, y: k % 2 ? 26 : 14, w: 14, h: 26 })),
-    body: { x: 0, y: 8, w: 236, h: 24 },
+    // The SMT tails, alternating above and below the row (as the TSM-SV), the posts in the middle.
+    pads: Array.from({ length: 6 }, (_, k): Pad => ({ pin: String(k + 1), x: 8 + k * 44, y: k % 2 ? 35 : 5, w: 12, h: 10 })),
+    body: { x: 0, y: 10, w: 236, h: 20 },
     look: 'header',
   },
   '0402': chip(20, 10, 8),

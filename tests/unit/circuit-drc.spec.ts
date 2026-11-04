@@ -203,7 +203,8 @@ describe('the copper of the board', () => {
         for (const q of pads) if (q.net === t.net && segs(t).some((sg) => toPad(sg, q) < 0.01)) join(key, pad(q));
         for (const v of vias) {
           const back = { ...v, x: traces === FRONT_TRACES ? 1600 - v.x : v.x };
-          if (v.net === t.net && t.pts.some((pt) => Math.hypot(pt[0] - v.x, pt[1] - v.y) <= viaR(v))) join(key, via(back));
+          // A via on a trace (its end, or on its way) joins it.
+          if (v.net === t.net && segs(t).some((sg) => toSeg([v.x, v.y], sg) <= viaR(v))) join(key, via(back));
         }
         for (const o of traces) if (o.net === t.net && o !== t && [o.pts[0], o.pts.at(-1)].some((e) => segs(t).some((s) => toSeg(e as Point, s) < 0.01))) join(key, `trace ${o.net} ${o.pts.map((q) => q.join(',')).join(' ')}`);
       }

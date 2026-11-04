@@ -33,6 +33,7 @@ interface LivePart {
   box: [number, number, number, number];
   look: string;
   label: string;
+  tag: [number, number, string];
   pads: [number, number, number, number][];
   mark: [number, number] | null;
   body: [number, number, number, number];
@@ -158,6 +159,17 @@ function onClick(ref: string): void {
         pathLength="100"
         :d="n.d"
       />
+      <!-- On a narrow circuit the references are silkscreen of the drawing, at its scale (back.css). -->
+      <text
+        v-for="p in drawn"
+        :key="`tag-${p.ref}`"
+        class="back-ref"
+        :data-ref="p.ref"
+        :data-links="p.links"
+        :x="p.tag[0]"
+        :y="p.tag[1]"
+        :text-anchor="p.tag[2] === 'end' ? 'end' : undefined"
+      >{{ p.ref }}</text>
       <template
         v-for="(m, i) in live.marks"
         :key="`mark-${i}`"

@@ -244,7 +244,7 @@ export function route(order: string[] = [], seed = 0, groundVias: string[] = [])
         // A diagonal never squeezes between two blocked cells.
         if (dx && dy && (!ok(idx(x + dx, y)) || !ok(idx(x, y + dy)))) continue;
         const ns = ni * 9 + d;
-        const ng = gs + (dx && dy ? Math.SQRT2 : 1) + turn;
+        const ng = gs + (dx && dy ? Math.SQRT2 : 1) * (along[ni] ? 0.7 : 1) + turn;
         if (stamp[ns] === gen && (g[ns] ?? 0) <= ng) continue;
         stamp[ns] = gen;
         g[ns] = ng;
@@ -268,6 +268,9 @@ export function route(order: string[] = [], seed = 0, groundVias: string[] = [])
     return out;
   }
 
+  // Cells that run alongside a trace already laid, just outside its keep-out: cheaper, so that
+  // traces gather in bundles at a constant pitch, as a designer routes them.
+  const along = new Uint8Array(N);
   const traces: Trace[] = [];
   const failed: string[] = [];
   /** The copper of each net on the back already joined: the cells of its traces. */
@@ -277,6 +280,17 @@ export function route(order: string[] = [], seed = 0, groundVias: string[] = [])
     const cs = corners(pts);
     traces.push({ net: name, layer: 'B', w, pts: cs });
     for (let i = 1; i < cs.length; i++) markSegment(cs[i - 1] as Point, cs[i] as Point, w / 2 + CLEAR + hw, id);
+    // Mark the lane beside it, one pitch away.
+    for (const [px, py] of pts) {
+      const r = w / 2 + CLEAR + hw + 2.5;
+      for (let y = Math.floor(py - r); y <= Math.ceil(py + r); y++) {
+        for (let x = Math.floor(px - r); x <= Math.ceil(px + r); x++) {
+          if (!inside(x, y)) continue;
+          const d = Math.hypot(x - px, y - py);
+          if (d > r - 2 && d <= r) along[idx(x, y)] = 1;
+        }
+      }
+    }
     copper.set(id, [...(copper.get(id) ?? []), ...pts]);
   }
 
@@ -463,11 +477,12 @@ export function route(order: string[] = [], seed = 0, groundVias: string[] = [])
     const crosses = (a1: Point, a2: Point, b1: Point, b2: Point) => cross(a1, a2, b1) * cross(a1, a2, b2) <= 0 && cross(b1, b2, a1) * cross(b1, b2, a2) <= 0;
     // The inner trace: straight, or round the ends of the others (below, above, left, right of both vias).
     const [A, B] = [ea.spot, eb.spot];
-    const d = 16;
     const shapes: Point[][] = [
       [A, B],
-      ...[Math.max(A[1], B[1]) + d, Math.min(A[1], B[1]) - d].map((y): Point[] => [A, [A[0], y], [B[0], y], B]),
-      ...[Math.min(A[0], B[0]) - d, Math.max(A[0], B[0]) + d].map((x): Point[] => [A, [x, A[1]], [x, B[1]], B]),
+      ...[16, 32, 56].flatMap((d) => [
+        ...[Math.max(A[1], B[1]) + d, Math.min(A[1], B[1]) - d].map((y): Point[] => [A, [A[0], y], [B[0], y], B]),
+        ...[Math.min(A[0], B[0]) - d, Math.max(A[0], B[0]) + d].map((x): Point[] => [A, [x, A[1]], [x, B[1]], B]),
+      ]),
     ];
     const pieces = (pts: Point[]) => pts.slice(1).map((q, i): [Point, Point] => [pts[i] as Point, q]);
     const clash = (pts: Point[], l: 2 | 3) => hops.some((h) => h.layer === l && h.net !== name && pieces(pts).some(([p, q]) => pieces(h.path).some(([u, v]) => crosses(p, q, u, v))));
@@ -500,15 +515,21 @@ export function route(order: string[] = [], seed = 0, groundVias: string[] = [])
   const rand = () => ((r = (r * 9301 + 49297) % 233280) / 233280);
   const keyed = rest.map((n) => ({ n, k: span(n) * (seed ? 0.6 + 0.8 * rand() : 1) }));
   const names = [...new Set([...order, ...keyed.sort((a, b) => a.k - b.k).map((x) => x.n)])];
+  // Two phases, as a designer routes: first the nearest leg of every net (from the chip U10 where it
+  // has a pin), then the other legs of the nets that have more, in the same order.
+  const state = new Map<string, { joined: Point[]; left: Point[][] }>();
   for (const name of names) {
-    const id = netId.get(name) ?? -1;
-    const w = WIDTH[name] ?? 2;
     const gs = groups(name).filter((g0) => g0.length);
     if (gs.length < 2) continue;
-    // Start from the group of the chip U10 if it has one, else the first.
     const u10 = gs.findIndex((g0) => g0.some(([x, y]) => x >= 430 && x <= 581 && y >= 290 && y <= 441));
-    const joined: Point[] = [...(gs[u10 >= 0 ? u10 : 0] ?? [])];
-    const left = gs.filter((_, i) => i !== (u10 >= 0 ? u10 : 0));
+    state.set(name, { joined: [...(gs[u10 >= 0 ? u10 : 0] ?? [])], left: gs.filter((_, i) => i !== (u10 >= 0 ? u10 : 0)) });
+  }
+  const connect = (name: string, all: boolean): void => {
+    const st = state.get(name);
+    if (!st) return;
+    const id = netId.get(name) ?? -1;
+    const w = WIDTH[name] ?? 2;
+    const { joined, left } = st;
     while (left.length) {
       left.sort((a, b) => near(a, joined) - near(b, joined));
       const next = left.shift() as Point[];
@@ -519,21 +540,21 @@ export function route(order: string[] = [], seed = 0, groundVias: string[] = [])
         const d = octile(a, b);
         if (d < best) [best, pair] = [d, [a, b]];
       }
-      const path = search(next, joined, id, 2.2 * best + 90);
+      const path = search(next, joined, id, 3 * best + 160);
       if (path) {
         lay(name, path, w);
         joined.push(...path, ...next);
-        continue;
+      } else {
+        // No good path on the back: down to the inner layer by a blind via near each end.
+        const hop = hopBetween(name, id, w, next, joined, pair);
+        if (hop) joined.push(...hop, ...next);
+        else failed.push(`${name}: ${next.map((p) => p.join(',')).join(' ')}`);
       }
-      // No good path on the back: down to the inner layer by a blind via near each end.
-      const hop = hopBetween(name, id, w, next, joined, pair);
-      if (!hop) {
-        failed.push(`${name}: ${next.map((p) => p.join(',')).join(' ')}`);
-        continue;
-      }
-      joined.push(...hop, ...next);
+      if (!all) return;
     }
-  }
+  };
+  for (const name of names) connect(name, false);
+  for (const name of names) connect(name, true);
   // Last, the ground pins the pour could not reach in a previous pass: each its via, where there is room.
   for (const pin of groundVias) toPlane(pin, 'GND');
   return { traces, vias, failed, hops, grid: { owner, X0, Y0, W } };

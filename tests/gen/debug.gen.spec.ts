@@ -28,5 +28,6 @@ it('debug', () => {
     lines.push(line);
   }
   lines.push([...legend].map(([o, c]) => `${c}=${names[o - 1]}`).join(' '));
-  writeFileSync(process.env.OUT ?? 'debug.txt', `${lines.join('\n')}\n${r.failed.join('\n')}\n`);
+  const hops = r.hops.map((h) => `${h.net} ${h.a.join(',')}>${h.b.join(',')}`).join('\n');
+  writeFileSync(process.env.OUT ?? 'debug.txt', `${lines.join('\n')}\n${r.failed.join('\n')}\nhops:\n${hops}\n`);
 });
