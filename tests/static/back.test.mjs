@@ -52,7 +52,7 @@ test('one back face: the populated variant and its second build are gone', () =>
 });
 
 test('every rule of the back face is in back.css, in its own layer between wide and depth', () => {
-  assert.match(read('src/styles/tokens.css'), /@layer reset, tokens, fonts, base, board, parts, sheets, wide, back, depth, motion, modes;/);
+  assert.match(read('src/styles/tokens.css'), /@layer reset, tokens, fonts, base, board, parts, sheets, wide, back, depth, motion, retro, modes;/);
   const back = read('src/styles/back.css');
   assert.match(back.replace(/\/\*[\s\S]*?\*\//g, '').trim(), /^@layer back \{/);
   assert.match(read('src/main.ts'), /import '\.\/styles\/wide\.css';\nimport '\.\/styles\/back\.css';\nimport '\.\/styles\/depth\.css';/);

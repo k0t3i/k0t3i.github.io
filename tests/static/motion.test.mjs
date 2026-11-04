@@ -146,3 +146,14 @@ test('the mat, its wave and its glow go with more contrast and in forced colours
     assert.equal(off.length, 1, `${media}: .mat { display: none }`);
   }
 });
+
+test('the retro mode of the mini-game: a layer of its own after motion and before modes, on data-retro only', () => {
+  // More contrast and forced colours still win over it (revision 8).
+  assert.match(read('styles/tokens.css'), /@layer [^;]*\bmotion, retro, modes;/);
+  assert.match(read('styles/retro.css').replace(/\/\*[\s\S]*?\*\//g, '').trim(), /^@layer retro \{/);
+  assert.match(read('main.ts'), /import '\.\/styles\/motion\.css';\nimport '\.\/styles\/retro\.css';\nimport '\.\/styles\/modes\.css';/);
+  // Every rule of it asks for data-retro on <html>: nothing of it shows outside the game.
+  const rules = BLOCKS.filter((b) => b.file === 'src/styles/retro.css' && !b.prelude.startsWith('@'));
+  assert.ok(rules.length >= 3);
+  for (const r of rules) for (const s of splitTopLevel(r.prelude)) assert.match(s, /^:root\[data-retro\]/, s);
+});
