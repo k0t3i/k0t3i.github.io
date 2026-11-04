@@ -496,14 +496,15 @@ test.describe('no layout shift', () => {
 });
 
 test.describe('the back face', () => {
-  test('the back face holds its circuit, a part for each skill, and the bill of materials, no image', async ({ page }) => {
+  test('the back face holds its circuit, a part for each skill, and the bill of materials, its art one picture', async ({ page }) => {
     await open(page);
     const back = face(page, 'back');
-    await expect(back.locator('.back__circuit > svg.back__copper')).toHaveCount(1);
+    await expect(back.locator('.back__circuit > picture.back__art > img[alt=""]')).toHaveCount(1);
+    await expect(back.locator('.back__circuit > svg.back__live')).toHaveCount(1);
     await expect(back.locator('.back__circuit button.back-part')).toHaveCount(11);
-    await expect(back.locator('path.back-net')).toHaveCount(11);
+    expect(await back.locator('path.back-net').count()).toBeGreaterThan(40);
     await expect(back.locator('table.bom')).toHaveCount(1);
-    await expect(back.locator('img')).toHaveCount(0);
+    await expect(back.locator('img')).toHaveCount(1);
   });
 
   for (const viewport of [{ width: 1264, height: 800 }, WIDE, PHONE, { width: 320, height: 720 }]) {

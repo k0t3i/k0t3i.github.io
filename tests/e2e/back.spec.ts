@@ -1,11 +1,19 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { BACK_NETS, EN, FR, bomCells, bomDetails, bomRefs, type Copy } from '../helpers/copy';
+import { EN, FR, bomCells, bomDetails, bomRefs, type Copy } from '../helpers/copy';
+import { readFileSync } from 'node:fs';
+
+/** The live layer of the back face, as the page renders it. */
+const LIVE = JSON.parse(readFileSync(new URL('../../src/circuit/live.json', import.meta.url), 'utf8')) as {
+  parts: { ref: string; box: number[] }[];
+  nets: { d: string; by: string; rev: string }[];
+};
 
 /*
- * The back face (spec rev. 5): every part drawn on it is a skill of the bill of materials, and every
- * trace links two skills that work together. A part under the pointer, the keyboard focus or a tap
- * lights its row of the table, its traces and, more softly, its neighbours; a row under the pointer
- * lights its part. A gold signal runs once along each of its traces, from it to its neighbour.
+ * The back face (spec 4.10): the real circuit of the board, its eleven main parts each a skill of the
+ * bill of materials. A part under the pointer, the keyboard focus or a tap lights its row of the
+ * table, its real traces and, in the second colour, the parts it is linked to; a row under the
+ * pointer lights its part. A gold signal runs once along each of its traces, away from it.
+ * The traces are those of the live layer (src/circuit/live.json), counted in its order.
  */
 
 const GOLD = 'rgb(201, 164, 92)';
@@ -66,7 +74,7 @@ const lighting = async (page: Page) => {
       return {
         active: el.getAttribute('data-active'),
         parts: Object.fromEntries(refs.map((p) => [p.dataset.ref, getComputedStyle(p.querySelector('.part__ref') as Element).color])),
-        nets: [...el.querySelectorAll<SVGPathElement>('path.back-net')].filter((n) => getComputedStyle(n).opacity === '1').map((n) => n.dataset.net),
+        nets: [...el.querySelectorAll<SVGPathElement>('path.back-net')].flatMap((n, i) => (getComputedStyle(n).opacity === '1' ? [i] : [])),
         rows: ruled(gold),
         linkedRows: ruled(linked),
       };
@@ -75,12 +83,13 @@ const lighting = async (page: Page) => {
   );
 };
 
-/** The nets of a part, from the annex. */
-const netsOf = (ref: string): string[] => BACK_NETS.filter(([, a, b]) => a === ref || b === ref).map(([id]) => id);
+/** The traces a part lights (their order in the live layer), and the ones its current runs back along. */
+const netsOf = (ref: string): number[] => LIVE.nets.flatMap((n, i) => (`${n.by} ${n.rev}`.split(' ').includes(ref) ? [i] : []));
+const backwards = (ref: string): number[] => LIVE.nets.flatMap((n, i) => (n.rev.split(' ').includes(ref) ? [i] : []));
 
 /** Checks that `ref` is lit, with its row, its nets and, in the second colour, its neighbours and their rows. */
 async function expectLit(page: Page, ref: string): Promise<void> {
-  await expect.poll(async () => (await lighting(page)).nets.sort()).toEqual(netsOf(ref).sort());
+  await expect.poll(async () => (await lighting(page)).nets).toEqual(netsOf(ref));
   const now = await lighting(page);
   const linked = await linkedColour(page);
   expect(now.active).toBe(ref);
@@ -108,7 +117,9 @@ const running = (page: Page) =>
         ? 'signal'
         : target?.matches('.mat__glow')
           ? 'glow'
-          : (target?.getAttribute('data-net') ?? target?.closest('[id]')?.id ?? target?.tagName ?? '?');
+          : target?.matches('path.back-pulse')
+            ? `T${[...document.querySelectorAll('path.back-pulse')].indexOf(target)}`
+            : (target?.closest('[id]')?.id ?? target?.tagName ?? '?');
       return `${name} ${what}${(a.effect as KeyframeEffect | null)?.pseudoElement ?? ''}`;
     }),
   );
@@ -125,7 +136,7 @@ test.describe('the back face lights up', () => {
     expect((await lighting(page)).active).toBeNull();
     await part(page, 'U14').hover();
     await expectLit(page, 'U14');
-    expect((await lighting(page)).nets.sort()).toEqual(['N10', 'N5', 'N7']);
+    expect((await lighting(page)).nets).toEqual(netsOf('U14'));
     // Away from it, everything goes dark again.
     await page.mouse.move(1, 1);
     await expect.poll(async () => (await lighting(page)).nets).toEqual([]);
@@ -138,7 +149,7 @@ test.describe('the back face lights up', () => {
     await showBack(page);
     await row(page, 'U10').hover();
     await expectLit(page, 'U10');
-    expect((await lighting(page)).nets.sort()).toEqual(['N1', 'N2']);
+    expect((await lighting(page)).nets).toEqual(netsOf('U10'));
     // The same on the flowing board, the circuit above the table. Known WebKit behaviour: the last row
     // is at the bottom of the page, and as the board leans towards the still pointer WebKit moves the
     // page a few pixels under it (its scroll range follows the leaning board). Measured before the mat
@@ -448,7 +459,7 @@ test.describe('the parts linked to the lit one', () => {
 test.describe('forced colours', () => {
   test.use({ forcedColors: 'active', reducedMotion: 'reduce' });
 
-  test('forced colours: the lit part in Highlight, the parts linked to it apart from it, the passives in outline', async ({ page, isMobile }) => {
+  test('forced colours: the lit part in Highlight, the parts linked to it apart from it, the art gone', async ({ page, isMobile }) => {
     test.skip(isMobile, 'a mouse');
     await booted(page);
     await page.setViewportSize(WIDE);
@@ -459,7 +470,8 @@ test.describe('forced colours', () => {
     const look = await face(page).evaluate((el) => ({
       pads: Object.fromEntries([...el.querySelectorAll<HTMLElement>('.back-part')].map((p) => [p.dataset.ref, getComputedStyle(p).getPropertyValue('--pad').trim()])),
       outlines: Object.fromEntries([...el.querySelectorAll<HTMLTableRowElement>('tbody tr')].map((tr) => [tr.dataset.ref, getComputedStyle(tr.cells[0] as Element).outlineStyle])),
-      passives: [...el.querySelectorAll<SVGUseElement>('use.back__psv')].map((u) => [getComputedStyle(u).display, getComputedStyle(u).getPropertyValue('--psv-line').trim()]),
+      art: getComputedStyle(el.querySelector('.back__art') as Element).display,
+      nets: [...el.querySelectorAll<SVGPathElement>('path.back-net')].map((n) => getComputedStyle(n).stroke),
     }));
     expect(look.pads.U14).toBe('Highlight');
     for (const ref of NEIGHBOURS.U14 ?? []) {
@@ -470,8 +482,12 @@ test.describe('forced colours', () => {
     // A part of the table not linked to U14.
     expect(NEIGHBOURS.U14).not.toContain('U11');
     expect(look.outlines.U11).toBe('none');
-    expect(look.passives.length).toBeGreaterThan(20);
-    for (const [display, line] of look.passives) expect([display, line]).toEqual(['inline', 'GrayText']);
+    // The art, a picture in colours, goes; every trace of the live layer stays, in grey, the lit ones in Highlight.
+    expect(look.art).toBe('none');
+    const lit = netsOf('U14');
+    const [grey, highlight] = [look.nets.find((_, i) => !lit.includes(i)), look.nets[lit[0] ?? 0]];
+    expect(grey).not.toBe(highlight);
+    for (const [i, stroke] of look.nets.entries()) expect(stroke, `trace ${i}`).toBe(lit.includes(i) ? highlight : grey);
   });
 });
 
@@ -579,15 +595,15 @@ test.describe('the current', () => {
     const ambient = ['led-breathe part-led1::after', 'signal signal', 'mat-dots app::before', 'mat-wave app', 'transition:opacity glow'];
     for (const a of await running(page)) expect(ambient).toContain(a);
     await part(page, 'U14').hover();
-    // One pass of the signal along each of its traces, leaving from it: N7 and N10 start at U14,
-    // N5 ends there (its signal runs it backwards).
+    // One pass of the signal along each of its traces, leaving from it: on a trace drawn towards it,
+    // its signal runs backwards.
     const runs = await page.evaluate(() =>
       [...document.querySelectorAll<SVGPathElement>('path.back-pulse')].flatMap((p) =>
         p.getAnimations().map((a) => {
           const effect = a.effect as KeyframeEffect;
           const frames = effect.getKeyframes().filter((f) => f.strokeDashoffset !== undefined);
           return {
-            net: p.dataset.net,
+            net: [...document.querySelectorAll('path.back-pulse')].indexOf(p),
             duration: effect.getTiming().duration,
             iterations: effect.getTiming().iterations,
             from: parseFloat(String(frames[0]?.strokeDashoffset)),
@@ -596,21 +612,21 @@ test.describe('the current', () => {
         }),
       ),
     );
-    expect(runs.map((r) => r.net).sort()).toEqual(['N10', 'N5', 'N7']);
+    expect(runs.map((r) => r.net)).toEqual(netsOf('U14'));
     for (const r of runs) {
       expect(r.duration).toBeGreaterThanOrEqual(500);
       expect(r.duration).toBeLessThanOrEqual(700);
       expect(r.iterations).toBe(1);
       // pathLength 100: from just before the start of the path to past its end, or the other way.
-      const forward = r.net !== 'N5';
-      expect([r.from, r.to], r.net).toEqual(forward ? [5, -101] : [-101, 5]);
+      const forward = !backwards('U14').includes(r.net);
+      expect([r.from, r.to], `trace ${r.net}`).toEqual(forward ? [5, -101] : [-101, 5]);
     }
     // After the pass, the traces stay lit and nothing runs any more.
     await expect.poll(async () => (await running(page)).filter((a) => !ambient.includes(a)), { timeout: 3000 }).toEqual([]);
-    expect((await lighting(page)).nets.sort()).toEqual(['N10', 'N5', 'N7']);
+    expect((await lighting(page)).nets).toEqual(netsOf('U14'));
     // Another part, another pass, from it.
     await part(page, 'U17').hover();
-    await expect.poll(async () => (await running(page)).filter((a) => a.startsWith('back-run')).map((a) => a.split(' ')[1]).sort()).toEqual(['N3', 'N7']);
+    await expect.poll(async () => (await running(page)).filter((a) => a.startsWith('back-run')).map((a) => a.split(' ')[1]).sort()).toEqual(netsOf('U17').map((i) => `T${i}`).sort());
   });
 });
 
@@ -623,40 +639,34 @@ test.describe('reduced motion', () => {
     if (isMobile) await part(page, 'U14').tap();
     else await part(page, 'U14').hover();
     // Lit at once, and nothing moves.
-    expect((await lighting(page)).nets.sort()).toEqual(['N10', 'N5', 'N7']);
+    expect((await lighting(page)).nets).toEqual(netsOf('U14'));
     expect(await page.evaluate(() => document.getAnimations().length)).toBe(0);
   });
 });
 
 test.describe('the circuit', () => {
   for (const viewport of [WIDE, { width: 1264, height: 800 }, { width: 390, height: 844 }]) {
-    test(`every net ends on a pad of its two parts at ${viewport.width}px`, async ({ page }) => {
+    test(`the parts, the live layer and the art lie on one another at ${viewport.width}px`, async ({ page }) => {
       await page.setViewportSize(viewport);
       await showBack(page);
-      const ends = await face(page).evaluate((el) => {
-        type Box = { left: number; right: number; top: number; bottom: number };
-        const within = (p: DOMPoint, b: Box) => p.x >= b.left - 0.5 && p.x <= b.right + 0.5 && p.y >= b.top - 0.5 && p.y <= b.bottom + 0.5;
-        // The pads of a part: the rects of its symbol, over the drawing of the part.
-        const pads = (ref: string): Box[] => {
-          const svg = el.querySelector(`.back-part[data-ref="${ref}"] svg`) as SVGSVGElement;
-          const symbol = el.ownerDocument.querySelector((svg.querySelector('use') as SVGUseElement).getAttribute('href') ?? '') as SVGSymbolElement;
-          const [, , vw = 1] = (symbol.getAttribute('viewBox') ?? '').split(' ').map(Number);
-          const b = svg.getBoundingClientRect();
-          const k = b.width / vw;
-          return [...symbol.querySelectorAll('rect.pcb-pad')].map((p) => {
-            const [x = 0, y = 0, w = 0, h = 0] = ['x', 'y', 'width', 'height'].map((a) => parseFloat(p.getAttribute(a) ?? '0'));
-            return { left: b.left + x * k, right: b.left + (x + w) * k, top: b.top + y * k, bottom: b.top + (y + h) * k };
-          });
-        };
-        return [...el.querySelectorAll<SVGPathElement>('path.back-net')].map((path) => {
-          const m = path.getScreenCTM() as DOMMatrix;
-          const total = path.getTotalLength();
-          const [start, end] = [path.getPointAtLength(0), path.getPointAtLength(total)].map((p) => new DOMPoint(p.x, p.y).matrixTransform(m)) as [DOMPoint, DOMPoint];
-          const { net, from = '', to = '' } = path.dataset;
-          return `${net} ${pads(from).some((b) => within(start, b))} ${pads(to).some((b) => within(end, b))}`;
-        });
-      });
-      expect(ends).toEqual(BACK_NETS.map(([id]) => `${id} true true`));
+      const off = await face(page).evaluate((el, parts) => {
+        const live = el.querySelector('svg.back__live') as SVGSVGElement;
+        const m = live.getScreenCTM() as DOMMatrix;
+        const art = (el.querySelector('.back__art img') as HTMLImageElement).getBoundingClientRect();
+        const box = live.getBoundingClientRect();
+        // The art is the same 1600 x 900 units, over the same box.
+        const worst = [Math.abs(art.left - box.left), Math.abs(art.top - box.top), Math.abs(art.width - box.width), Math.abs(art.height - box.height)];
+        // Each part sits where the circuit places it, in the units of the face.
+        for (const p of parts) {
+          const b = (el.querySelector(`.back-part[data-ref="${p.ref}"]`) as Element).getBoundingClientRect();
+          const [x, y, w, h] = p.box as [number, number, number, number];
+          const a = new DOMPoint(x, y).matrixTransform(m);
+          const c = new DOMPoint(x + w, y + h).matrixTransform(m);
+          worst.push(Math.abs(b.left - a.x), Math.abs(b.top - a.y), Math.abs(b.right - c.x), Math.abs(b.bottom - c.y));
+        }
+        return Math.max(...worst);
+      }, LIVE.parts);
+      expect(off).toBeLessThan(0.75);
     });
   }
 

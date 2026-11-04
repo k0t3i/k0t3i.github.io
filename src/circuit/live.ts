@@ -18,7 +18,7 @@ import { NETS } from './netlist';
 export const BOM = ['U10', 'U11', 'U12', 'U13', 'U14', 'U15', 'U16', 'U17', 'U18', 'Y1', 'J6'] as const;
 
 /** Where the reference of each of them is printed, clear of its traces. */
-const LABEL: Record<(typeof BOM)[number], LivePart['label']> = { U10: 'n', U11: 'e', U12: 'e', U13: 'e', U14: 'n', U15: 'n', U16: 'n', U17: 'w', U18: 'n', Y1: 'n', J6: 'w' };
+const LABEL: Record<(typeof BOM)[number], LivePart['label']> = { U10: 'n', U11: 'w', U12: 'n', U13: 'e', U14: 'n', U15: 'n', U16: 'n', U17: 'w', U18: 'n', Y1: 'n', J6: 'w' };
 
 export interface LivePart {
   ref: string;
