@@ -20,7 +20,7 @@ import { BACK_NETS, BACK_PARTS, linkedTo, type BackRef } from '../../src/content
 import { en } from '../../src/content/en';
 import { fr } from '../../src/content/fr';
 import { SITE } from '../../src/content/site';
-import type { PartContent } from '../../src/content/types';
+import type { PartContent, PartId } from '../../src/content/types';
 import { PACKAGES, PACKAGE_IDS } from '../../src/lib/packages';
 
 const part = (content: typeof fr, id: string): PartContent => {
@@ -142,7 +142,8 @@ describe('PartSheet', () => {
 
 describe('DisplayModule', () => {
   it('prints one pin label per pad, and keeps the pin text as written', () => {
-    const wrapper = mount(DisplayModule, { props: { display: fr.display } });
+    const refs = Object.fromEntries([...fr.principles, ...fr.connectors].map((p) => [p.id, p.ref])) as Record<PartId, string>;
+    const wrapper = mount(DisplayModule, { props: { display: fr.display, locale: 'fr', refs } });
     const pins = wrapper.get('p.disp__pins');
     expect(pins.attributes('aria-hidden')).toBe('true');
     expect(pins.findAll('.disp__pin').map((p) => p.text())).toEqual(fr.display.pins.split(' '));
@@ -159,6 +160,13 @@ describe('TactileSwitch', () => {
     expect(wrapper.get('.part__ref').text()).toBe('SW9');
     expect(wrapper.get('.vh').text()).toBe(fr.display.switchHidden);
     expect([fr.display.switchRef, en.display.switchRef]).toEqual(['SW1', 'SW1']);
+  });
+
+  it('tells its module when it is pressed', async () => {
+    const wrapper = mount(TactileSwitch, { props: { designator: 'SW1', hidden: fr.display.switchHidden } });
+    await wrapper.get('button.sw1').trigger('click');
+    await wrapper.get('button.sw1').trigger('click');
+    expect(wrapper.emitted('press')).toHaveLength(2);
   });
 });
 

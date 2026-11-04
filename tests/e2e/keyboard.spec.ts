@@ -105,10 +105,12 @@ test('the J1 image loads only when the sheet opens', async ({ page }) => {
   expect(requests).toHaveLength(1);
 });
 
-test('SW1 is focusable and does nothing yet', async ({ page }) => {
+test('SW1 is focusable and changes the screen of DISP1', async ({ page }) => {
+  // Once the app has mounted (JP1 is shown then): SW1 works with JavaScript only.
+  await expect(page.locator('button.jp1')).toBeVisible();
   const sw1 = page.locator('button.sw1');
   await sw1.focus();
   await expect(sw1).toBeFocused();
   await sw1.click();
-  await expect(page.locator('.disp__caption')).toHaveText('DISP1 · avatar');
+  await expect(page.locator('.disp__caption')).toHaveText('DISP1 · uptime');
 });

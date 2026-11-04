@@ -406,12 +406,54 @@
     image-rendering: pixelated;
   }
 
+  /* Out of sight under the other screens of DISP1 (useDisplay.ts), still in the figure with its text alternative. */
+  .disp__avatar--off {
+    opacity: 0;
+  }
+
+  /*
+   * The pixel screens of DISP1 (PixelScreen.vue), over the avatar on the same 64 x 64 grid: a colour
+   * TFT. Text in the white of the silkscreen, references and letters in the gold of the pads, the
+   * trace of the oscilloscope and the signal being sent in the warm light of LED1, the graticule faint.
+   */
   .disp__pixels {
+    --px-text: var(--silk);
+    --px-accent: var(--pad-lit);
+    --px-signal: var(--led);
+    --px-grid: color-mix(in srgb, var(--silk) 22%, var(--glass));
+
     position: absolute;
     top: 0.75rem;
     left: 0.75rem;
     width: 192px;
     height: 192px;
+  }
+
+  .px {
+    fill: var(--px-text);
+  }
+
+  .px--ref,
+  .px--unit,
+  .px--letters {
+    fill: var(--px-accent);
+  }
+
+  .px--grid {
+    fill: var(--px-grid);
+  }
+
+  .px--sending {
+    fill: var(--px-signal);
+  }
+
+  /* Through the centres of the pixels, with square ends and corners: it lights whole pixels. */
+  .disp__wave {
+    fill: none;
+    stroke: var(--px-signal);
+    stroke-width: 1;
+    stroke-linecap: square;
+    stroke-linejoin: miter;
   }
 
   /* The glass: scan lines (8%) and a faint reflection (4%) over the pixels, never a tint. */

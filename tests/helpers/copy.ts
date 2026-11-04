@@ -79,6 +79,10 @@ export const READOUTS = {
 
 export const BOOT_SCREENS = ['BOOT...', 'OK'];
 
+/** SW1 (spec 4.9): the uptime in large pixel digits, followed by H; then « HELLO » in Morse code on LED1. */
+export const UPTIME_UNIT = 'H';
+export const MORSE_MESSAGE = 'HELLO';
+
 /**
  * The nets of the back face (annex A, « Carte des liaisons », approved by Anthony on 03/11/2026):
  * each one a trace between two parts, the same in both languages.

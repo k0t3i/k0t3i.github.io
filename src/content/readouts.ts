@@ -11,3 +11,12 @@ export const READOUTS: Record<PartId, string> = {
   j2: 'SPLITR',
   j3: 'MAIL',
 };
+
+/** The two lines DISP1 prints while the board powers on, one after the other. */
+export const BOOT_LINES: readonly [string, string] = ['BOOT...', 'OK'];
+
+/** The unit after the uptime in large digits (SW1). */
+export const UPTIME_UNIT = 'H';
+
+/** What SW1 sends in Morse code on LED1, its dots and dashes on DISP1. */
+export const MORSE_MESSAGE = 'HELLO';

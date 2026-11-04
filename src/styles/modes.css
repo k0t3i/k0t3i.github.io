@@ -125,6 +125,21 @@
       outline-offset: -2px;
     }
 
+    /* The pixel screens of DISP1: what is lit in the text colour, the trace and the signal being sent in Highlight. */
+    .disp__pixels {
+      --px-text: CanvasText;
+      --px-accent: CanvasText;
+      --px-signal: Highlight;
+      --px-grid: GrayText;
+
+      forced-color-adjust: none;
+    }
+
+    /* LED1 keyed by the Morse code: its glow is gone here, its lens shows Highlight for each signal. */
+    .disp[data-led="on"] ~ .parts #part-led1 {
+      --lens: Highlight;
+    }
+
     /* The fan-out of U2 would lead to a bus that is not drawn. */
     .pcb-wire {
       stroke: none;

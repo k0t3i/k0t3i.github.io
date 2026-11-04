@@ -254,6 +254,43 @@
       animation-play-state: paused;
     }
 
+    /*
+     * Meanwhile DISP1 prints BOOT, its three dots one by one, then OK on the next line (PixelScreen.vue),
+     * and clears the screen at 720ms, as the veil starts to lift onto the avatar. A screen redraws, it
+     * does not fade: each line is shown at once, from its start to the clear.
+     */
+    .disp__boot > path {
+      opacity: 0;
+      animation: boot-print 720ms linear;
+    }
+
+    .disp__boot > :nth-child(2) {
+      animation-delay: 110ms;
+      animation-duration: 610ms;
+    }
+
+    .disp__boot > :nth-child(3) {
+      animation-delay: 220ms;
+      animation-duration: 500ms;
+    }
+
+    .disp__boot > :nth-child(4) {
+      animation-delay: 330ms;
+      animation-duration: 390ms;
+    }
+
+    .disp__boot > :nth-child(5) {
+      animation-delay: 450ms;
+      animation-duration: 270ms;
+    }
+
+    @keyframes boot-print {
+      from,
+      to {
+        opacity: 1;
+      }
+    }
+
     /* The screen lights up last, once the board is powered: from 750ms to 1100ms. */
     .board--home[data-booting] .disp__screen::before {
       transition: none;
@@ -404,6 +441,39 @@
         opacity: 0;
         stroke-dashoffset: 5;
       }
+    }
+
+    /*
+     * A readout of DISP1 (PixelScreen.vue): the trace of its oscilloscope rolls by one period, 16
+     * pixels, one pixel at a time. It runs only while the readout is shown.
+     */
+    .disp__wave {
+      animation: scope-roll 1600ms steps(16) infinite;
+    }
+
+    @keyframes scope-roll {
+      to {
+        transform: translateX(-16px);
+      }
+    }
+
+    /*
+     * SW1's Morse code keys LED1 (data-led on DISP1, useDisplay.ts): its glow is on for a dot or a dash
+     * and off between them, at once as an LED does, and its lens dims while it is off. It does not
+     * breathe meanwhile; once the code is sent it breathes again. LED1 is a part of the principles,
+     * after DISP1. No transition: WebKit and Firefox ran it late on the glow, a whole signal behind.
+     */
+    .disp[data-led] ~ .parts #part-led1 .part__trigger::after {
+      opacity: 0;
+      animation: none;
+    }
+
+    .disp[data-led="on"] ~ .parts #part-led1 .part__trigger::after {
+      opacity: 1;
+    }
+
+    .disp[data-led="off"] ~ .parts #part-led1 {
+      --lens: color-mix(in srgb, var(--lens) 30%, var(--body));
     }
 
     /*

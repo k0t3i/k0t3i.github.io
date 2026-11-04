@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted, provide, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue';
 import { provideBoardState } from '../composables/useBoardState';
 import { useBoot } from '../composables/useBoot';
 import { FLIP, useFlip } from '../composables/useFlip';
 import { useTilt } from '../composables/useTilt';
-import type { SiteContent } from '../content/types';
+import type { PartId, SiteContent } from '../content/types';
 import BoardBack from './BoardBack.vue';
 import BoardHeader from './BoardHeader.vue';
 import BoardSignal from './BoardSignal.vue';
@@ -38,6 +38,11 @@ const { activePart } = provideBoardState(booting);
 watch(activePart, (id) => {
   if (id) endBoot();
 });
+
+/** The reference of each part, for its readout on DISP1. */
+const refs = computed(
+  () => Object.fromEntries([...props.content.principles, ...props.content.connectors].map((p) => [p.id, p.ref])) as Record<PartId, string>,
+);
 
 /*
  * iOS Safari applies :active on a tap only when the page listens to touchstart: this passive no-op
@@ -73,7 +78,11 @@ onBeforeUnmount(() => document.removeEventListener('touchstart', touchActive));
         />
         <main id="contenu">
           <HeroBlock :hero="props.content.hero" />
-          <DisplayModule :display="props.content.display" />
+          <DisplayModule
+            :display="props.content.display"
+            :locale="props.content.locale"
+            :refs="refs"
+          />
           <PartList
             :section="props.content.sections.principles"
             :parts="props.content.principles"
