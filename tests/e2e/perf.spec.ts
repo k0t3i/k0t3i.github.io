@@ -43,11 +43,31 @@ const recorded = (page: Page): Promise<Entry[]> =>
       ),
   );
 
+type Booting = Window & { booting?: boolean[] };
+
+/**
+ * Records each change of data-booting on the home board from the start of the page (an init script):
+ * true when the power-on starts, false when it ends. Polling could miss a short one.
+ */
+async function recordBoot(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const w = window as Booting;
+    w.booting = [];
+    new MutationObserver((changes) => {
+      for (const c of changes) {
+        const el = c.target as Element;
+        if (el.classList.contains('board--home')) w.booting?.push(el.hasAttribute('data-booting'));
+      }
+    }).observe(document, { subtree: true, attributes: true, attributeFilter: ['data-booting'] });
+  });
+}
+
 /** The power-on of the first visit of the session (motion welcome) has played: started, then ended. */
 async function bootPlayed(page: Page): Promise<void> {
-  const board = page.locator('.board--home');
-  await expect(board).toHaveAttribute('data-booting', '');
-  await expect(board).not.toHaveAttribute('data-booting', /.*/);
+  await page.waitForFunction(() => {
+    const seen = (window as Booting).booting ?? [];
+    return seen.includes(true) && seen.at(-1) === false;
+  });
   await expect(page.locator('html')).not.toHaveAttribute('data-boot', /.*/);
 }
 
@@ -58,6 +78,7 @@ test.describe('motion welcome', () => {
     test(`zero layout shift, the power-on included (${path})`, async ({ page }, testInfo) => {
       test.skip(!CHROMIUM.includes(testInfo.project.name), 'layout-shift entries: Chromium only');
       await record(page, 'layout-shift');
+      await recordBoot(page);
       await page.goto(path);
       await bootPlayed(page);
       await page.evaluate(() => document.fonts.ready);
@@ -69,6 +90,7 @@ test.describe('motion welcome', () => {
   test('no long task over 50 ms after load', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'chrome', 'longtask entries: measured in chrome');
     await record(page, 'longtask');
+    await recordBoot(page);
     await page.goto('/');
     await bootPlayed(page);
     // The visitor then sweeps the mouse over the parts, one after the other: the board leans, the current follows.
