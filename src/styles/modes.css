@@ -61,6 +61,8 @@
     /* The mask, the buses and the traces go (the veil of the screen of DISP1 too); each face of the board keeps its outline. */
     .board__face,
     .parts__list,
+    .part::before,
+    .part::after,
     .part__body,
     .disp__screen::before,
     .disp__screen::after,

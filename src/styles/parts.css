@@ -109,8 +109,12 @@
     text-transform: uppercase;
   }
 
+  /*
+   * Each part has its own short trace to its own via, at the left of the list: no common line links
+   * them (Anthony's decision of 04/11/2026, spec 4.10, « Bus de la carte en flux »). The vias are
+   * tented, as on most boards: covered by the mask, a faint ring, never gold.
+   */
   .parts__list {
-    /* The vias at both ends of a bus are tented, as on most boards: covered by the mask, a faint ring, never gold. */
     --via: radial-gradient(
       circle,
       var(--hole) 0 0.09375rem,
@@ -124,19 +128,22 @@
     display: grid;
     row-gap: 0.75rem;
     padding: calc(var(--via-r) * 2 + 0.5rem) 0 calc(var(--via-r) * 2 + 0.25rem) var(--bus);
-    background-image: var(--via), var(--via), linear-gradient(var(--trace), var(--trace));
-    background-position:
-      var(--via-x) 0,
-      var(--via-x) 100%,
-      calc(var(--bus) - 2px) var(--via-r);
-    background-size:
-      var(--via-size) var(--via-size),
-      var(--via-size) var(--via-size),
-      2px calc(100% - var(--via-r) * 2);
-    background-repeat: no-repeat;
+  }
+
+  /* The via of a part, where the bus was, level with its trace (the middle of its symbol). */
+  .part::before {
+    content: "";
+    position: absolute;
+    top: calc(16 * var(--sym) - var(--via-size) / 2);
+    left: calc(var(--via-x) - var(--bus));
+    width: var(--via-size);
+    height: var(--via-size);
+    background: var(--via);
+    pointer-events: none;
   }
 
   .part {
+    position: relative;
     /* Extent of the footprint drawn in the sprite (right edge, height), in symbol units: its courtyard follows it. */
     --fp: 64;
     --fp-h: 32;
@@ -334,37 +341,12 @@
    */
   @media (min-width: 46rem) {
     .parts__list {
-      /* A percentage position accounts for the width of each layer: one offset centres line and vias. */
-      --bus-2: calc(50% + (var(--bus) + var(--gap)) / 2 - 1px);
       --rows: 1;
 
       grid-template-columns: repeat(2, minmax(0, 1fr));
       grid-template-rows: repeat(var(--rows), auto);
       grid-auto-flow: column;
       column-gap: var(--gap);
-      /* A second bus for the right column, at its left edge. */
-      background-image:
-        var(--via),
-        var(--via),
-        linear-gradient(var(--trace), var(--trace)),
-        var(--via),
-        var(--via),
-        linear-gradient(var(--trace), var(--trace));
-      background-position:
-        var(--via-x) 0,
-        var(--via-x) 100%,
-        calc(var(--bus) - 2px) var(--via-r),
-        var(--bus-2) 0,
-        var(--bus-2) 100%,
-        var(--bus-2) var(--via-r);
-      /* --bus-2 off (0) leaves a list with its first bus only. */
-      background-size:
-        var(--via-size) var(--via-size),
-        var(--via-size) var(--via-size),
-        2px calc(100% - var(--via-r) * 2),
-        calc(var(--via-size) * var(--bus-2-on, 1)) var(--via-size),
-        calc(var(--via-size) * var(--bus-2-on, 1)) var(--via-size),
-        calc(2px * var(--bus-2-on, 1)) calc(100% - var(--via-r) * 2);
     }
 
     .parts__list:has(> :nth-child(3)) {
@@ -380,11 +362,9 @@
     }
   }
 
-  /* Between 46 and 79rem the principles sit beside DISP1 (board.css): one column, one bus, one glint. */
+  /* Between 46 and 79rem the principles sit beside DISP1 (board.css): one column. */
   @media (46rem <= width < 79rem) {
     .disp + .parts .parts__list {
-      --bus-2-on: 0;
-
       grid-template-columns: minmax(0, 1fr);
       grid-template-rows: none;
       grid-auto-flow: row;

@@ -350,24 +350,49 @@ test.describe('flowing board', () => {
     ]);
   });
 
-  test('from 46rem a glint runs down every bus', async ({ page }) => {
-    await page.emulateMedia({ reducedMotion: 'no-preference' });
-    // The ambient glints, at rest: the power-on has already played in this session.
-    await page.addInitScript(() => sessionStorage.setItem('k0t3i.booted', '1'));
-    await page.setViewportSize({ width: 768, height: 1024 });
-    await page.goto('/');
-    const glints = await page.evaluate(() =>
-      [...document.querySelectorAll('.parts__list')].map((list) =>
-        // What is drawn: a pseudo-element switched off with display: none runs no glint.
-        ['::after', '::before']
-          .map((p) => getComputedStyle(list, p))
-          .map((g) => (g.display === 'none' ? 'none' : g.animationName))
-          .join(' '),
-      ),
-    );
-    // The principles have one bus beside DISP1, the connectors two.
-    expect(glints).toEqual(['bus-glint none', 'bus-glint bus-glint']);
-  });
+  // Anthony's decision of 04/11/2026 (spec 4.10, « Bus de la carte en flux »): no common line links the
+  // parts any more; each has its own short trace to its own via, and the ambient glints run on them.
+  for (const width of [390, 768]) {
+    test(`on the flowing board each part has its own via and trace, and a glint runs on each, down the column in turn, at ${width}px`, async ({ page }) => {
+      await page.emulateMedia({ reducedMotion: 'no-preference' });
+      // The ambient glints, at rest: the power-on has already played in this session.
+      await page.addInitScript(() => sessionStorage.setItem('k0t3i.booted', '1'));
+      await page.setViewportSize({ width, height: 1024 });
+      await page.goto('/');
+      const lists = await page.evaluate(() =>
+        [...document.querySelectorAll('.parts__list')].map((list) => ({
+          line: getComputedStyle(list).backgroundImage,
+          listGlints: ['::before', '::after'].map((p) => getComputedStyle(list, p)).map((g) => (g.display === 'none' || g.content === 'none' ? 'none' : 'drawn')),
+          parts: [...list.querySelectorAll<HTMLElement>(':scope > .part')].map((p) => {
+            const via = getComputedStyle(p, '::before');
+            const glint = getComputedStyle(p, '::after');
+            const r = (p.querySelector('.part__ref') as Element).getBoundingClientRect();
+            return {
+              id: p.id,
+              via: via.display !== 'none' && via.backgroundImage.includes('radial-gradient'),
+              trace: getComputedStyle(p.querySelector('.part__body') as Element).backgroundImage.includes('linear-gradient'),
+              glint: glint.display === 'none' ? 'none' : glint.animationName,
+              delay: Number.parseFloat(glint.animationDelay),
+              x: Math.round(r.left),
+              y: r.top,
+            };
+          }),
+        })),
+      );
+      for (const l of lists) {
+        expect(l.line).toBe('none');
+        expect(l.listGlints).toEqual(['none', 'none']);
+        for (const p of l.parts) expect([p.id, p.via, p.trace, p.glint]).toEqual([p.id, true, true, 'trace-glint']);
+        // Down each column, in reading order, each glint a little after the one above it.
+        for (const x of new Set(l.parts.map((p) => p.x))) {
+          const column = l.parts.filter((p) => p.x === x).sort((a, b) => a.y - b.y);
+          for (const [k, p] of column.entries()) if (k) expect(p.delay, p.id).toBeGreaterThan(column[k - 1]?.delay ?? 0);
+        }
+      }
+      // The connectors after the principles, as their bus followed it.
+      expect(Math.min(...(lists[1]?.parts ?? []).map((p) => p.delay))).toBeGreaterThan(Math.min(...(lists[0]?.parts ?? []).map((p) => p.delay)));
+    });
+  }
 
   for (const scheme of ['light', 'dark'] as const) {
     for (const width of [768, 1024]) {
@@ -733,7 +758,7 @@ test.describe('wide board', () => {
     });
   }
 
-  test('the flowing buses, their glints and the stubs are off', async ({ page }) => {
+  test('the traces and vias of the flowing board, their glints and the stubs are off', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'no-preference' });
     await page.setViewportSize({ width: 1600, height: 900 });
     await page.goto('/');
@@ -741,12 +766,15 @@ test.describe('wide board', () => {
       const lists = [...document.querySelectorAll('.parts__list')];
       return {
         buses: lists.map((l) => getComputedStyle(l).backgroundImage),
-        glints: lists.flatMap((l) => ['::before', '::after'].map((p) => getComputedStyle(l, p).display)),
+        // A pseudo-element is drawn when it has content and is displayed.
+        glints: [...lists, ...document.querySelectorAll('.part')].flatMap((l) =>
+          ['::before', '::after'].map((p) => getComputedStyle(l, p)).map((g) => (g.display === 'none' || g.content === 'none' ? 'none' : 'drawn')),
+        ),
         stubs: [...new Set([...document.querySelectorAll('.part__body')].map((b) => getComputedStyle(b).backgroundImage))],
         layer: getComputedStyle(document.querySelector('.board__signal') as Element).display,
       };
     });
-    expect(drawn).toEqual({ buses: ['none', 'none'], glints: ['none', 'none', 'none', 'none'], stubs: ['none'], layer: 'block' });
+    expect(drawn).toEqual({ buses: ['none', 'none'], glints: Array.from({ length: 24 }, () => 'none'), stubs: ['none'], layer: 'block' });
   });
 
   for (const width of [1264, 1600]) {

@@ -260,7 +260,7 @@
       --x: 1188;
     }
 
-    /* The buses of the flowing board, their glints and the stubs of the parts: the art draws the copper. */
+    /* The vias and traces of the flowing board, their glints and the stubs of the parts: the art draws the copper. */
     .board--home .parts__list {
       display: block;
       padding: 0;
@@ -268,7 +268,9 @@
     }
 
     .board--home .parts__list::before,
-    .board--home .parts__list::after {
+    .board--home .parts__list::after,
+    .board--home .part::before,
+    .board--home .part::after {
       display: none;
     }
 
