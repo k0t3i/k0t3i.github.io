@@ -113,7 +113,7 @@ describe('useFlip', () => {
     expect(document.activeElement).toBe(sw2(board, 'front'));
   });
 
-  it('with motion, the board turns first, then the focus follows', async () => {
+  it('with motion, the focus goes to the arriving SW2 as the turn starts, and stays there after it', async () => {
     stubMotion(false);
     vi.useFakeTimers();
     const { wrapper, board, flip } = mountBoard();
@@ -121,11 +121,12 @@ describe('useFlip', () => {
     sw2(board, 'front').focus();
     flip.toggle();
     await wrapper.vm.$nextTick();
-    // During the turn: the transition runs, the focus waits.
+    // During the turn: the transition runs, the front face is inert, the focus is already on the back SW2.
     expect(board.dataset.turning).toBe('run');
     expect(board.hasAttribute('data-flipped')).toBe(true);
-    expect(document.activeElement).not.toBe(sw2(board, 'back'));
-    // The end of the turn of the body: the board is at rest again, the focus on the back SW2.
+    expect(face(board, 'front').hasAttribute('inert')).toBe(true);
+    expect(document.activeElement).toBe(sw2(board, 'back'));
+    // The end of the turn of the body: the board is at rest again, the focus where it was.
     const body = board.querySelector('.board__body') as HTMLElement;
     const end = new Event('transitionend', { bubbles: true });
     Object.defineProperty(end, 'propertyName', { value: 'transform' });
@@ -136,6 +137,7 @@ describe('useFlip', () => {
     // Without a transitionend (a skipped transition), a timer ends the turn.
     flip.toggle();
     expect(board.dataset.turning).toBe('run');
+    expect(document.activeElement).toBe(sw2(board, 'front'));
     vi.advanceTimersByTime(800);
     expect(board.hasAttribute('data-turning')).toBe(false);
     expect(document.activeElement).toBe(sw2(board, 'front'));

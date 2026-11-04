@@ -22,9 +22,9 @@ const TURN_FALLBACK = 700;
  * - data-flipped while the back face is up; the face that is down is inert;
  * - data-turning during the turn: "prep" puts the board in 3D on the side that is up (nothing moves
  *   on screen), then "run" lets the transform transition to the other side (depth.css, motion.css).
- * Once the turn is over the board is back at rest (no 3D) and the focus moves to the SW2 of the face
- * that is up; at once under reduced motion, where there is no turn. Never remembered: a visit always
- * starts on the front face.
+ * The focus moves to the SW2 of the arriving face as the turn starts, at the place of the one pressed
+ * (the face that leaves is inert at once: the focus never falls to the page meanwhile); at once under
+ * reduced motion, where there is no turn. Never remembered: a visit always starts on the front face.
  */
 export function useFlip(board: Ref<HTMLElement | null>): Flip {
   const flipped = ref(false);
@@ -40,8 +40,9 @@ export function useFlip(board: Ref<HTMLElement | null>): Flip {
     el.querySelector('.board__face--back')?.toggleAttribute('inert', !flipped.value);
   }
 
+  /** The focus to the SW2 of the face that is (or turns) up: it sits where the other one was, nothing scrolls. */
   function focusUp(el: HTMLElement): void {
-    el.querySelector<HTMLElement>(`.board__face--${flipped.value ? 'back' : 'front'} .sw2`)?.focus();
+    el.querySelector<HTMLElement>(`.board__face--${flipped.value ? 'back' : 'front'} .sw2`)?.focus({ preventScroll: true });
   }
 
   function end(): void {
@@ -50,7 +51,6 @@ export function useFlip(board: Ref<HTMLElement | null>): Flip {
     const el = board.value;
     if (!el?.hasAttribute('data-turning')) return;
     delete el.dataset.turning;
-    focusUp(el);
   }
 
   // The body turns, and so does the edge: the end of the body's own transform ends the turn.
@@ -75,6 +75,8 @@ export function useFlip(board: Ref<HTMLElement | null>): Flip {
       el.dataset.turning = 'run';
     }
     apply(el);
+    // Both faces are drawn while the board turns: the arriving SW2 takes the focus at once.
+    focusUp(el);
     clearTimeout(timer);
     timer = setTimeout(end, TURN_FALLBACK);
   }

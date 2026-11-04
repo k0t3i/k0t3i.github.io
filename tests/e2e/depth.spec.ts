@@ -306,6 +306,50 @@ test.describe('SW2', () => {
     for (const side of ['front', 'back'] as const) await expect(sw2(page, side)).toHaveAttribute('aria-pressed', 'false');
   });
 
+  for (const reducedMotion of ['no-preference', 'reduce'] as const) {
+    test(`the focus never falls to the page during a turn (${reducedMotion} motion)`, async ({ page, isMobile }) => {
+      test.skip(isMobile, 'no keyboard on touch devices');
+      await page.emulateMedia({ reducedMotion });
+      await open(page);
+      type Sampled = Window & { focusLost: string[]; sampledFrames: number; sampling: boolean };
+      await sw2(page, 'front').focus();
+      // On every animation frame, from the press to the end of the turn back: what has the focus.
+      await page.evaluate(() => {
+        const w = window as unknown as Sampled;
+        w.focusLost = [];
+        w.sampledFrames = 0;
+        w.sampling = true;
+        const frame = (time: number): void => {
+          if (!w.sampling) return;
+          w.sampledFrames++;
+          const el = document.activeElement;
+          if (!el || el === document.body) w.focusLost.push(`${Math.round(time)} ms ${el?.localName ?? 'none'}`);
+          requestAnimationFrame(frame);
+        };
+        requestAnimationFrame(frame);
+      });
+      const twoFrames = () => page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+      await page.keyboard.press('Enter');
+      await twoFrames();
+      await expect(board(page)).toHaveAttribute('data-flipped', '');
+      await atRest(page);
+      await expect(sw2(page, 'back')).toBeFocused();
+      await page.keyboard.press('Enter');
+      await twoFrames();
+      await expect(board(page)).not.toHaveAttribute('data-flipped', /.*/);
+      await atRest(page);
+      await expect(sw2(page, 'front')).toBeFocused();
+      const sampled = await page.evaluate(() => {
+        const w = window as unknown as Sampled;
+        w.sampling = false;
+        return { lost: w.focusLost, frames: w.sampledFrames };
+      });
+      // Frames were sampled (headless WebKit draws a turn in about eight).
+      expect(sampled.frames).toBeGreaterThanOrEqual(4);
+      expect(sampled.lost).toEqual([]);
+    });
+  }
+
   test('SW2 turns the board to its back face on a tap or a click', async ({ page }) => {
     await open(page);
     await turn(page, 'front');
