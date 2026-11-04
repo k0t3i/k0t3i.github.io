@@ -593,8 +593,13 @@
       width: calc(1376 * var(--u));
     }
 
+    /*
+     * The title starts past the pads of JP1 seen from behind (x 282–307 in the units of the face, the
+     * mirror of JP1 on the front at 1600 px, layout.ts), so that it never runs over them.
+     */
     .board--home .back__title {
       align-self: start;
+      padding-inline-start: calc(212 * var(--u));
       line-height: 2.75rem;
     }
 

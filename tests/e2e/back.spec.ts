@@ -1,6 +1,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { EN, FR, bomCells, bomDetails, bomRefs, type Copy } from '../helpers/copy';
 import { readFileSync } from 'node:fs';
+import { THROUGH_PADS } from '../../src/circuit/layout';
 
 /** The live layer of the back face, as the page renders it. */
 const LIVE = JSON.parse(readFileSync(new URL('../../src/circuit/live.json', import.meta.url), 'utf8')) as {
@@ -688,6 +689,31 @@ test.describe('the lines of the table', () => {
           expect(lines, ref).toBe(1);
         }
       }
+    });
+  }
+});
+
+test.describe('the title of the back face', () => {
+  for (const viewport of [WIDE, { width: 1440, height: 900 }]) {
+    test(`clears the pads of JP1 seen from behind, at their true place, at ${viewport.width}px`, async ({ page, isMobile }) => {
+      test.skip(isMobile, 'the wide board');
+      await page.setViewportSize(viewport);
+      await showBack(page);
+      const pads = THROUGH_PADS.filter((p) => p.ref === 'JP1').map((p) => [p.x - p.w / 2, p.y - p.h / 2, p.x + p.w / 2, p.y + p.h / 2]);
+      const worst = await face(page).evaluate((el, boxes) => {
+        const m = (el.querySelector('svg.back__live') as SVGSVGElement).getScreenCTM() as DOMMatrix;
+        const range = el.ownerDocument.createRange();
+        range.selectNodeContents(el.querySelector('#back-title') as Element);
+        const glyphs = [...range.getClientRects()];
+        let gap = Infinity;
+        for (const [x0, y0, x1, y1] of boxes as [number, number, number, number][]) {
+          const a = new DOMPoint(x0, y0).matrixTransform(m);
+          const b = new DOMPoint(x1, y1).matrixTransform(m);
+          for (const g of glyphs) gap = Math.min(gap, Math.max(g.left - b.x, a.x - g.right, g.top - b.y, a.y - g.bottom));
+        }
+        return gap;
+      }, pads);
+      expect(worst).toBeGreaterThanOrEqual(4);
     });
   }
 });
