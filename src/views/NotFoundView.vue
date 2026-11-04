@@ -28,7 +28,7 @@ onBeforeUnmount(() => removeEventListener('pageswap', skipTransition));
     On a board, as the home page: silkscreen on the mask stays readable on both pages, light or black.
     One face, flat, its edge drawn by its own shadow (depth.css): this board never turns.
   -->
-  <div class="board board--open">
+  <div class="board">
     <div class="board__body">
       <div class="board__face board__face--front">
         <header class="open__header">
