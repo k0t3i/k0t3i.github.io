@@ -21,11 +21,20 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium, firefox, webkit } from 'playwright-core';
 import { withServer } from './local-server.mjs';
+import { outputFolder } from './output-folder.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = resolve(ROOT, process.env.DIST_DIR || 'dist');
 const PORT = Number(process.env.PORT) || 4195;
-const OUT = resolve(process.argv[2] || join(ROOT, 'captures'));
+/** The folder of the captures: never the repository or a folder above it (its clean-up would delete sources). */
+const OUT = (() => {
+  try {
+    return outputFolder(process.argv[2] || join(ROOT, 'captures'), ROOT);
+  } catch (error) {
+    console.error(`captures: ${error.message}`);
+    process.exit(1);
+  }
+})();
 
 const ENGINES = [
   { name: 'chrome', type: chromium, launch: { channel: 'chrome' } },
