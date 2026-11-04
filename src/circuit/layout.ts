@@ -189,9 +189,9 @@ export const FRONT_PADS: readonly PlacedPad[] = [
   rect('LED1', 'K', 567, 634, 12, 14),
   rect('D1', 'A', 742.5, 634, 11, 12),
   rect('D1', 'K', 777.5, 634, 11, 12),
-  // U2, an SO-8 turned a half turn: pin 1 at the top right.
-  ...['1', '2', '3', '4'].map((pin, k) => rect('U2', pin, 986 - 8 * k, 621, 5, 6)),
-  ...['5', '6', '7', '8'].map((pin, k) => rect('U2', pin, 962 + 8 * k, 647, 5, 6)),
+  // U2, an SO-8 as the page draws it (PartSprite.vue): pin 1 by its dimple, at the bottom left.
+  ...['1', '2', '3', '4'].map((pin, k) => rect('U2', pin, 962 + 8 * k, 647, 5, 6)),
+  ...['5', '6', '7', '8'].map((pin, k) => rect('U2', pin, 986 - 8 * k, 621, 5, 6)),
   // The header of DISP1: GND, VCC, SCK, MOSI, DC, CS.
   square('DISP1', '1', 1228, 188, 6),
   ...['2', '3', '4', '5', '6'].map((pin, k) => tht('DISP1', pin, 1272 + 44 * k, 188, 6)),
@@ -273,9 +273,9 @@ export const VIAS: readonly Via[] = [
   via('CC1', 1223, 772),
   via('CC2', 1231, 784),
   // The planes, from the front.
-  blind('GND', 956, 608),
-  blind('GND', 950, 647),
-  blind('+3V3', 1000, 647),
+  blind('GND', 992, 606),
+  blind('+3V3', 956, 606),
+  blind('GND', 1000, 647),
   blind('+3V3', 300, 634),
   blind('GND', 372, 634),
   blind('GND', 584, 634),

@@ -1,46 +1,75 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900">
 <!-- The wide board of k0t3i.github.io, 1600 x 900 units. Static and the same on both masks: copper under the mask is a white veil, gold, drills and silkscreen are solid. -->
 <defs>
-<g id="v"><circle r="6" fill="#fff" fill-opacity=".07"/><circle r="2" fill="#050506"/></g>
 <g id="s"><circle r="4" fill="#fff" fill-opacity=".07"/><circle r="1" fill="#050506"/></g>
 </defs>
 <!-- Outline -->
 <rect x="16" y="16" width="1568" height="868" rx="14" fill="none" stroke="#fff" stroke-opacity=".05" stroke-width="2"/>
-<!-- Traces: DISP1 to each part (the live layer repeats them), then SW1, the fan-out vias and TP1 -->
+<!-- The copper of the front, generated from src/circuit/front.ts and layout.ts by tests/unit/front-copper.spec.ts: do not edit by hand -->
+<defs>
+<g id="v"><circle r="4" fill="#fff" fill-opacity=".07"/><circle r="2" fill="#050506"/></g>
+<g id="b"><circle r="3" fill="#fff" fill-opacity=".07"/><circle r="1" fill="#050506"/></g>
+</defs>
 <g fill="none" stroke="#fff" stroke-opacity=".055" stroke-linecap="round" stroke-linejoin="round">
-<path stroke-width="2" d="M1448 188V106L1438 96H1141L1090 147V332L900 522H108L96 534V618L112 634H119"/>
-<path stroke-width="2" d="M1404 188V118L1394 108H1146L1102 152V337L905 534H316L304 546V618L320 634H326"/>
-<path stroke-width="2" d="M1360 188V130L1350 120H1151L1114 157V342L910 546H524L512 558V618L528 634H535"/>
-<path stroke-width="2" d="M1316 188V142L1306 132H1156L1126 162V347L915 558H732L720 570V618L736 634H742"/>
-<path stroke-width="3" d="M1272 188V154L1262 144H1161L1138 167V352L928 562V630L944 646H962"/>
-<path stroke-width="3" d="M1360 188V466L1342 484H1186L1174 496V622L1186 634H1194"/>
-<path stroke-width="3" d="M1316 188V458L1298 476H1178L1166 488V658L1178 670H1194"/>
-<path stroke-width="3" d="M1272 188V450L1254 468H1170L1158 480V694L1170 706H1194"/>
-<path stroke-width="3" d="M1228 188V442L1210 460H1162L1150 472V730L1162 742H1199"/>
-<path stroke-width="3" d="M1228 188V166L1218 156H1166L1150 172V360L1142 368V766L1154 778H1194"/>
-<path stroke-width="2" d="M1408 527V498"/>
-<path stroke-width="2" d="M1432 527V498"/>
-<path stroke-width="2" d="M159 634V614"/>
-<path stroke-width="2" d="M356 634V614"/>
-<path stroke-width="2" d="M567 634V614"/>
-<path stroke-width="2" d="M778 634V614"/>
-<path stroke-width="2" d="M962 621V610"/>
-<path stroke-width="2" d="M986 621V610"/>
-<path stroke-width="3" d="M1246 778V802"/>
-<path stroke-width="2" d="M1090 252H1046"/>
+<path stroke-width="2" d="M1046 522H108L96 534V618L112 634H119"/>
+<path stroke-width="2" d="M300 634H326"/>
+<path stroke-width="2" d="M158 634V614L174 598H510L535 623V634"/>
+<path stroke-width="2" d="M1100 600L1034 534H732L720 546V618L736 634H742"/>
+<path stroke-width="2" d="M1020 570L1012 562H950L936 576V633L950 647H962"/>
+<path stroke-width="2" d="M1174 572V622L1186 634H1194"/>
+<path stroke-width="2" d="M1166 600V658L1178 670H1194"/>
+<path stroke-width="2" d="M1158 670V682L1170 694H1199"/>
+<path stroke-width="2" d="M1150 700V730L1162 742H1199"/>
+<path stroke-width="3" d="M1222 794L1210 806H1112L1100 794V760"/>
+<path stroke-width="2" d="M1000 578H956L944 590V626L952 634H970V647"/>
+<path stroke-width="2" d="M970 621H986V612L992 606"/>
+<path stroke-width="2" d="M962 621V612L956 606"/>
+<path stroke-width="2" d="M986 647H1000"/>
+<path stroke-width="2" d="M356 634H372"/>
+<path stroke-width="2" d="M567 634H584"/>
+<path stroke-width="2" d="M778 634H794"/>
+<path stroke-width="2" d="M1437 70V104L1470 137V430"/>
+<path stroke-width="2" d="M1428 70V86L1422 92"/>
+<path stroke-width="2" d="M1446 70V86L1452 92"/>
+<path stroke-width="2" d="M1066 252H1046"/>
+<path stroke-width="2" d="M1308 64V80L1388 160H1426V446H1462"/>
 </g>
-<!-- Vias -->
 <g>
-<use href="#v" x="1408" y="498"/>
-<use href="#v" x="1432" y="498"/>
-<use href="#v" x="159" y="614"/>
-<use href="#v" x="356" y="614"/>
-<use href="#v" x="567" y="614"/>
-<use href="#v" x="778" y="614"/>
-<use href="#v" x="962" y="610"/>
-<use href="#v" x="986" y="610"/>
-<use href="#v" x="1246" y="802"/>
+<use href="#v" x="1046" y="522"/>
+<use href="#v" x="1100" y="600"/>
+<use href="#v" x="1020" y="570"/>
+<use href="#v" x="1000" y="578"/>
+<use href="#v" x="1174" y="572"/>
+<use href="#v" x="1166" y="600"/>
+<use href="#v" x="1158" y="670"/>
+<use href="#v" x="1150" y="700"/>
+<use href="#v" x="1100" y="760"/>
+<use href="#v" x="1470" y="430"/>
+<use href="#v" x="1462" y="446"/>
+<use href="#v" x="1203" y="722"/>
+<use href="#v" x="1211" y="712"/>
+<use href="#v" x="1219" y="722"/>
+<use href="#v" x="1227" y="712"/>
+<use href="#v" x="1235" y="722"/>
+<use href="#v" x="1207" y="772"/>
+<use href="#v" x="1215" y="784"/>
+<use href="#v" x="1223" y="772"/>
+<use href="#v" x="1231" y="784"/>
+<use href="#b" x="992" y="606"/>
+<use href="#b" x="956" y="606"/>
+<use href="#b" x="1000" y="647"/>
+<use href="#b" x="300" y="634"/>
+<use href="#b" x="372" y="634"/>
+<use href="#b" x="584" y="634"/>
+<use href="#b" x="794" y="634"/>
+<use href="#b" x="1422" y="92"/>
+<use href="#b" x="1452" y="92"/>
+<use href="#b" x="1066" y="252"/>
+<use href="#b" x="1214" y="698"/>
+<use href="#b" x="1230" y="698"/>
+<use href="#b" x="1238" y="792"/>
 </g>
+<!-- End of the generated copper -->
 <!-- Mounting holes, stitching vias, keep-outs -->
 <g>
 <circle cx="56" cy="52" r="15" fill="#c9a45c"/><circle cx="56" cy="52" r="8" fill="#050506"/>

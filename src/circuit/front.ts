@@ -42,7 +42,10 @@ export function pointsPath(pts: readonly Point[]): string {
     .join('');
 }
 
-const front = (net: string, d: string, w = 2): Trace => ({ net, layer: 'F', w, pts: points(d) });
+/* @__NO_SIDE_EFFECTS__ */
+function front(net: string, d: string, w = 2): Trace {
+  return { net, layer: 'F', w, pts: points(d) };
+}
 
 /**
  * The traces of the front face, routed by hand in the style of its art. The live layer of the front
@@ -55,7 +58,7 @@ export const FRONT_ROUTES = {
   c1: front('+3V3', 'M300 634H326'),
   led1: front('LED_A', 'M158 634V614L174 598H510L535 623V634'),
   d1: front('ONEWIRE', 'M1100 600L1034 534H732L720 546V618L736 634H742'),
-  u2: front('SDA', 'M1020 570L986 604V621'),
+  u2: front('SDA', 'M1020 570L1012 562H950L936 576V633L950 647H962'),
   j1: front('EXT1', 'M1174 572V622L1186 634H1194'),
   j2: front('SCL', 'M1166 600V658L1178 670H1194'),
   j3: front('SD_CS', 'M1158 670V682L1170 694H1199'),
@@ -65,11 +68,12 @@ export const FRONT_ROUTES = {
 
 /** The other traces of the front: U2, the ground and +3V3 stubs of its parts, SW2, TP1. */
 export const FRONT_TRACES: readonly Trace[] = [
-  ...Object.values(FRONT_ROUTES),
-  front('SCL', 'M1000 578L978 600V621'),
-  front('GND', 'M962 621V614L956 608'),
-  front('GND', 'M950 647H978'),
-  front('+3V3', 'M986 647H1000'),
+  .../* @__PURE__ */ Object.values(FRONT_ROUTES),
+  // U2: SCL beside SDA, then under the package into pin 2; its address pins (A0 to A2) and pin 4 to ground, VCC by pin 8.
+  front('SCL', 'M1000 578H956L944 590V626L952 634H970V647'),
+  front('GND', 'M970 621H986V612L992 606'),
+  front('+3V3', 'M962 621V612L956 606'),
+  front('GND', 'M986 647H1000'),
   front('GND', 'M356 634H372'),
   front('GND', 'M567 634H584'),
   front('+3V3', 'M778 634H794'),
