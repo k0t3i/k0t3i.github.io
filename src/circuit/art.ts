@@ -194,6 +194,11 @@ export function renderBackArt({ refs = true }: { refs?: boolean } = {}): string 
     const b = bodyOf(q);
     push(`<rect x="${b.x + 0.5}" y="${b.y + 0.5}" width="${b.w - 1}" height="${b.h - 1}" rx="1.5" fill="#141518"/>`);
   }
+  // The plastic strip of the debug header, under its gold pads.
+  for (const q of BACK_PLACED.filter((x) => LIVE.includes(x.part.ref) && x.fp.look === 'header')) {
+    const b = bodyOf(q);
+    push(`<rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="1" fill="#141518" fill-opacity=".8"/>`);
+  }
   if (refs) {
     const engrave = (x: number, y: number, size: number, text: string, colour = ENGRAVE, rotate = 0) =>
       push(`<text x="${r1(x)}" y="${r1(y)}" fill="${colour}" font-family="${MONO}" font-size="${size}" text-anchor="middle"${rotate ? ` transform="rotate(${rotate} ${r1(x)} ${r1(y)})"` : ''}>${text}</text>`);

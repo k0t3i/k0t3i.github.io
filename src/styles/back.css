@@ -242,16 +242,6 @@
     --h: 40;
   }
 
-  /* The pads and the body of a part: those of the parts of the front (parts.css); the debug header shows its gold pads over a dark strip. */
-  /* The bodies and their markings are in the art (circuit/art.ts): a part draws its pads and its outline over them. */
-  .back-part .pcb-body {
-    fill: none;
-  }
-
-  .back-part[data-look="header"] .pcb-body {
-    fill-opacity: 0.55;
-  }
-
   /*
    * The live layer: each net in fine gold over its copper, unlit until one of its parts is; its
    * signal, a short bright dash, waiting just before the start of the net (motion.css runs it).

@@ -1435,6 +1435,7 @@
 <rect x="620.5" y="458.5" width="59" height="51" rx="1.5" fill="#141518"/>
 <rect x="440.5" y="156.5" width="35" height="35" rx="1.5" fill="#141518"/>
 <rect x="650.5" y="695.5" width="35" height="27" rx="1.5" fill="#141518"/>
+<rect x="380" y="104" width="236" height="24" rx="1" fill="#141518" fill-opacity=".8"/>
 <g fill="none" stroke="#4c4f56" stroke-width="1.6" stroke-linecap="round"><path d="M502 340A5 5 0 0 1 509.1 340"/><path d="M499.1 337.1A9 9 0 0 1 511.9 337.1"/><path d="M496.3 334.3A13 13 0 0 1 514.7 334.3"/></g><circle cx="505.5" cy="343.5" r="1.6" fill="#4c4f56"/>
 <text x="505.5" y="371.5" fill="#4c4f56" font-family="JetBrains Mono,ui-monospace,Consolas,Menlo,monospace" font-size="11" text-anchor="middle">U10</text>
 <text x="505.5" y="385.5" fill="#4c4f56" font-family="JetBrains Mono,ui-monospace,Consolas,Menlo,monospace" font-size="9" text-anchor="middle">ESP32-S3</text>

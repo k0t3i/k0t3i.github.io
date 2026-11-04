@@ -1435,4 +1435,5 @@
 <rect x="620.5" y="458.5" width="59" height="51" rx="1.5" fill="#141518"/>
 <rect x="440.5" y="156.5" width="35" height="35" rx="1.5" fill="#141518"/>
 <rect x="650.5" y="695.5" width="35" height="27" rx="1.5" fill="#141518"/>
+<rect x="380" y="104" width="236" height="24" rx="1" fill="#141518" fill-opacity=".8"/>
 </svg>
