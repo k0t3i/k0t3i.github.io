@@ -98,7 +98,7 @@ export interface Copy {
  * A row of the bill of materials of revision 9 (spec 4.10, approved by Anthony on 04/11/2026): the
  * reference, the part, line 1 of the value cell (the real part and its value), line 2 (the skill, then
  * its details), the column « Relié à » as printed (ranges with an en dash), and the accessible name
- * of the part drawn on the circuit, « {repère}, {composant}, {compétence} ».
+ * of the part drawn on the circuit, « {repère}, {compétence}, {composant} » (Anthony, 05/11/2026).
  */
 export interface BomRow {
   ref: string;
@@ -117,10 +117,10 @@ export const bomSkill = (r: BomRow): string => r.skill.slice(0, r.skill.indexOf(
 export const bomDetails = (r: BomRow): string => r.skill.slice(r.skill.indexOf(' · ') + 3);
 
 /**
- * The cells of a row as the table prints them, each line across two cells: the part over its skill,
- * the value over the details of the skill.
+ * The cells of a row as the table prints them, each line across two cells (Anthony, 05/11/2026): the
+ * skill over its part, the details of the skill over the value of the part.
  */
-export const bomCells = (r: BomRow): string[] => [r.ref, `${r.part} ${bomSkill(r)}`, `${r.value} ${bomDetails(r)}`, r.linked];
+export const bomCells = (r: BomRow): string[] => [r.ref, `${bomSkill(r)} ${r.part}`, `${bomDetails(r)} ${r.value}`, r.linked];
 
 /** Every reference of a « Relié à », its ranges spelt out: « U10 · D2–D5 » gives U10, D2, D3, D4, D5. */
 export function bomRefs(linked: string): string[] {
@@ -218,19 +218,19 @@ export const FR: Copy = {
     switchHidden: 'face arrière',
     title: 'Face arrière · nomenclature',
     caption: `Nomenclature${NB}: les composants de la carte`,
-    columns: ['Repère', 'Composant', `Valeur${NB}/ compétence`, 'Relié à'],
+    columns: ['Repère', `Compétence${NB}· composant`, `Détails${NB}· valeur`, 'Relié à'],
     rows: bom([
-      ['U10', `Micro${SH}contrôleur`, 'ESP32-S3 · 240 MHz · USB', 'Vue.js · 2 → 3 · Composition API · SSR', 'U11 · U13–U18 · Y1 · J6 · J7 · R1 · LED1 · D1 · U2 · J1–J4 · DISP1 · SW3–SW8', 'U10, microcontrôleur, Vue.js'],
-      ['U11', 'Mémoire flash', 'W25Q128 · 16 Mo QSPI', `TypeScript${NB}/ JavaScript · strict · ES modules`, 'U10', `U11, mémoire flash, TypeScript${NB}/ JavaScript`],
-      ['U12', `Régu${SH}lateur 3,3${NB}V`, 'AP2112K · LDO 600 mA', `Perfor${SH}mance web · audits · Core Web Vitals`, 'J5', `U12, régulateur 3,3${NB}V, performance web`],
-      ['U13', `Protec${SH}tion USB`, 'USBLC6-2 · ESD', `Acces${SH}sibilité · WCAG 2.2 AA · guidelines produit`, 'U10 · J5', 'U13, protection USB, accessibilité'],
-      ['U14', `Exten${SH}seur d’E${WJ}/${WJ}S`, `TCA9554 · 8 E${WJ}/${WJ}S I²C`, `HTML séman${SH}tique · landmarks · ARIA juste`, 'U10 · SW1 · SW2 · JP1', 'U14, extenseur d’E/S, HTML sémantique'],
-      ['U15', 'Pilote de LED', 'PCA9633 · 4 canaux PWM', 'CSS · layers · container queries · motion', 'U10 · D2–D5', 'U15, pilote de LED, CSS'],
-      ['U16', 'Horloge temps réel', 'PCF8563 · uptime', `Archi${SH}tecture front · composants · migrations`, 'U10 · Y2', 'U16, horloge temps réel, architecture front'],
-      ['U17', `Super${SH}viseur de reset`, `APX803 · 2,93${NB}V`, 'Tests · unitaires · e2e · a11y', 'U10 · J6', 'U17, superviseur de reset, tests'],
-      ['U18', 'Capteur de lumière', 'BH1750 · I²C', `Électro${SH}nique · Arduino · Raspberry Pi · IoT`, 'U10', 'U18, capteur de lumière, électronique'],
-      ['Y1', 'Quartz', '40 MHz · ±10 ppm', 'Équipe · recrutement · formation · coaching', 'U10', 'Y1, quartz, équipe'],
-      ['J6', `Connec${SH}teur de debug`, 'UART + boot · 6 broches', 'Debug · navigateurs · réseau · mémoire', 'U10 · U17', 'J6, connecteur de debug, debug'],
+      ['U10', `Micro${SH}contrôleur`, 'ESP32-S3 · 240 MHz · USB', 'Vue.js · 2 → 3 · Composition API · SSR', 'U11 · U13–U18 · Y1 · J6 · J7 · R1 · LED1 · D1 · U2 · J1–J4 · DISP1 · SW3–SW8', 'U10, Vue.js, microcontrôleur'],
+      ['U11', 'Mémoire flash', 'W25Q128 · 16 Mo QSPI', `TypeScript${NB}/ JavaScript · strict · ES modules`, 'U10', `U11, TypeScript${NB}/ JavaScript, mémoire flash`],
+      ['U12', `Régu${SH}lateur 3,3${NB}V`, 'AP2112K · LDO 600 mA', `Perfor${SH}mance web · audits · Core Web Vitals`, 'J5', `U12, performance web, régulateur 3,3${NB}V`],
+      ['U13', `Protec${SH}tion USB`, 'USBLC6-2 · ESD', `Acces${SH}sibilité · WCAG 2.2 AA · guidelines produit`, 'U10 · J5', 'U13, accessibilité, protection USB'],
+      ['U14', `Exten${SH}seur d’E${WJ}/${WJ}S`, `TCA9554 · 8 E${WJ}/${WJ}S I²C`, `HTML séman${SH}tique · landmarks · ARIA juste`, 'U10 · SW1 · SW2 · JP1', 'U14, HTML sémantique, extenseur d’E/S'],
+      ['U15', 'Pilote de LED', 'PCA9633 · 4 canaux PWM', 'CSS · layers · container queries · motion', 'U10 · D2–D5', 'U15, CSS, pilote de LED'],
+      ['U16', 'Horloge temps réel', 'PCF8563 · uptime', `Archi${SH}tecture front · composants · migrations`, 'U10 · Y2', 'U16, architecture front, horloge temps réel'],
+      ['U17', `Super${SH}viseur de reset`, `APX803 · 2,93${NB}V`, 'Tests · unitaires · e2e · a11y', 'U10 · J6', 'U17, tests, superviseur de reset'],
+      ['U18', 'Capteur de lumière', 'BH1750 · I²C', `Électro${SH}nique · Arduino · Raspberry Pi · IoT`, 'U10', 'U18, électronique, capteur de lumière'],
+      ['Y1', 'Quartz', '40 MHz · ±10 ppm', 'Équipe · recrutement · formation · coaching', 'U10', 'Y1, équipe, quartz'],
+      ['J6', `Connec${SH}teur de debug`, 'UART + boot · 6 broches', 'Debug · navigateurs · réseau · mémoire', 'U10 · U17', 'J6, debug, connecteur de debug'],
     ]),
     group: 'Composants de la face arrière',
   },
@@ -366,19 +366,19 @@ export const EN: Copy = {
     switchHidden: 'back side',
     title: 'Back side · bill of materials',
     caption: 'Bill of materials: the parts on this board',
-    columns: ['Ref', 'Part', `Value${NB}/ skill`, 'Linked to'],
+    columns: ['Ref', `Skill${NB}· part`, `Details${NB}· value`, 'Linked to'],
     rows: bom([
-      ['U10', `Micro${SH}controller`, 'ESP32-S3 · 240 MHz · USB', 'Vue.js · 2 → 3 · Composition API · SSR', 'U11 · U13–U18 · Y1 · J6 · J7 · R1 · LED1 · D1 · U2 · J1–J4 · DISP1 · SW3–SW8', 'U10, microcontroller, Vue.js'],
-      ['U11', 'Flash memory', 'W25Q128 · 16 MB QSPI', `TypeScript${NB}/ JavaScript · strict · ES modules`, 'U10', `U11, flash memory, TypeScript${NB}/ JavaScript`],
-      ['U12', `3.3 V regu${SH}lator`, 'AP2112K · LDO 600 mA', `Web perfor${SH}mance · audits · Core Web Vitals`, 'J5', 'U12, 3.3 V regulator, web performance'],
-      ['U13', `USB protec${SH}tion`, 'USBLC6-2 · ESD', `Acces${SH}sibility · WCAG 2.2 AA · product guidelines`, 'U10 · J5', 'U13, USB protection, accessibility'],
-      ['U14', `I${WJ}/${WJ}O expan${SH}der`, `TCA9554 · 8 I${WJ}/${WJ}O I²C`, `Seman${SH}tic HTML · landmarks · ARIA done right`, 'U10 · SW1 · SW2 · JP1', 'U14, I/O expander, semantic HTML'],
-      ['U15', 'LED driver', 'PCA9633 · 4 PWM channels', 'CSS · layers · container queries · motion', 'U10 · D2–D5', 'U15, LED driver, CSS'],
-      ['U16', 'Real-time clock', 'PCF8563 · uptime', `Front-end archi${SH}tecture · components · migrations`, 'U10 · Y2', 'U16, real-time clock, front-end architecture'],
-      ['U17', `Reset super${SH}visor`, 'APX803 · 2.93 V', 'Testing · unit · e2e · a11y', 'U10 · J6', 'U17, reset supervisor, testing'],
-      ['U18', 'Light sensor', 'BH1750 · I²C', `Electro${SH}nics · Arduino · Raspberry Pi · IoT`, 'U10', 'U18, light sensor, electronics'],
-      ['Y1', 'Crystal', '40 MHz · ±10 ppm', 'Team · hiring · training · coaching', 'U10', 'Y1, crystal, team'],
-      ['J6', 'Debug header', 'UART + boot · 6 pins', `Debug${SH}ging · browsers · network · memory`, 'U10 · U17', 'J6, debug header, debugging'],
+      ['U10', `Micro${SH}controller`, 'ESP32-S3 · 240 MHz · USB', 'Vue.js · 2 → 3 · Composition API · SSR', 'U11 · U13–U18 · Y1 · J6 · J7 · R1 · LED1 · D1 · U2 · J1–J4 · DISP1 · SW3–SW8', 'U10, Vue.js, microcontroller'],
+      ['U11', 'Flash memory', 'W25Q128 · 16 MB QSPI', `TypeScript${NB}/ JavaScript · strict · ES modules`, 'U10', `U11, TypeScript${NB}/ JavaScript, flash memory`],
+      ['U12', `3.3 V regu${SH}lator`, 'AP2112K · LDO 600 mA', `Web perfor${SH}mance · audits · Core Web Vitals`, 'J5', 'U12, web performance, 3.3 V regulator'],
+      ['U13', `USB protec${SH}tion`, 'USBLC6-2 · ESD', `Acces${SH}sibility · WCAG 2.2 AA · product guidelines`, 'U10 · J5', 'U13, accessibility, USB protection'],
+      ['U14', `I${WJ}/${WJ}O expan${SH}der`, `TCA9554 · 8 I${WJ}/${WJ}O I²C`, `Seman${SH}tic HTML · landmarks · ARIA done right`, 'U10 · SW1 · SW2 · JP1', 'U14, semantic HTML, I/O expander'],
+      ['U15', 'LED driver', 'PCA9633 · 4 PWM channels', 'CSS · layers · container queries · motion', 'U10 · D2–D5', 'U15, CSS, LED driver'],
+      ['U16', 'Real-time clock', 'PCF8563 · uptime', `Front-end archi${SH}tecture · components · migrations`, 'U10 · Y2', 'U16, front-end architecture, real-time clock'],
+      ['U17', `Reset super${SH}visor`, 'APX803 · 2.93 V', 'Testing · unit · e2e · a11y', 'U10 · J6', 'U17, testing, reset supervisor'],
+      ['U18', 'Light sensor', 'BH1750 · I²C', `Electro${SH}nics · Arduino · Raspberry Pi · IoT`, 'U10', 'U18, electronics, light sensor'],
+      ['Y1', 'Crystal', '40 MHz · ±10 ppm', 'Team · hiring · training · coaching', 'U10', 'Y1, team, crystal'],
+      ['J6', 'Debug header', 'UART + boot · 6 pins', `Debug${SH}ging · browsers · network · memory`, 'U10 · U17', 'J6, debugging, debug header'],
     ]),
     group: 'Back-side components',
   },

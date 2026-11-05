@@ -58,7 +58,8 @@ export const en: SiteContent = {
     title: 'Back side · bill of materials',
     bom: {
       caption: 'Bill of materials: the parts on this board',
-      columns: { ref: 'Ref', part: 'Part', value: `Value${NB}/ skill`, linked: 'Linked to' },
+      // The skill first, then the part (Anthony, 05/11/2026): the second column « skill · part », the third « details · value ».
+      columns: { ref: 'Ref', part: `Skill${NB}· part`, value: `Details${NB}· value`, linked: 'Linked to' },
       // The part and the skill as they read in a sentence: the table capitalizes them (circuit/bom.ts).
       rows: [
         { ref: 'U10', part: `micro${SH}controller`, value: 'ESP32-S3 · 240 MHz · USB', skill: 'Vue.js', details: '2 → 3 · Composition API · SSR' },

@@ -50,12 +50,15 @@ export const capitalize = (text: string): string => text.charAt(0).toUpperCase()
 
 export interface BomRow {
   ref: BomRef;
-  /** Line 1: the part (capitalized) and its value; line 2: the skill (capitalized) and its details. */
+  /**
+   * Line 1: the skill (capitalized) and its details, the main line; line 2: the real part
+   * (capitalized) and its value, read second (Anthony, 05/11/2026).
+   */
   part: string;
   value: string;
   skill: string;
   details: string;
-  /** The accessible name of the part: « {repère}, {composant}, {compétence} » (spec 4.10), in plain text. */
+  /** The accessible name of the part: « {repère}, {compétence}, {composant} » (Anthony, 05/11/2026), in plain text. */
   name: string;
   /** Every part it is linked to (data-links, what lights up). */
   links: string[];
@@ -74,7 +77,7 @@ export function bomRows(rows: readonly BomRowContent[]): BomRow[] {
       value: row.value,
       skill: capitalize(row.skill),
       details: row.details,
-      name: plain(`${row.ref}, ${row.part}, ${row.skill}`),
+      name: plain(`${row.ref}, ${row.skill}, ${row.part}`),
       links,
       linked: refRanges(links),
     };

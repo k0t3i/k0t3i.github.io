@@ -513,36 +513,65 @@ test.describe('the circuit on a flowing board', () => {
 });
 
 /*
- * The details of a skill (the text after it on line 2): Anthony's decision of 04/11/2026. The wide
- * board shows them only where the table keeps to its 16:9 face (a face of 92rem and more, from 1536
- * px); below, line 2 is the skill alone, the details visually hidden but still in the description of
- * the part. The flowing board and the phone show them.
+ * The value of a part (line 2 of the third column, revision 10: the skill comes first, Anthony's
+ * decision of 05/11/2026). The wide board shows it only where the table keeps to its 16:9 face (a
+ * face of 92rem and more, from 1536 px); below, the value is visually hidden but still in the
+ * description of the part, and below a face of 80rem (1264 px) the details of the skill too. The
+ * flowing board and the phone show all.
  */
-test.describe('the details of a skill', () => {
-  for (const [viewport, shown] of [
-    [{ width: 1440, height: 900 }, false],
-    [{ width: 1264, height: 800 }, false],
-    [{ width: 1536, height: 900 }, true],
-    [WIDE, true],
-    [{ width: 1024, height: 768 }, true],
-    [{ width: 390, height: 844 }, true],
+test.describe('the value of a part', () => {
+  for (const [viewport, shown, details] of [
+    [{ width: 1440, height: 900 }, false, true],
+    [{ width: 1264, height: 800 }, false, false],
+    [{ width: 1536, height: 900 }, true, true],
+    [WIDE, true, true],
+    [{ width: 1024, height: 768 }, true, true],
+    [{ width: 390, height: 844 }, true, true],
   ] as const) {
-    test(`details ${shown ? 'shown' : 'hidden, still described,'} at ${viewport.width}px`, async ({ page, isMobile }) => {
+    test(`value ${shown ? 'shown' : 'hidden, still described,'}, details ${details ? 'shown' : 'hidden too'}, at ${viewport.width}px`, async ({ page, isMobile }) => {
       test.skip(isMobile, 'the desktop sizes');
       await booted(page);
       await page.setViewportSize(viewport);
       await showBack(page);
       for (const r of FR.back.rows) {
-        const details = page.locator(`#details-${r.ref}`);
-        await expect(details).toHaveText(bomDetails(r));
-        const box = await details.evaluate((el) => {
+        const value = page.locator(`#value-${r.ref}`);
+        await expect(value).toHaveText(r.value);
+        const box = await value.evaluate((el) => {
           const b = el.getBoundingClientRect();
           return { w: b.width, h: b.height };
         });
         if (shown) expect(box.w, r.ref).toBeGreaterThan(20);
         else expect(box.w * box.h, r.ref).toBeLessThanOrEqual(1);
-        await expect(part(page, r.ref)).toHaveAccessibleDescription(plain(`${r.value} ${bomDetails(r)} ${FR.back.columns[3]} ${r.linked}`));
+        const area = await page.locator(`#details-${r.ref}`).evaluate((el) => el.getBoundingClientRect().width * el.getBoundingClientRect().height);
+        if (details) expect(area, r.ref).toBeGreaterThan(20);
+        else expect(area, r.ref).toBeLessThanOrEqual(1);
+        await expect(part(page, r.ref)).toHaveAccessibleDescription(plain(`${bomDetails(r)} ${r.value} ${FR.back.columns[3]} ${r.linked}`));
       }
+    });
+  }
+});
+
+/*
+ * The second line of a row, the real part and its value, is read second: smaller where the table is
+ * larger than the smallest silkscreen (never under 12 px), in the dim silkscreen, AA on the table.
+ */
+test.describe('the second line of a row', () => {
+  for (const viewport of [WIDE, { width: 390, height: 844 }]) {
+    test(`is the dim silkscreen, 12 px at least, smaller than or as large as the first, at ${viewport.width}px`, async ({ page, isMobile }) => {
+      test.skip(isMobile, 'the desktop project sets its sizes');
+      await booted(page);
+      await page.setViewportSize(viewport);
+      await showBack(page);
+      const lines = await page.locator('#row-U10').evaluate((tr) =>
+        ['.bom__main', '.bom__sub'].map((s) => {
+          const cs = getComputedStyle(tr.querySelector(s) as Element);
+          return { size: parseFloat(cs.fontSize), color: cs.color };
+        }),
+      );
+      const [main, sub] = lines as [{ size: number; color: string }, { size: number; color: string }];
+      expect(sub.size).toBeGreaterThanOrEqual(12);
+      expect(sub.size).toBeLessThanOrEqual(main.size);
+      expect(sub.color).not.toBe(main.color);
     });
   }
 });
@@ -550,14 +579,14 @@ test.describe('the details of a skill', () => {
 test.describe('the description of a part', () => {
   for (const copy of [FR, EN] as Copy[]) {
     for (const viewport of [WIDE, { width: 390, height: 844 }]) {
-      test(`a part is named « {repère}, {composant}, {compétence} », described by its value, its details and the parts it is linked to (${copy.path}, ${viewport.width}px)`, async ({ page, isMobile }) => {
+      test(`a part is named « {repère}, {compétence}, {composant} », described by its details, its value and the parts it is linked to (${copy.path}, ${viewport.width}px)`, async ({ page, isMobile }) => {
         test.skip(isMobile && viewport.width > 390, 'the phone sizes only');
         if (!isMobile) await page.setViewportSize(viewport);
         await showBack(page, copy.path);
         for (const r of copy.back.rows) {
           await expect(part(page, r.ref)).toHaveAccessibleName(r.name);
-          // Not its name again: the part and the skill are its name already.
-          await expect(part(page, r.ref)).toHaveAccessibleDescription(plain(`${r.value} ${bomDetails(r)} ${copy.back.columns[3]} ${r.linked}`));
+          // Not its name again: the skill and the part are its name already.
+          await expect(part(page, r.ref)).toHaveAccessibleDescription(plain(`${bomDetails(r)} ${r.value} ${copy.back.columns[3]} ${r.linked}`));
         }
       });
     }

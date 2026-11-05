@@ -478,16 +478,19 @@ describe('BackFace', () => {
         const r = oracle.rows[i];
         const row = rows[i];
         if (!r || !row) throw new Error('a row too many');
-        // Two lines, each across two cells: the real part and its value, then the skill and its details.
-        expect(tr.findAll('.bom__line').map((l) => text(l.element))).toEqual([r.part, bomSkill(r), r.value, bomDetails(r)]);
-        expect(tr.findAll('.bom__line').map((l) => text(l.element))).toEqual([row.part, row.skill, row.value, row.details]);
+        // Two lines, each across two cells (Anthony, 05/11/2026): the skill and its details, the main
+        // line; then the real part and its value, read second.
+        expect(tr.findAll('.bom__line').map((l) => text(l.element))).toEqual([bomSkill(r), r.part, bomDetails(r), r.value]);
+        expect(tr.findAll('.bom__line').map((l) => text(l.element))).toEqual([row.skill, row.part, row.details, row.value]);
+        expect(tr.findAll('.bom__main').map((l) => text(l.element))).toEqual([row.skill, row.details]);
+        expect(tr.findAll('.bom__sub').map((l) => text(l.element))).toEqual([row.part, row.value]);
         // « Relié à », computed from the netlist: printed in its column, and under the value for a narrow face.
         expect(text(tr.get('td.bom__linked').element)).toBe(r.linked);
         expect(text(tr.get('td.bom__linked').element)).toBe(row.linked.join(' · ') || bom.none);
         expect(text(tr.get('.bom__links').element)).toBe(`${bom.columns.linked} ${r.linked}`);
         // What lights up: every part it is linked to, the ranges spelt out.
         expect(tr.attributes('data-links')).toBe(row.links.join(' '));
-        // Its description: the value, the details of the skill, then « Relié à », labelled; never its name.
+        // Its description: the details of the skill, the value, then « Relié à », labelled; never its name.
         expect(text(wrapper.get(`#value-${r.ref}`).element)).toBe(r.value);
         expect(text(wrapper.get(`#details-${r.ref}`).element)).toBe(bomDetails(r));
         expect(text(wrapper.get(`#links-${r.ref}`).element)).toBe(`${bom.columns.linked} ${r.linked}`);
@@ -503,7 +506,7 @@ describe('BackFace', () => {
       expect(live.attributes('focusable')).toBe('false');
     });
 
-    it(`draws a part for each row, named « {repère}, {composant}, {compétence} » (${content.locale})`, async () => {
+    it(`draws a part for each row, named « {repère}, {compétence}, {composant} » (${content.locale})`, async () => {
       const rows = bomRows(content.back.bom.rows);
       const wrapper = mount(BackFace, { props: { back: content.back } });
       await nextTick();
@@ -514,12 +517,12 @@ describe('BackFace', () => {
         const row = rows[i];
         if (!r || !row) throw new Error('a part too many');
         expect(b.attributes('type')).toBe('button');
-        // Its description: its value, its details and « Relié à », in plain text (no soft hyphen, no word joiner).
+        // Its description: its details, its value and « Relié à », in plain text (no soft hyphen, no word joiner).
         expect(b.attributes('aria-describedby')).toBe(`desc-${r.ref}`);
         const desc = wrapper.get(`#desc-${r.ref}`);
         expect(desc.attributes('hidden')).toBeDefined();
-        expect(desc.text()).toBe(plain(`${r.value} ${bomDetails(r)} ${oracle.columns[3]} ${r.linked}`));
-        // The visible reference first (label in name), then the part and the skill, in plain text.
+        expect(desc.text()).toBe(plain(`${bomDetails(r)} ${r.value} ${oracle.columns[3]} ${r.linked}`));
+        // The visible reference first (label in name), then the skill and the part, in plain text.
         expect(b.attributes('aria-label')).toBe(r.name);
         expect(b.attributes('aria-label')).not.toMatch(/[­⁠]/);
         expect(text(b.element)).toBe(r.ref);
@@ -530,7 +533,7 @@ describe('BackFace', () => {
         expect(b.findAll('svg .pcb-pad')).toHaveLength(part?.pads.length ?? -1);
         expect(b.get('svg').attributes('viewBox')).toBe(`0 0 ${part?.box[2]} ${part?.box[3]}`);
       }
-      // One source: each part and its row carry the same links, and its name the part and the skill
+      // One source: each part and its row carry the same links, and its name the skill and the part
       // its row prints (with a capital there), from the same row of the content.
       for (const [i, row] of rows.entries()) {
         const src = content.back.bom.rows[i];
@@ -538,9 +541,9 @@ describe('BackFace', () => {
         const b = wrapper.get(`button.back-part[data-ref="${row.ref}"]`);
         expect(b.attributes('data-links')).toBe(tr.attributes('data-links'));
         expect(b.attributes('aria-label')).toBe(row.name);
-        expect(row.name).toBe(plain(`${src?.ref}, ${src?.part}, ${src?.skill}`));
-        expect(text(tr.findAll('.bom__line')[0]?.element as Element)).toBe(row.part);
-        expect(text(tr.findAll('.bom__line')[1]?.element as Element)).toBe(row.skill);
+        expect(row.name).toBe(plain(`${src?.ref}, ${src?.skill}, ${src?.part}`));
+        expect(text(tr.findAll('.bom__line')[0]?.element as Element)).toBe(row.skill);
+        expect(text(tr.findAll('.bom__line')[1]?.element as Element)).toBe(row.part);
       }
       // One path per trace it lights, the parts that light it named, and the signal that runs along it.
       const nets = wrapper.findAll('path.back-net');

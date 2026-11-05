@@ -17,8 +17,8 @@ import { useBackState } from '../composables/useBackState';
  */
 const props = defineProps<{
   /**
-   * The parts, in the order of the table, each with its accessible name « {repère}, {composant},
-   * {compétence} », its visible reference first (label in name): an aria-label, as the reference
+   * The parts, in the order of the table, each with its accessible name « {repère}, {compétence},
+   * {composant} », its visible reference first (label in name): an aria-label, as the reference
    * is placed apart from the button (absolute) and a browser would read a space after it.
    */
   parts: { ref: string; name: string }[];

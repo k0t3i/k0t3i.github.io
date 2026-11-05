@@ -36,8 +36,8 @@ const items = (value: string): { text: string; glued: string }[] =>
 const rows = computed(() =>
   bomRows(props.back.bom.rows).map((row) => {
     const linkedItems = row.linked.length ? row.linked.map((to, i) => ({ to, dot: i < row.linked.length - 1 })) : [{ to: props.back.bom.none, dot: false }];
-    // Its description: its value, its details and « Relié à », as the table prints them, in plain text.
-    const description = plain(`${row.value} ${row.details} ${props.back.bom.columns.linked} ${linkedItems.map((l) => l.to).join(' · ')}`);
+    // Its description: the details of its skill, its value and « Relié à », in the order of the table, in plain text.
+    const description = plain(`${row.details} ${row.value} ${props.back.bom.columns.linked} ${linkedItems.map((l) => l.to).join(' · ')}`);
     return { ...row, linkedItems, description, dataLinks: row.links.join(' ') };
   }),
 );
@@ -93,19 +93,19 @@ const point = (event: PointerEvent, ref: string | null): void => {
           {{ row.ref }}
         </th>
         <!--
-          Two lines to a row: the real part and its value, then the skill and its details, each line
-          across the two cells. The last word of each item is glued to its dot: a line never starts
-          with a dot.
+          Two lines to a row (Anthony, 05/11/2026): the skill and its details, the main line, then the
+          real part and its value, read second, each line across the two cells. The last word of each
+          item is glued to its dot: a line never starts with a dot.
         -->
         <td>
-          <span class="bom__line">{{ row.part }}</span>{{ ' ' }}<span class="bom__line">{{ row.skill }}</span>
+          <span class="bom__line bom__main">{{ row.skill }}</span>{{ ' ' }}<span class="bom__line bom__sub">{{ row.part }}</span>
         </td>
         <td>
           <span
-            :id="`value-${row.ref}`"
-            class="bom__line"
+            :id="`details-${row.ref}`"
+            class="bom__line bom__main bom__details"
           ><template
-            v-for="(item, i) in items(row.value)"
+            v-for="(item, i) in items(row.details)"
             :key="i"
           >
             {{ i ? ' ' : '' }}{{ item.text }}<span
@@ -113,10 +113,10 @@ const point = (event: PointerEvent, ref: string | null): void => {
               class="bom__glue"
             >{{ item.glued }}</span>
           </template></span>{{ ' ' }}<span
-            :id="`details-${row.ref}`"
-            class="bom__line bom__details"
+            :id="`value-${row.ref}`"
+            class="bom__line bom__sub bom__value"
           ><template
-            v-for="(item, i) in items(row.details)"
+            v-for="(item, i) in items(row.value)"
             :key="i"
           >
             {{ i ? ' ' : '' }}{{ item.text }}<span

@@ -56,7 +56,8 @@ export const fr: SiteContent = {
     title: 'Face arrière · nomenclature',
     bom: {
       caption: `Nomenclature${NB}: les composants de la carte`,
-      columns: { ref: 'Repère', part: 'Composant', value: `Valeur${NB}/ compétence`, linked: 'Relié à' },
+      // The skill first, then the part (Anthony, 05/11/2026): the second column « skill · part », the third « details · value ».
+      columns: { ref: 'Repère', part: `Compétence${NB}· composant`, value: `Détails${NB}· valeur`, linked: 'Relié à' },
       // The part and the skill as they read in a sentence: the table capitalizes them (circuit/bom.ts).
       rows: [
         { ref: 'U10', part: `micro${SH}contrôleur`, value: 'ESP32-S3 · 240 MHz · USB', skill: 'Vue.js', details: '2 → 3 · Composition API · SSR' },

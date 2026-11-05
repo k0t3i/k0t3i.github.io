@@ -463,9 +463,14 @@
     white-space: nowrap;
   }
 
-  /* The value of each part, dimmer than its name: read second, like the value printed under a reference. */
-  .bom td + td {
+  /*
+   * Line 2 of a row, the real part and its value: read second (Anthony, 05/11/2026), in the dim
+   * silkscreen, at the smallest silkscreen size (12 px) where the table is larger. Line 1, the skill
+   * and its details, keeps the silkscreen.
+   */
+  .bom__sub {
     color: var(--silk-dim);
+    font-size: var(--text-floor);
   }
 
   /* The parts it is linked to, references like the first column. */
@@ -645,11 +650,26 @@
     }
 
     /*
-     * The details of each skill only where the table keeps to the 16:9 face (Anthony, 04/11/2026):
-     * measured, it fits from a face of about 89rem, so from 92rem. Below, line 2 is the skill alone;
-     * the details are visually hidden, still read in the description of the part (aria-describedby).
+     * The second line where the table keeps to the face (Anthony, 04/11/2026, and 05/11/2026: the
+     * least relevant text goes first). Measured, FR and EN: from a face of 92rem (1536 px) the whole
+     * table fits; below, the value of each part (line 2 of the third column) is hidden, which keeps a
+     * face of 86rem (1440 px) to 16:9; below a face of 80rem (1264 px) the details of the skill go
+     * too, so the back is no taller than before revision 10. Hidden visually only: both are still
+     * read in the description of the part (aria-describedby). The flowing board shows everything.
      */
     @container face (width < 92rem) {
+      .board--home .bom__value {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: -1px;
+        overflow: hidden;
+        clip-path: inset(50%);
+        white-space: nowrap;
+      }
+    }
+
+    @container face (width < 80rem) {
       .board--home .bom__details {
         position: absolute;
         width: 1px;
