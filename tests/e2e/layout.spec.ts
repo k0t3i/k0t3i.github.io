@@ -548,6 +548,8 @@ function wideProblems(page: Page): Promise<string[]> {
         '.part__trigger',
         '.uptime',
         '.pcb-marks',
+        // The test keypad (spec 4.11): its box is its slot right of the title, so the title never meets it.
+        '.keypad',
       ];
       const blocks = selectors.flatMap((s) =>
         [...front.querySelectorAll<HTMLElement>(s)].map((el, i) => ({ name: `${s}[${i}]`, el, r: el.getBoundingClientRect() })),

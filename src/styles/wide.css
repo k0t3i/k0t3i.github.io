@@ -138,12 +138,16 @@
       align-self: start;
     }
 
-    /* The title and the subtitle, at the top left, with the room to grow under them. */
+    /*
+     * The title and the subtitle, at the top left, with the room to grow under them. 860 units wide:
+     * right of them, from x 979, the test keypad (circuit/keypad.ts); the longest line of the title
+     * (FR, at 1264 px with the text spacing of WCAG 1.4.12) ends at x 954.
+     */
     .board--home .hero {
       --x: 112;
       --y: 146;
 
-      width: calc(940 * var(--u));
+      width: calc(860 * var(--u));
     }
 
     .board--home .hero__title {
