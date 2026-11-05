@@ -292,19 +292,23 @@ test.describe('flowing board', () => {
         // Only the verified marks (a11y AA, LH 100) keep a frame; the others are bare silkscreen, like a lot number.
         expect(marks.map((m) => m.frame)).toEqual(FR.marks.map((m) => (m.framed ? '1px solid' : '0px none')));
       }
-      // The footer is the only container of the marks.
-      const elsewhere = await page.evaluate((texts) => {
-        const out: string[] = [];
-        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-        for (let n = walker.nextNode(); n; n = walker.nextNode()) {
-          // As words: « IA » is in « ARIA ».
-          const has = (t: string) => new RegExp(`(^|[^\\p{L}\\p{N}])${t}($|[^\\p{L}\\p{N}])`, 'u').test(n.nodeValue ?? '');
-          if (texts.some(has) && !n.parentElement?.closest('.board__footer .pcb-marks')) out.push(n.nodeValue ?? '');
-        }
-        return out;
-      }, FR.marks.map((m) => m.visible));
-      expect(elsewhere).toEqual([]);
-      await expect(page.locator('.pcb-marks')).toHaveCount(1);
+      // The footer is the only container of the marks, in both languages (the review of Task 18: EN « AI » too).
+      for (const copy of [FR, EN]) {
+        if (copy !== FR) await page.goto(copy.path);
+        const elsewhere = await page.evaluate((texts) => {
+          const out: string[] = [];
+          const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+          for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+            // As words: « IA » is in « ARIA », « AI » in « MAIL ».
+            const has = (t: string) => new RegExp(`(^|[^\\p{L}\\p{N}])${t}($|[^\\p{L}\\p{N}])`, 'u').test(n.nodeValue ?? '');
+            if (texts.some(has) && !n.parentElement?.closest('.board__footer .pcb-marks')) out.push(n.nodeValue ?? '');
+          }
+          return out;
+        }, copy.marks.map((m) => m.visible));
+        expect(elsewhere, copy.path).toEqual([]);
+        await expect(page.locator('.pcb-marks')).toHaveCount(1);
+        expect(await page.locator('.pcb-marks > li > [aria-hidden="true"]').allTextContents(), copy.path).toEqual(copy.marks.map((m) => m.visible));
+      }
     });
   }
 

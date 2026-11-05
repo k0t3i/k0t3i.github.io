@@ -72,8 +72,12 @@ test.describe('the test keypad', () => {
     });
   }
 
-  test('each hit area is at least 24 px, the areas apart, none under the text of the hero', async ({ page }) => {
+  // At the narrowest wide board, the usual window and the widest (the review of Task 18: 1264 and 1600 too).
+  for (const width of [1264, 1440, 1600]) {
+  test(`each hit area is at least 24 px, the areas apart, none under the text of the hero, at ${width} px`, async ({ page, isMobile }) => {
+    test.skip(isMobile && width !== 1440, 'the phones once');
     await booted(page);
+    if (!isMobile) await page.setViewportSize({ width, height: 900 });
     await open(page);
     const boxes = await page.locator('.keypad__key').evaluateAll((keys) => keys.map((k) => k.getBoundingClientRect().toJSON() as DOMRect));
     for (const b of boxes) expect(Math.min(b.width, b.height)).toBeGreaterThanOrEqual(24);
@@ -89,6 +93,7 @@ test.describe('the test keypad', () => {
     );
     for (const l of lines) for (const b of boxes) expect(l.right <= b.left || l.left >= b.right || l.bottom <= b.top || l.top >= b.bottom).toBe(true);
   });
+  }
 
   test('one tab stop, the arrows inside it, Home and End; Tab leaves it', async ({ page, isMobile }) => {
     test.skip(isMobile, 'a keyboard');
