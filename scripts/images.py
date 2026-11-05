@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Build the raster images of the page. Run from anywhere; paths are repo-relative.
 
-  python scripts/images.py avatar     placeholder pixel-art avatar -> public/img/avatar.png
   python scripts/images.py kit        Kit d'urgence crop -> public/img/kit-urgence-{380,760}.{avif,webp,jpg}
   python scripts/images.py favicons   public/favicon.ico + public/apple-touch-icon.png (same geometry as favicon.svg)
   python scripts/images.py all
@@ -16,7 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 IMG = ROOT / "public" / "img"
 KIT_SOURCE = Path(r"D:\kit_urgence\brag-output\brag.jpg")
 
-# Palette (board mask, ENIG gold, silkscreen) and muted avatar tones.
+# Palette (board mask, ENIG gold, silkscreen).
 GOLD = (0xC9, 0xA4, 0x5C)
 BODY = (0x0C, 0x0D, 0x0F)
 EDGE = (0x4A, 0x4E, 0x57)
@@ -29,65 +28,9 @@ BODY_RECT = (8, 8, 24, 24)
 DOT = (12, 12, 2)  # cx, cy, r
 
 
-# Placeholder avatar, until Anthony's own: a calm, neutral pixel character, placed by hand.
-# Light comes from the left; the right side of the face and of the top is in shadow.
-AVATAR_COLOURS = {
-    "H": (0x1E, 0x17, 0x14),  # hair, near-black brown (also the eyes and brows)
-    "h": (0x3B, 0x2C, 0x24),  # hair, lit
-    "S": (0x9A, 0x66, 0x45),  # skin, warm medium brown (Anthony: darker, mixed-race), muted
-    "s": (0x77, 0x4B, 0x31),  # skin, shadow
-    "T": (0x2E, 0x46, 0x69),  # top, deep blue
-    "t": (0x20, 0x33, 0x50),  # top, shadow and collar
-    "G": GOLD,                 # the gold accent: a small pin on the chest
-}
-AVATAR = [
-    "................................",
-    "................................",
-    "................................",
-    "............HHHHHHHH............",
-    "..........HHhhhHHHHHHH..........",
-    ".........HHhhhHHHHHHHHH.........",
-    "........HHhhHHHHHHHHHHHH........",
-    "........HHHHHHHHHHHHHHHH........",
-    "........HHHHHHHHHHSSSSHH........",
-    "........HHHHHHSSSSSSSSHH........",
-    "........HHHSSSSSSSSSSSHH........",
-    "........HHSHHSSSSSSHHsHH........",
-    "........sSSSSSSSSSSSSsss........",
-    "........sSSSHSSSSSSHSsss........",
-    "........sSSSSSSSSSSSSsss........",
-    ".........SSSSSSSsSSSSss.........",
-    ".........SSSSSSSSSSSSss.........",
-    "..........SSSSSssSSSSs..........",
-    "..........SSSSSSSSSSSs..........",
-    "...........SSSSSSSSSs...........",
-    "............SSSSSSSs............",
-    ".............ssssss.............",
-    ".............SSSSss.............",
-    ".........TTTTSSSSsstttt.........",
-    "......TTTTTTTtSSSstTTTTttt......",
-    "....TTTTTTTTTTtSstTTTTTTtttt....",
-    "...TTTTTTTTTTTTttTTTTTTTTtttt...",
-    "..TTTTTTTTTTTTTTTTTTTTTTTttttt..",
-    "..TTTTTTGGTTTTTTTTTTTTTTTttttt..",
-    ".TTTTTTTTTTTTTTTTTTTTTTTTtttttt.",
-    ".TTTTTTTTTTTTTTTTTTTTTTTTtttttt.",
-    ".TTTTTTTTTTTTTTTTTTTTTTTTtttttt.",
-]
-
-
-def avatar():
-    """32 x 32 head and shoulders, 7 colours, transparent background (see AVATAR)."""
-    assert len(AVATAR) == 32 and all(len(row) == 32 for row in AVATAR), "the avatar map must be 32 x 32"
-    im = Image.new("RGBA", (32, 32), (0, 0, 0, 0))
-    px = im.load()
-    for y, row in enumerate(AVATAR):
-        for x, key in enumerate(row):
-            if key != ".":
-                px[x, y] = (*AVATAR_COLOURS[key], 255)
-    IMG.mkdir(parents=True, exist_ok=True)
-    im.save(IMG / "avatar.png", optimize=True)
-    return im
+# The avatar of DISP1, public/img/avatar.png (64 x 64), and the portrait of the game,
+# public/img/avatar-32.png (32 x 32), are Anthony's own pixel art: they are never generated here
+# (tests/static/images.test.mjs checks the size, the square and the alpha of the avatar).
 
 
 def render_chip(size):
@@ -141,7 +84,7 @@ def kit():
 
 def main():
     cmd = sys.argv[1] if len(sys.argv) > 1 else ""
-    steps = {"avatar": avatar, "kit": kit, "favicons": favicons}
+    steps = {"kit": kit, "favicons": favicons}
     if cmd == "all":
         for f in steps.values():
             f()
