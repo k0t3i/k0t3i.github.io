@@ -49,7 +49,7 @@ const CODE39: Readonly<Record<string, string>> = {
 };
 
 /** The serial-number label: a silkscreen box, the barcode of the serial (Code 39) and its number. */
-export const SERIAL = { x: 996, y: 196, w: 94, h: 38, number: '2611' } as const;
+export const SERIAL = { x: 996, y: 196, w: 94, h: 38, number: '2308' } as const;
 
 function barcode(): string[] {
   const out: string[] = [];

@@ -172,3 +172,38 @@ describe('the art of the front (board-wide.svg)', () => {
     expect((art.slice(0, begin) + art.slice(end)).match(/<path [^>]*stroke-width/g)).toBeNull();
   });
 });
+
+// The serial-number label (revision 10; 2308 since Anthony's edit of 05/11/2026): its barcode, read
+// back from the art with the Code 39 table of the standard, is the number printed under it.
+describe('the serial-number label of the front', () => {
+  const STANDARD: Record<string, string> = {
+    '000110100': '0',
+    '100100001': '1',
+    '001100001': '2',
+    '101100000': '3',
+    '000110001': '4',
+    '100110000': '5',
+    '001110000': '6',
+    '000100101': '7',
+    '100100100': '8',
+    '001100100': '9',
+    '010010100': '*',
+  };
+  it('its bars read *2308*, as its text S/N 2308', () => {
+    const art = readFileSync(ART_FILE, 'utf8');
+    const bars = [...art.matchAll(/<rect x="(\d+)" y="201" width="(\d)" height="20"/g)].map(([, x, w]) => ({ x: Number(x), w: Number(w) }));
+    let read = '';
+    for (let i = 0; i + 5 <= bars.length; i += 5) {
+      const group = bars.slice(i, i + 5);
+      const bits: string[] = [];
+      group.forEach((b, k) => {
+        bits.push(b.w === 2 ? '1' : '0');
+        const next = group[k + 1];
+        if (next) bits.push(next.x - (b.x + b.w) === 2 ? '1' : '0');
+      });
+      read += STANDARD[bits.join('')] ?? '?';
+    }
+    expect(read).toBe('*2308*');
+    expect(art).toContain('>S/N 2308</text>');
+  });
+});
