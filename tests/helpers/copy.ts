@@ -203,7 +203,7 @@ export const FR: Copy = {
   pins: 'GND VCC SCK MOSI DC CS',
   captions: { avatar: 'DISP1 · avatar', uptime: 'DISP1 · uptime', morse: 'DISP1 · morse', game: 'DISP1 · routage' },
   game: {
-    intro: 'Mini-jeu Routage. Flèches ou glisser sur l’écran pour diriger, A ou toucher l’écran pour jouer, Échap ou SW1 pour quitter.',
+    intro: 'Mini-jeu Routage. Flèches, pavé ou glisser sur l’écran pour diriger, A ou toucher l’écran pour jouer, Échap ou SW1 pour quitter.',
     // 0 and 1 take the singular in French.
     over: (n) => `Partie finie${NB}: ${n} ${n <= 1 ? 'pastille reliée' : 'pastilles reliées'}. A pour rejouer, Échap pour quitter.`,
   },
@@ -349,7 +349,7 @@ export const EN: Copy = {
   pins: 'GND VCC SCK MOSI DC CS',
   captions: { avatar: 'DISP1 · avatar', uptime: 'DISP1 · uptime', morse: 'DISP1 · morse', game: 'DISP1 · routing' },
   game: {
-    intro: 'Routing mini-game. Arrow keys or swipe on the screen to steer, A or tap the screen to play, Escape or SW1 to quit.',
+    intro: 'Routing mini-game. Arrow keys, keypad or swipe on the screen to steer, A or tap the screen to play, Escape or SW1 to quit.',
     over: (n) => `Game over: ${n} ${n === 1 ? 'pad' : 'pads'} connected. A to play again, Escape to quit.`,
   },
   switchRef: 'SW1',

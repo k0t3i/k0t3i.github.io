@@ -41,7 +41,7 @@ export const en: SiteContent = {
     pins: 'GND VCC SCK MOSI DC CS',
     captions: { avatar: 'DISP1 · avatar', uptime: 'DISP1 · uptime', morse: 'DISP1 · morse', game: 'DISP1 · routing' },
     game: {
-      intro: 'Routing mini-game. Arrow keys or swipe on the screen to steer, A or tap the screen to play, Escape or SW1 to quit.',
+      intro: 'Routing mini-game. Arrow keys, keypad or swipe on the screen to steer, A or tap the screen to play, Escape or SW1 to quit.',
       over: { one: 'Game over: {n} pad connected.', other: 'Game over: {n} pads connected.' },
       again: 'A to play again, Escape to quit.',
     },
