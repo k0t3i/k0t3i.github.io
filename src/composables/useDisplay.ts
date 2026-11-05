@@ -2,6 +2,7 @@ import { computed, inject, onBeforeUnmount, onMounted, readonly, ref, watch, typ
 import { MORSE_MESSAGE } from '../content/readouts';
 import type { Locale, PartId } from '../content/types';
 import { encodeMorse, morseTimeline, MORSE_UNIT_MS } from '../lib/morse';
+import { sheetOpen } from '../lib/sheet';
 import { useBoardState } from './useBoardState';
 import { FLIP } from './useFlip';
 import { useGame, type GameMode } from './useGame';
@@ -154,15 +155,6 @@ export function useDisplay(locale: () => Locale, screen: Ref<HTMLElement | null>
     game.start();
   }
   useKonami(screen, toggleGame, { enabled: () => !flip?.flipped.value, touch: () => !game.on.value });
-
-  /** A sheet is open (an engine without popovers has none). */
-  const sheetOpen = (): boolean => {
-    try {
-      return document.querySelector('.sheet:popover-open') !== null;
-    } catch {
-      return false;
-    }
-  };
 
   // Escape stops what DISP1 runs, the game first; it also closes sheets, which should not change a
   // still screen (nor have the caption announce it). With a sheet open over the game, one Escape

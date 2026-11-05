@@ -1,7 +1,8 @@
 import { GAME_WORDS } from '../content/readouts';
-import { codeKey, gesture } from '../lib/konami';
+import { codeKey, gesture, type Dir } from '../lib/konami';
 import { layoutText, pixelPath, textWidth, type Pixel } from '../lib/pixelFont';
 import { newRoutage, seeded, step, stepMs, turn, type Cell, type Routage } from '../lib/routage';
+import { sheetOpen } from '../lib/sheet';
 
 /*
  * The play of « Routage » on DISP1 (revision 8): a chunk of its own, loaded when the code of the
@@ -25,6 +26,12 @@ export interface GameHost {
   /** The seed of the pads (the unit tests); else the time. */
   seed?: number;
 }
+
+/** A key of the test keypad (TestKeypad.vue): an arrow, B or A. */
+export type PadKey = Dir | 'b' | 'a';
+
+/** The running game: called, it stops for good; press() is a key of the test keypad. */
+export type Game = (() => void) & { press(key: PadKey): void };
 
 const rect = (x: number, y: number, w: number, h: number): Pixel[] =>
   Array.from({ length: w * h }, (_, i) => ({ x: x + (i % w), y: y + Math.floor(i / w) }));
@@ -67,13 +74,16 @@ const head = (c: Cell): string => cell(c, (dx, dy) => dx % 3 !== 0 || dy % 3 !==
 const via = (c: Cell): string => cell(c, (dx, dy) => dx % 3 === 0 || dy % 3 === 0);
 
 /**
- * Runs the game on DISP1 until the returned stop(). On its title, A (or a tap of the screen) plays;
+ * Runs the game on DISP1 until the returned stop(). On its title, A (or a tap of the screen, or A of
+ * the keypad: press()) plays;
  * the arrows (or swipes on the screen) steer, and only while a game runs are they kept from
  * scrolling the page; B pauses and goes on; a hidden tab or a window that loses the focus pauses
  * too, and so does a sheet opened over the board until it closes. At the end of a game, A or a tap
- * plays again. Each change is drawn once: nothing blinks.
+ * plays again. Each change is drawn once: nothing blinks. While a sheet is open, the game takes no
+ * key, tap or press at all: none plays it, goes on with it or steers it under the sheet, even with
+ * the focus outside the sheet; a tap that began over an open sheet (and closed it) is no tap.
  */
-export function play(host: GameHost): () => void {
+export function play(host: GameHost): Game {
   const rand = seeded(host.seed ?? Date.now());
   let state: 'title' | 'play' | 'pause' | 'over' = 'title';
   let game: Routage | null = null;
@@ -131,25 +141,31 @@ export function play(host: GameHost): () => void {
     draw();
   }
 
+  /** A key of the game, typed or pressed on the keypad: an arrow turns, A plays, B pauses or goes on. */
+  function input(key: PadKey): void {
+    if (key === 'a') {
+      if (state === 'title' || state === 'over') begin();
+    } else if (key === 'b') {
+      if (state === 'play') pause();
+      else resume();
+    } else if (state === 'play' && game) turn(game, key);
+  }
+
   // A key typed in a sheet is the sheet's: it scrolls it, it never steers the game under it.
   const onKey = (event: KeyboardEvent): void => {
-    if (event.ctrlKey || event.altKey || event.metaKey || (event.target as Element | null)?.closest?.('.sheet')) return;
+    if (event.ctrlKey || event.altKey || event.metaKey || (event.target as Element | null)?.closest?.('.sheet') || sheetOpen()) return;
     const key = codeKey(event.key);
     if (key === 'up' || key === 'down' || key === 'left' || key === 'right') {
       if (state !== 'play' || !game) return;
       event.preventDefault();
-      if (!event.repeat) turn(game, key);
-    } else if (!event.repeat && key === 'a' && (state === 'title' || state === 'over')) begin();
-    else if (!event.repeat && key === 'b') {
-      if (state === 'play') pause();
-      else resume();
-    }
+      if (!event.repeat) input(key);
+    } else if (!event.repeat && (key === 'a' || key === 'b')) input(key);
   };
 
   // One finger: each swipe turns, from where the last one turned; a tap plays, or goes on.
   const onStart = (event: TouchEvent): void => {
     const t = event.touches.length === 1 ? event.touches[0] : undefined;
-    from = t ? { x: t.clientX, y: t.clientY } : null;
+    from = t && !sheetOpen() ? { x: t.clientX, y: t.clientY } : null;
     moved = false;
   };
   const onMove = (event: TouchEvent): void => {
@@ -167,7 +183,7 @@ export function play(host: GameHost): () => void {
     const t = event.changedTouches[0];
     const tap = from && t && !moved && gesture(t.clientX - from.x, t.clientY - from.y) === 'tap';
     from = null;
-    if (!tap) return;
+    if (!tap || sheetOpen()) return;
     if (state === 'title' || state === 'over') begin();
     else resume();
   };
@@ -198,7 +214,9 @@ export function play(host: GameHost): () => void {
   el?.addEventListener('touchend', onEnd, { passive: true });
   draw();
 
-  return () => {
+  let stopped = false;
+  const stop = (): void => {
+    stopped = true;
     clearTimeout(timer);
     timer = undefined;
     game = null;
@@ -210,4 +228,10 @@ export function play(host: GameHost): () => void {
     el?.removeEventListener('touchmove', onMove);
     el?.removeEventListener('touchend', onEnd);
   };
+  // The keypad has no listener of its own here: its presses come through useGame, as long as the game runs.
+  return Object.assign(stop, {
+    press: (key: PadKey): void => {
+      if (!stopped && !sheetOpen()) input(key);
+    },
+  });
 }

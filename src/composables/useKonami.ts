@@ -1,5 +1,10 @@
 import { onBeforeUnmount, onMounted, type Ref } from 'vue';
-import { codeDetector, codeKey, gesture } from '../lib/konami';
+import { codeDetector, codeKey, gesture, type CodeKey } from '../lib/konami';
+
+export interface Konami {
+  /** A step of the code from the test keypad (TestKeypad.vue, revision 10): the same detector as the keys and the swipes. */
+  press(key: CodeKey): void;
+}
 
 /**
  * Listens for the code of the easter egg (revision 8, lib/konami.ts): typed on the keyboard
@@ -9,9 +14,10 @@ import { codeDetector, codeKey, gesture } from '../lib/konami';
  * - enabled(): false while the back face is up, where the code does nothing;
  * - touch(): false while the game runs, its swipes and taps then steer it (game/play.ts): the
  *   keyboard still follows the code, so the code typed again ends the game.
+ * The keys of the test keypad come through press(), into the same detector, while enabled() too.
  * Client only.
  */
-export function useKonami(screen: Ref<HTMLElement | null>, onCode: () => void, opts: { enabled: () => boolean; touch: () => boolean }): void {
+export function useKonami(screen: Ref<HTMLElement | null>, onCode: () => void, opts: { enabled: () => boolean; touch: () => boolean }): Konami {
   const detect = codeDetector();
   let from: { x: number; y: number } | null = null;
   let el: HTMLElement | null = null;
@@ -55,4 +61,10 @@ export function useKonami(screen: Ref<HTMLElement | null>, onCode: () => void, o
     el?.removeEventListener('touchcancel', onCancel);
     el = null;
   });
+
+  return {
+    press(key) {
+      if (opts.enabled() && detect(key)) onCode();
+    },
+  };
 }
