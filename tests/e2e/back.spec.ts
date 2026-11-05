@@ -515,15 +515,17 @@ test.describe('the circuit on a flowing board', () => {
 /*
  * The value of a part (line 2 of the third column, revision 10: the skill comes first, Anthony's
  * decision of 05/11/2026). The wide board shows it only where the table keeps to its 16:9 face (a
- * face of 92rem and more, from 1536 px); below, the value is visually hidden but still in the
- * description of the part, and below a face of 80rem (1264 px) the details of the skill too. The
- * flowing board and the phone show all.
+ * face of 94rem and more, from 1568 px); below, the value is visually hidden but still in the
+ * description of the part, and below a face of 86rem (1440 px) the details of the skill too. The
+ * flowing board and the phone show all. (depth.spec.ts sweeps the height of the turned board.)
  */
 test.describe('the value of a part', () => {
   for (const [viewport, shown, details] of [
     [{ width: 1440, height: 900 }, false, true],
+    [{ width: 1424, height: 900 }, false, false],
     [{ width: 1264, height: 800 }, false, false],
-    [{ width: 1536, height: 900 }, true, true],
+    [{ width: 1552, height: 900 }, false, true],
+    [{ width: 1568, height: 900 }, true, true],
     [WIDE, true, true],
     [{ width: 1024, height: 768 }, true, true],
     [{ width: 390, height: 844 }, true, true],

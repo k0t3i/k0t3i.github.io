@@ -651,13 +651,15 @@
 
     /*
      * The second line where the table keeps to the face (Anthony, 04/11/2026, and 05/11/2026: the
-     * least relevant text goes first). Measured, FR and EN: from a face of 92rem (1536 px) the whole
-     * table fits; below, the value of each part (line 2 of the third column) is hidden, which keeps a
-     * face of 86rem (1440 px) to 16:9; below a face of 80rem (1264 px) the details of the skill go
-     * too, so the back is no taller than before revision 10. Hidden visually only: both are still
-     * read in the description of the part (aria-describedby). The flowing board shows everything.
+     * least relevant text goes first). « Face » is the width of the face, 4rem less than the window.
+     * Measured, FR and EN, from 1264 to 1712 px by steps of 16 (the review of Task 18): from a face
+     * of 94rem (1568 px) the whole table fits; below, the value of each part (line 2 of the third
+     * column) is hidden; below a face of 86rem (1440 px) the details of the skill go too; below a
+     * face of 80rem (1344 px) the rows are set tighter, so the face of 75rem (1264 px) keeps to
+     * 16:9 in FR. Hidden visually only: both are still read in the description of the part
+     * (aria-describedby). The flowing board shows everything.
      */
-    @container face (width < 92rem) {
+    @container face (width < 94rem) {
       .board--home .bom__value {
         position: absolute;
         width: 1px;
@@ -669,7 +671,7 @@
       }
     }
 
-    @container face (width < 80rem) {
+    @container face (width < 86rem) {
       .board--home .bom__details {
         position: absolute;
         width: 1px;
@@ -678,6 +680,13 @@
         overflow: hidden;
         clip-path: inset(50%);
         white-space: nowrap;
+      }
+    }
+
+    @container face (width < 80rem) {
+      .board--home .bom tbody :is(th, td) {
+        padding-top: 0.1875rem;
+        padding-bottom: 0.1875rem;
       }
     }
 

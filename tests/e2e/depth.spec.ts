@@ -496,6 +496,38 @@ test.describe('no layout shift', () => {
   });
 });
 
+/*
+ * The wide board keeps its 16:9 with its back face up, at every width (the review of Task 18: the
+ * table hid its details by a face width taken for a window width, and the back grew by up to 98 px
+ * at 1344 px). A sweep of the window, at rest then turned, the same heights.
+ */
+test.describe('the back face keeps the height of the board', () => {
+  for (const copy of [FR, EN]) {
+    test(`from 1264 to 1600 px, by steps of 16 (${copy.path})`, async ({ page, isMobile }) => {
+      test.skip(isMobile, 'the wide board');
+      await page.emulateMedia({ reducedMotion: 'reduce' });
+      await page.addInitScript(() => sessionStorage.setItem('k0t3i.booted', '1'));
+      await page.setViewportSize({ width: 1264, height: 900 });
+      await open(page, copy.path);
+      const widths = Array.from({ length: (1600 - 1264) / 16 + 1 }, (_, i) => 1264 + 16 * i);
+      const sweep = async (): Promise<string[]> => {
+        const out: string[] = [];
+        for (const width of widths) {
+          await page.setViewportSize({ width, height: 900 });
+          out.push(`${width}: ${await page.evaluate(() => (document.querySelector('.board') as HTMLElement).offsetHeight)}`);
+        }
+        return out;
+      };
+      const rest = await sweep();
+      await page.setViewportSize({ width: 1264, height: 900 });
+      await sw2(page, 'front').click();
+      await expect(board(page)).toHaveAttribute('data-flipped', '');
+      await page.mouse.move(1, 1);
+      expect(await sweep()).toEqual(rest);
+    });
+  }
+});
+
 test.describe('the back face', () => {
   test('the back face holds its circuit, a part for each skill, and the bill of materials, its art one picture', async ({ page }) => {
     await open(page);
