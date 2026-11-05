@@ -32,11 +32,13 @@ describe('the test keypad', () => {
     expect(Math.max(...boxes.map((b) => b.y1))).toBe(slot.y1);
   });
 
-  it('stays clear of the text of the hero (as measured, with the root font at 125 % or the WCAG spacing), of TP1 and of DISP1', () => {
-    // The title ends before x 954 above y 410, the subtitle before x 789 above y 509; DISP1 starts at 1188.
-    expect(KEYPAD_SLOT.x).toBeGreaterThan(954 + 20);
-    expect(KEYPAD_SLOT.x + KEYPAD_SLOT.w).toBeLessThan(1188 - 16);
-    expect(overlap({ x0: 1046 - 6, y0: 252 - 6, x1: 1046 + 6, y1: 252 + 6 }, { x0: KEYPAD_SLOT.x, y0: KEYPAD_SLOT.y, x1: 1171, y1: 383 })).toBe(false);
+  it('stays clear of the text of the hero (as measured, with the root font at 125 %, the WCAG spacing or both), of TP1, and well away from DISP1', () => {
+    // The title ends before x 856 (FR, 1264 px, the WCAG spacing; wide.css steps its size), the
+    // subtitle before x 789 above y 510 (e2e: front-parts.spec.ts). The frame of DISP1 is at x 1182:
+    // the keypad keeps at least 80 units from it (Anthony, 05/11/2026).
+    expect(KEYPAD_SLOT.x).toBeGreaterThan(856 + 40);
+    expect(KEYPAD_SLOT.x + KEYPAD_SLOT.w).toBeLessThanOrEqual(1182 - 80);
+    expect(overlap({ x0: 1046 - 6, y0: 252 - 6, x1: 1046 + 6, y1: 252 + 6 }, { x0: KEYPAD_SLOT.x, y0: KEYPAD_SLOT.y, x1: KEYPAD_SLOT.x + KEYPAD_SLOT.w, y1: KEYPAD_SLOT.y + KEYPAD_SLOT.h })).toBe(false);
   });
 
   it('fits the flowing board: the hit areas apart, the group within its cells', () => {
@@ -60,13 +62,13 @@ describe('the TEST row', () => {
     for (const p of TEST_PADS) expect(p.net).toBe(netOf[key[p.mark as keyof typeof key]]);
   });
 
-  it('lies under the keypad, clear of the title (x 954 above y 410), of the subtitle (x 789) and above the copper of the principles (y 522)', () => {
+  it('lies under the keypad, clear of the title (x 856), of the subtitle (x 789) and above the copper of the principles (y 522)', () => {
     expect(TEST_ROW.y - TEST_ROW.r).toBeGreaterThan(KEYPAD_SLOT.y + KEYPAD_SLOT.h + 20);
-    expect(TEST_ROW.x - TEST_ROW.r).toBeGreaterThan(954 + 16);
+    expect(TEST_ROW.x - TEST_ROW.r).toBeGreaterThan(856 + 16);
     // The label, 12 units high, under the line of the title, right of the subtitle.
     expect(TEST_ROW.label.y - 12).toBeGreaterThan(410 + 16);
     expect(TEST_ROW.label.x).toBeGreaterThan(789 + 40);
     expect(TEST_ROW.y + 90).toBeLessThan(522);
-    expect((TEST_PADS.at(-1)?.x ?? 0) + TEST_ROW.r).toBeLessThan(1188 - 16);
+    expect((TEST_PADS.at(-1)?.x ?? 0) + TEST_ROW.r).toBeLessThanOrEqual(1182 - 80);
   });
 });

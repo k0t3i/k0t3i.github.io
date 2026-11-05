@@ -42,7 +42,7 @@ export const KEY_BODY = 22;
 export const KEY_PLUNGER = 14;
 
 /** The centre of the cross. */
-const CX = 1036;
+const CX = 956;
 const CY = 326;
 
 /** The six switches, in the order of their references (and of the Konami code's keys: ↑ ↓ ← → B A). */
@@ -51,37 +51,38 @@ export const KEYPAD: readonly KeySwitch[] = [
   { ref: 'SW4', key: 'down', net: 'KEY_DOWN', x: CX, y: CY + KEY_HIT },
   { ref: 'SW5', key: 'left', net: 'KEY_LEFT', x: CX - KEY_HIT, y: CY },
   { ref: 'SW6', key: 'right', net: 'KEY_RIGHT', x: CX + KEY_HIT, y: CY },
-  { ref: 'SW7', key: 'b', net: 'KEY_B', x: 1112, y: 344 },
-  { ref: 'SW8', key: 'a', net: 'KEY_A', x: 1152, y: 316 },
+  { ref: 'SW7', key: 'b', net: 'KEY_B', x: 1032, y: 344 },
+  { ref: 'SW8', key: 'a', net: 'KEY_A', x: 1072, y: 316 },
 ];
 
 /**
  * The slot of the keypad group on the wide board, in front units: the box of the six hit areas
- * (x 979 to 1171, y 269 to 383). The group is placed at its top left (--x, --y) and is w x h.
+ * (x 899 to 1091, y 269 to 383): 91 units clear of the frame of DISP1 (x 1182). The group is placed at its top left (--x, --y) and is w x h.
  * Nothing else of the page may enter it.
  */
-export const KEYPAD_SLOT = { x: 979, y: 269, w: 192, h: 114 } as const;
+export const KEYPAD_SLOT = { x: 899, y: 269, w: 192, h: 114 } as const;
 
 /**
  * On the flowing board there is no art: the keypad is its own block in the column of DISP1, right
  * after the figure (DOM order: after DISP1, before the principles), so that the pad and the screen
  * are seen together at 390 x 844 during a game. It is measured in cells of 2.5rem (40 px; 50 px at
- * 125 %, so it grows with the root font): a group of 5.5 x 3 cells (220 px, 275 px at 125 %: it fits
+ * 125 %, so it grows with the root font): a group of 5.8 x 3.6 cells (232 px, 290 px at 125 %: it fits
  * the 288 px of content at 320 px wide only at 100 %, so under 22rem of content let it scale down to
  * no less than 2rem cells, 32 px). Each hit area is one cell; the centres are in cells from the top
- * left of the group, the cross as on the wide board, B and A staggered as there.
+ * left of the group, the cross as on the wide board, B and A staggered as there. A margin of 0.3 cell
+ * round the cross holds the printed marks of the keys (KEY_MARKS), so the group is 5.8 x 3.6 cells.
  */
 export const KEYPAD_FLOW = {
   cell: '2.5rem',
-  w: 5.5,
-  h: 3,
+  w: 5.8,
+  h: 3.6,
   centres: {
-    up: [1.5, 0.5],
-    down: [1.5, 2.5],
-    left: [0.5, 1.5],
-    right: [2.5, 1.5],
-    b: [4, 1.75],
-    a: [5, 1.25],
+    up: [1.8, 0.8],
+    down: [1.8, 2.8],
+    left: [0.8, 1.8],
+    right: [2.8, 1.8],
+    b: [4.3, 2.05],
+    a: [5.3, 1.55],
   } as Readonly<Record<Key, readonly [number, number]>>,
 } as const;
 
@@ -93,14 +94,14 @@ export const KEYPAD_FLOW = {
 export const TEST_ROW = {
   ref: 'J8',
   /** The centre of pad 1, then one pad every `pitch` units to the right. */
-  x: 980,
+  x: 900,
   y: 410,
   pitch: 18,
   /** The radius of a pad. */
   r: 5,
   marks: ['↑', '↑', '↓', '↓', '←', '→', '←', '→', 'B', 'A'],
   /** The silkscreen « TEST »: its start and baseline, under pads 1 and 2. */
-  label: { text: 'TEST', x: 958, y: 446 },
+  label: { text: 'TEST', x: 878, y: 446 },
 } as const;
 
 const NET_OF: Readonly<Record<string, string>> = { '↑': 'KEY_UP', '↓': 'KEY_DOWN', '←': 'KEY_LEFT', '→': 'KEY_RIGHT', B: 'KEY_B', A: 'KEY_A' };
@@ -113,3 +114,19 @@ export const TEST_PADS: readonly { pin: string; x: number; y: number; net: strin
   net: NET_OF[mark] ?? '',
   mark,
 }));
+
+/**
+ * The printed marks of the keys, silkscreen of the art (aria-hidden), in the style of the TEST row:
+ * a small arrow off the outer end of each arm of the cross (→ by its upper corner, B being close), B
+ * and A by their switches. In front units
+ * from the centre of each switch (the wide board); `flow` in cells, for the drawing of the flowing
+ * board. The copper leaves each of those places free.
+ */
+export const KEY_MARKS: Readonly<Record<Key, { dx: number; dy: number; flow: readonly [number, number] }>> = {
+  up: { dx: 0, dy: -23, flow: [0, -0.48] },
+  down: { dx: 0, dy: 24, flow: [0, 0.48] },
+  left: { dx: -25, dy: 0, flow: [-0.48, 0] },
+  right: { dx: 21, dy: -22, flow: [0.48, 0] },
+  b: { dx: 23, dy: 13, flow: [0.42, 0.46] },
+  a: { dx: 24, dy: 0, flow: [0, -0.5] },
+};

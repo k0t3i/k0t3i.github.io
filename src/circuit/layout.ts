@@ -211,7 +211,7 @@ function KEYPAD_PADS(): PlacedPad[] {
 
 /** The place of RN1 on the front: pin 1, then a pin every 10 units (2.54 mm, as J1) to the right. */
 export const RN1_X = 1030;
-export const RN1_Y = 470;
+export const RN1_Y = 495;
 
 export const FRONT_PADS: readonly PlacedPad[] = [
   // The principles (PartSprite.vue, at --x of wide.css, y 618): pad centres in front coordinates.
@@ -271,7 +271,7 @@ export const FRONT_PADS: readonly PlacedPad[] = [
   ...KEYPAD_PADS(),
   // The TEST row J8, its pads under the keypad; TP5, the ground of the test bed, by it.
   ...TEST_PADS.map((p) => ({ ref: TEST_ROW.ref, pin: p.pin, x: p.x, y: p.y, w: 2 * TEST_ROW.r, h: 2 * TEST_ROW.r, round: true, layer: 'F' as const })),
-  { ref: 'TP5', pin: '1', x: 1172, y: 452, w: 12, h: 12, round: true, layer: 'F' },
+  { ref: 'TP5', pin: '1', x: 880, y: 470, w: 12, h: 12, round: true, layer: 'F' },
   // RN1, the pull-ups of the keys: a bussed network in a SIP-7 under the TEST row, through the board.
   // Pin 1 (the common, +3V3, square) at the left; pins 2 to 7 the keys ↑ ↓ ← → B A. Seen from the
   // back, its pads are right under the pins of U10 that read the keys.
@@ -337,12 +337,12 @@ export const VIAS: readonly Via[] = [
   blind('GND', 1230, 698),
   blind('GND', 1238, 792),
   // The ground of each switch of the keypad, of TP5 (in its pad) and of C27.
-  blind('GND', 1036, 342),
-  blind('GND', 980, 340),
-  blind('GND', 1074, 304),
-  blind('GND', 1112, 322),
-  blind('GND', 1152, 294),
-  blind('GND', 1172, 452),
+  blind('GND', 956, 342),
+  blind('GND', 900, 340),
+  blind('GND', 994, 304),
+  blind('GND', 1032, 322),
+  blind('GND', 1072, 294),
+  blind('GND', 880, 470),
   blind('GND', 1173, 756),
 ];
 

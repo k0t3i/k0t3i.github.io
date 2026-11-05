@@ -72,7 +72,7 @@
 <path d="M494 284L492 286V296" fill="none" stroke="#000" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M426 379H436" fill="none" stroke="#000" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M475 616V622" fill="none" stroke="#000" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M554 522L585 491V417L583 415H575" fill="none" stroke="#000" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M554 522H559L585 496V417L583 415H575" fill="none" stroke="#000" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M631 416L630 417H599L594 412V410L590 406H575" fill="none" stroke="#000" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M278 345H284" fill="none" stroke="#000" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M463 284V294L465 296" fill="none" stroke="#000" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
@@ -86,18 +86,18 @@
 <path d="M743 713V733L742 734" fill="none" stroke="#000" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M761 713V733L760 734" fill="none" stroke="#000" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M421 716L415 722H397" fill="none" stroke="#000" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M510 470V435" fill="none" stroke="#000" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M520 470L519 469V435" fill="none" stroke="#000" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M530 470L528 468V435" fill="none" stroke="#000" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M540 470L537 467V435" fill="none" stroke="#000" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M707 695V659L708 658" fill="none" stroke="#000" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M550 470L547 467V436L546 435" fill="none" stroke="#000" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M560 470L557 467V437L555 435" fill="none" stroke="#000" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M654 475V441L649 436" fill="none" stroke="#000" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M725 695L718 688V659L717 658" fill="none" stroke="#000" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M743 695V693L726 676V658" fill="none" stroke="#000" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M510 495V435" fill="none" stroke="#000" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M520 495L519 494V435" fill="none" stroke="#000" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M530 495L528 493V435" fill="none" stroke="#000" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M686 475V464L685 463H678L663 448V436" fill="none" stroke="#000" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M540 495L537 492V435" fill="none" stroke="#000" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M761 695V685L735 659V658" fill="none" stroke="#000" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M550 495L547 492V436L546 435" fill="none" stroke="#000" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M560 495L557 492V437L555 435" fill="none" stroke="#000" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M667 540L668 541H675L676 540V526L695 507H705L710 512V525" fill="none" stroke="#000" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M252 722H365" fill="none" stroke="#000" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M197 343H181L130 394V430" fill="none" stroke="#000" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
@@ -110,7 +110,7 @@
 <path d="M691 384V378" fill="none" stroke="#000" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M598 388H575" fill="none" stroke="#000" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M656 291H650" fill="none" stroke="#000" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M607 308H606L594 320V329" fill="none" stroke="#000" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M607 313H606L592 327" fill="none" stroke="#000" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M673 308L670 305H667" fill="none" stroke="#000" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M593 262V273L588 278H564" fill="none" stroke="#000" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M630 227H619L601 245" fill="none" stroke="#000" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
@@ -358,13 +358,13 @@
 <circle cx="386" cy="670" r="8" fill="#000"/>
 <rect x="393" y="734" width="16" height="16" rx="2" fill="#000"/>
 <circle cx="391" cy="742" r="8" fill="#000"/>
-<rect x="562" y="462" width="16" height="16" rx="2" fill="#000"/>
-<circle cx="560" cy="470" r="8" fill="#000"/>
-<circle cx="550" cy="470" r="8" fill="#000"/>
-<circle cx="540" cy="470" r="8" fill="#000"/>
-<circle cx="530" cy="470" r="8" fill="#000"/>
-<circle cx="520" cy="470" r="8" fill="#000"/>
-<circle cx="510" cy="470" r="8" fill="#000"/>
+<rect x="562" y="487" width="16" height="16" rx="2" fill="#000"/>
+<circle cx="560" cy="495" r="8" fill="#000"/>
+<circle cx="550" cy="495" r="8" fill="#000"/>
+<circle cx="540" cy="495" r="8" fill="#000"/>
+<circle cx="530" cy="495" r="8" fill="#000"/>
+<circle cx="520" cy="495" r="8" fill="#000"/>
+<circle cx="510" cy="495" r="8" fill="#000"/>
 <circle cx="554" cy="522" r="8" fill="#000"/>
 <circle cx="500" cy="600" r="8" fill="#000"/>
 <circle cx="580" cy="570" r="8" fill="#000"/>
@@ -456,7 +456,7 @@
 <circle cx="691" cy="378" r="7" fill="#000"/>
 <circle cx="598" cy="388" r="7" fill="#000"/>
 <circle cx="650" cy="291" r="7" fill="#000"/>
-<circle cx="607" cy="308" r="7" fill="#000"/>
+<circle cx="607" cy="313" r="7" fill="#000"/>
 <circle cx="667" cy="305" r="7" fill="#000"/>
 <circle cx="645" cy="329" r="7" fill="#000"/>
 <circle cx="389" cy="253" r="7" fill="#000"/>
@@ -564,7 +564,7 @@
 <path stroke-width="2" d="M494 284L492 286V296"/>
 <path stroke-width="2" d="M426 379H436"/>
 <path stroke-width="2" d="M475 616V622"/>
-<path stroke-width="2" d="M554 522L585 491V417L583 415H575"/>
+<path stroke-width="2" d="M554 522H559L585 496V417L583 415H575"/>
 <path stroke-width="2" d="M631 416L630 417H599L594 412V410L590 406H575"/>
 <path stroke-width="2" d="M278 345H284"/>
 <path stroke-width="2" d="M463 284V294L465 296"/>
@@ -578,18 +578,18 @@
 <path stroke-width="2" d="M743 713V733L742 734"/>
 <path stroke-width="2" d="M761 713V733L760 734"/>
 <path stroke-width="2" d="M421 716L415 722H397"/>
-<path stroke-width="2" d="M510 470V435"/>
-<path stroke-width="2" d="M520 470L519 469V435"/>
-<path stroke-width="2" d="M530 470L528 468V435"/>
-<path stroke-width="2" d="M540 470L537 467V435"/>
 <path stroke-width="2" d="M707 695V659L708 658"/>
-<path stroke-width="2" d="M550 470L547 467V436L546 435"/>
-<path stroke-width="2" d="M560 470L557 467V437L555 435"/>
 <path stroke-width="2" d="M654 475V441L649 436"/>
 <path stroke-width="2" d="M725 695L718 688V659L717 658"/>
 <path stroke-width="2" d="M743 695V693L726 676V658"/>
+<path stroke-width="2" d="M510 495V435"/>
+<path stroke-width="2" d="M520 495L519 494V435"/>
+<path stroke-width="2" d="M530 495L528 493V435"/>
 <path stroke-width="2" d="M686 475V464L685 463H678L663 448V436"/>
+<path stroke-width="2" d="M540 495L537 492V435"/>
 <path stroke-width="2" d="M761 695V685L735 659V658"/>
+<path stroke-width="2" d="M550 495L547 492V436L546 435"/>
+<path stroke-width="2" d="M560 495L557 492V437L555 435"/>
 <path stroke-width="2" d="M667 540L668 541H675L676 540V526L695 507H705L710 512V525"/>
 <path stroke-width="2" d="M252 722H365"/>
 <path stroke-width="2" d="M197 343H181L130 394V430"/>
@@ -602,7 +602,7 @@
 <path stroke-width="2" d="M691 384V378"/>
 <path stroke-width="2" d="M598 388H575"/>
 <path stroke-width="2" d="M656 291H650"/>
-<path stroke-width="2" d="M607 308H606L594 320V329"/>
+<path stroke-width="2" d="M607 313H606L592 327"/>
 <path stroke-width="2" d="M673 308L670 305H667"/>
 <path stroke-width="2" d="M593 262V273L588 278H564"/>
 <path stroke-width="2" d="M630 227H619L601 245"/>
@@ -797,6 +797,7 @@
 <use href="#sv" x="288" y="458"/>
 <use href="#sv" x="316" y="458"/>
 <use href="#sv" x="344" y="458"/>
+<use href="#sv" x="568" y="458"/>
 <use href="#sv" x="596" y="458"/>
 <use href="#sv" x="624" y="458"/>
 <use href="#sv" x="708" y="458"/>
@@ -808,8 +809,6 @@
 <use href="#sv" x="302" y="486"/>
 <use href="#sv" x="330" y="486"/>
 <use href="#sv" x="358" y="486"/>
-<use href="#sv" x="526" y="486"/>
-<use href="#sv" x="554" y="486"/>
 <use href="#sv" x="610" y="486"/>
 <use href="#sv" x="638" y="486"/>
 <use href="#sv" x="750" y="486"/>
@@ -1035,7 +1034,7 @@
 <use href="#bv" x="691" y="378"/>
 <use href="#bv" x="598" y="388"/>
 <use href="#bv" x="650" y="291"/>
-<use href="#bv" x="607" y="308"/>
+<use href="#bv" x="607" y="313"/>
 <use href="#bv" x="667" y="305"/>
 <use href="#bv" x="645" y="329"/>
 <use href="#bv" x="389" y="253"/>
@@ -1097,13 +1096,13 @@
 <circle cx="356" cy="706" r="4"/>
 <rect x="401" y="773" width="10" height="10" rx="1"/>
 <rect x="349" y="773" width="10" height="10" rx="1"/>
-<rect x="566" y="466" width="8" height="8" rx="1"/>
-<circle cx="560" cy="470" r="4"/>
-<circle cx="550" cy="470" r="4"/>
-<circle cx="540" cy="470" r="4"/>
-<circle cx="530" cy="470" r="4"/>
-<circle cx="520" cy="470" r="4"/>
-<circle cx="510" cy="470" r="4"/>
+<rect x="566" y="491" width="8" height="8" rx="1"/>
+<circle cx="560" cy="495" r="4"/>
+<circle cx="550" cy="495" r="4"/>
+<circle cx="540" cy="495" r="4"/>
+<circle cx="530" cy="495" r="4"/>
+<circle cx="520" cy="495" r="4"/>
+<circle cx="510" cy="495" r="4"/>
 </g>
 <g fill="#050506">
 <circle cx="372" cy="188" r="3"/>
@@ -1136,13 +1135,13 @@
 <circle cx="356" cy="706" r="1.5"/>
 <circle cx="406" cy="778" r="2"/>
 <circle cx="354" cy="778" r="2"/>
-<circle cx="570" cy="470" r="1.5"/>
-<circle cx="560" cy="470" r="1.5"/>
-<circle cx="550" cy="470" r="1.5"/>
-<circle cx="540" cy="470" r="1.5"/>
-<circle cx="530" cy="470" r="1.5"/>
-<circle cx="520" cy="470" r="1.5"/>
-<circle cx="510" cy="470" r="1.5"/>
+<circle cx="570" cy="495" r="1.5"/>
+<circle cx="560" cy="495" r="1.5"/>
+<circle cx="550" cy="495" r="1.5"/>
+<circle cx="540" cy="495" r="1.5"/>
+<circle cx="530" cy="495" r="1.5"/>
+<circle cx="520" cy="495" r="1.5"/>
+<circle cx="510" cy="495" r="1.5"/>
 </g>
 <circle cx="56" cy="52" r="15" fill="#c9a45c"/><circle cx="56" cy="52" r="8" fill="#050506"/>
 <use href="#sv" x="84" y="52"/>

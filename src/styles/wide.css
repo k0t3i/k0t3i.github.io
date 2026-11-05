@@ -139,23 +139,30 @@
     }
 
     /*
-     * The title and the subtitle, at the top left, with the room to grow under them. 860 units wide:
-     * right of them, from x 979, the test keypad (circuit/keypad.ts); the longest line of the title
-     * (FR, at 1264 px with the text spacing of WCAG 1.4.12) ends at x 954.
+     * The title and the subtitle, at the top left, with the room to grow under them. 760 units wide:
+     * right of them, from x 882 (its copper; the keys from x 899), the test keypad (circuit/keypad.ts).
+     * The title grows with the board, in steps, so that its longest line (FR, with the root font at
+     * 125 % or the text spacing of WCAG 1.4.12) always ends left of it.
      */
     .board--home .hero {
       --x: 112;
       --y: 146;
 
-      width: calc(860 * var(--u));
+      width: calc(760 * var(--u));
     }
 
     .board--home .hero__title {
-      font-size: 4.25rem;
+      font-size: 3.75rem;
     }
 
-    /* From 90rem the board has room for a larger title (the sweep of the art starts right of it). */
     @media (min-width: 90rem) {
+      .board--home .hero__title {
+        font-size: 4.25rem;
+      }
+    }
+
+    /* From 100rem the board has room for the largest title (the sweep of the art starts right of it). */
+    @media (min-width: 100rem) {
       .board--home .hero__title {
         font-size: 4.75rem;
       }

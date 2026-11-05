@@ -10,7 +10,7 @@
   /* The flowing board: its own block under the caption and SW1, the switches drawn in it, centred. */
   .keypad {
     --cell: 2.5rem;
-    --cols: 5.5;
+    --cols: 5.8;
 
     position: relative;
     grid-column: 1 / -1;
@@ -31,6 +31,19 @@
     display: block;
     width: 100%;
     height: auto;
+  }
+
+  /* The printed marks of the keys, in the dim silkscreen (aria-hidden, as the drawing). */
+  .keypad__arrow {
+    fill: var(--silk-dim);
+  }
+
+  .keypad__letter {
+    fill: none;
+    stroke: var(--silk-dim);
+    stroke-width: 0.035;
+    stroke-linecap: round;
+    stroke-linejoin: round;
   }
 
   .keypad__keys {

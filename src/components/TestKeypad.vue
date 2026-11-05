@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { KEYPAD, KEYPAD_FLOW, KEY_BODY, KEY_HIT, type Key } from '../circuit/keypad';
+import { KEYPAD, KEYPAD_FLOW, KEY_BODY, KEY_HIT, KEY_MARKS, type Key } from '../circuit/keypad';
 import type { SiteContent } from '../content/types';
 import { adoptKeypadPlaces } from '../lib/keypadPlaces';
 import { sheetOpen } from '../lib/sheet';
@@ -43,6 +43,30 @@ const drawn = KEYPAD.map((k) => {
   return { key: k.key, x: cx - size / 2, y: cy - size / 2 };
 });
 const view = `0 0 ${KEYPAD_FLOW.w} ${KEYPAD_FLOW.h}`;
+
+/**
+ * The printed marks of the keys (KEY_MARKS), as on the art of the wide board: a small filled arrow
+ * off the end of each arm of the cross, B and A drawn as strokes (paths, not text: a mark of the
+ * silkscreen, never a text of the page).
+ */
+const r = 0.11;
+const glyph = (key: Key, x: number, y: number): { d: string; letter: boolean } => {
+  const n = (v: number) => +v.toFixed(3);
+  if (key === 'up') return { d: `M${n(x)} ${n(y - r)}L${n(x + r)} ${n(y + 0.8 * r)}H${n(x - r)}Z`, letter: false };
+  if (key === 'down') return { d: `M${n(x - r)} ${n(y - 0.8 * r)}H${n(x + r)}L${n(x)} ${n(y + r)}Z`, letter: false };
+  if (key === 'left') return { d: `M${n(x - r)} ${n(y)}L${n(x + 0.8 * r)} ${n(y - r)}V${n(y + r)}Z`, letter: false };
+  if (key === 'right') return { d: `M${n(x + r)} ${n(y)}L${n(x - 0.8 * r)} ${n(y - r)}V${n(y + r)}Z`, letter: false };
+  if (key === 'a') return { d: `M${n(x - 0.08)} ${n(y + 0.12)}L${n(x)} ${n(y - 0.12)}L${n(x + 0.08)} ${n(y + 0.12)}M${n(x - 0.05)} ${n(y + 0.04)}H${n(x + 0.05)}`, letter: true };
+  return {
+    d: `M${n(x - 0.07)} ${n(y + 0.12)}V${n(y - 0.12)}H${n(x + 0.01)}A0.055 0.06 0 0 1 ${n(x + 0.01)} ${n(y)}H${n(x - 0.07)}M${n(x + 0.01)} ${n(y)}H${n(x + 0.02)}A0.06 0.06 0 0 1 ${n(x + 0.02)} ${n(y + 0.12)}H${n(x - 0.07)}`,
+    letter: true,
+  };
+};
+const marks = KEYPAD.map((k) => {
+  const [cx, cy] = KEYPAD_FLOW.centres[k.key];
+  const [dx, dy] = KEY_MARKS[k.key].flow;
+  return { key: k.key, ...glyph(k.key, cx + dx, cy + dy) };
+});
 
 /**
  * The places of the keys come in a stylesheet of their own, made from the module (lib/keypadPlaces.ts)
@@ -105,6 +129,12 @@ function onClick(event: MouseEvent, key: Key): void {
         :y="d.y"
         :width="size"
         :height="size"
+      />
+      <path
+        v-for="m in marks"
+        :key="`mark-${m.key}`"
+        :class="m.letter ? 'keypad__letter' : 'keypad__arrow'"
+        :d="m.d"
       />
     </svg>
     <div

@@ -1,12 +1,12 @@
 import { expect, test, type Page } from '@playwright/test';
 import { SERIAL } from '../../src/circuit/frontArt';
-import { KEYPAD_SLOT, TEST_ROW } from '../../src/circuit/keypad';
+import { KEYPAD, KEYPAD_SLOT, KEY_MARKS, TEST_ROW } from '../../src/circuit/keypad';
 
 /*
  * The parts the art of the wide board draws in the hero zone and by J5 (spec 4.11): the keypad, the
- * TEST row and its marks, the pull-ups RN1, TP5, the serial-number label, FB1 and C27.
+ * TEST row and its marks, the marks of the keys, the pull-ups RN1, TP5, the serial-number label, FB1 and C27.
  * None of them is ever under a line of text of the page, at every wide width, with the root font at
- * 125 % or with the text spacing of WCAG 1.4.12. (The copper of the art is checked by layout.spec.ts.)
+ * 125 % or with the text spacing of WCAG 1.4.12, and with both at 1264 px. (The copper of the art is checked by layout.spec.ts.)
  */
 
 const TEXT_SPACING = `
@@ -20,10 +20,15 @@ const PARTS: [string, number, number, number, number][] = [
   ['the keypad', KEYPAD_SLOT.x, KEYPAD_SLOT.y, KEYPAD_SLOT.x + KEYPAD_SLOT.w, KEYPAD_SLOT.y + KEYPAD_SLOT.h],
   ['the TEST row and its marks', TEST_ROW.x - TEST_ROW.r, TEST_ROW.y - TEST_ROW.r, last + TEST_ROW.r, TEST_ROW.y + 18],
   ['the label TEST', TEST_ROW.label.x, TEST_ROW.label.y - 12, TEST_ROW.label.x + 30, TEST_ROW.label.y + 2],
-  ['the pull-ups RN1', 1023, 464, 1097, 476],
-  ['TP5', 1160, 446, 1184, 474],
+  ['the pull-ups RN1', 1023, 480, 1097, 499],
+  ['TP5', 868, 464, 892, 494],
   ['the serial-number label', SERIAL.x, SERIAL.y, SERIAL.x + SERIAL.w, SERIAL.y + SERIAL.h],
   ['FB1 and C27', 1144, 753, 1180, 814],
+  // The printed marks of the keys, some of them outside the slot.
+  ...KEYPAD.map((k): [string, number, number, number, number] => {
+    const [x, y] = [k.x + KEY_MARKS[k.key].dx, k.y + KEY_MARKS[k.key].dy];
+    return [`the mark of ${k.key}`, x - 5, y - 6, x + 5, y + 6];
+  }),
 ];
 
 async function underText(page: Page): Promise<string[]> {
@@ -61,6 +66,8 @@ test.describe('the parts drawn on the wide board', () => {
       ['as is', ''],
       ['the root font at 125%', 'html { font-size: 125% !important; }'],
       ['text spacing', TEXT_SPACING],
+      // Both at once, on the narrowest wide board (its title on three lines).
+      ...(width === 1264 ? ([['the root font at 125% and text spacing', `html { font-size: 125% !important; } ${TEXT_SPACING}`]] as const) : []),
     ] as const) {
       test(`are never under text at ${width} px, ${setting}`, async ({ page }) => {
         await page.setViewportSize({ width, height: 900 });

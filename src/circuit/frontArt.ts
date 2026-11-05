@@ -1,4 +1,4 @@
-import { KEYPAD, KEY_BODY, KEY_PLUNGER, TEST_PADS, TEST_ROW } from './keypad';
+import { KEYPAD, KEY_BODY, KEY_MARKS, KEY_PLUNGER, TEST_PADS, TEST_ROW, type Key } from './keypad';
 import { FRONT_PADS } from './layout';
 
 /**
@@ -49,7 +49,7 @@ const CODE39: Readonly<Record<string, string>> = {
 };
 
 /** The serial-number label: a silkscreen box, the barcode of the serial (Code 39) and its number. */
-export const SERIAL = { x: 1076, y: 204, w: 94, h: 38, number: '2611' } as const;
+export const SERIAL = { x: 996, y: 196, w: 94, h: 38, number: '2611' } as const;
 
 function barcode(): string[] {
   const out: string[] = [];
@@ -68,15 +68,20 @@ function barcode(): string[] {
   return out;
 }
 
-/** The arrow of a pad of the TEST row (a small filled triangle), or its letter. */
-function mark(m: string, x: number): string {
-  const y = TEST_ROW.y + 9;
-  if (m === '↑') return `<path d="M${x} ${y}L${x + 4} ${y + 7}H${x - 4}"/>`;
-  if (m === '↓') return `<path d="M${x - 4} ${y}H${x + 4}L${x} ${y + 7}"/>`;
-  if (m === '←') return `<path d="M${x - 4} ${y + 4}L${x + 3} ${y}V${y + 8}"/>`;
-  if (m === '→') return `<path d="M${x + 4} ${y + 4}L${x - 3} ${y}V${y + 8}"/>`;
-  return text(x, y + 8, 11, m, 'middle');
+/** A printed arrow (a small filled triangle) centred on a point, or a letter. */
+function glyph(m: string, x: number, y: number): string {
+  if (m === '↑') return `<path d="M${x} ${y - 4}L${x + 4} ${y + 3}H${x - 4}"/>`;
+  if (m === '↓') return `<path d="M${x - 4} ${y - 3}H${x + 4}L${x} ${y + 4}"/>`;
+  if (m === '←') return `<path d="M${x - 4} ${y}L${x + 3} ${y - 4}V${y + 4}"/>`;
+  if (m === '→') return `<path d="M${x + 4} ${y}L${x - 3} ${y - 4}V${y + 4}"/>`;
+  return text(x, y + 4, 11, m, 'middle');
 }
+
+/** The mark of a pad of the TEST row, under it. */
+const mark = (m: string, x: number): string => glyph(m, x, TEST_ROW.y + 13);
+
+/** The printed mark of each key (KEY_MARKS): an arrow at the end of each arm of the cross, B and A by their switches. */
+export const KEY_GLYPH: Readonly<Record<Key, string>> = { up: '↑', down: '↓', left: '←', right: '→', b: 'B', a: 'A' };
 
 export const BEGIN_PARTS = '<!-- The parts of the front drawn by the art, generated from src/circuit/keypad.ts, layout.ts and frontArt.ts by tests/unit/front-copper.spec.ts: do not edit by hand -->';
 export const END_PARTS = '<!-- End of the generated parts -->';
@@ -97,12 +102,20 @@ export function frontPartsArt(): string {
     const r = 16;
     return `M${up.x - r} ${up.y - r}H${up.x + r}V${right.y - r}H${right.x + r}V${right.y + r}H${down.x + r}V${down.y + r}H${down.x - r}V${left.y + r}H${left.x - r}V${left.y - r}H${up.x - r}V${up.y - r}`;
   })() : '';
-  // RN1, a SIP-7 standing on the board: seen from above, the top of its moulded body over its seven
-  // leads, the dot of pin 1 (its common) at the left, and its marking.
+  // RN1, a SIP-7 standing on the board, seen from above: its seven pads (pin 1 square), the moulded
+  // body over the row with the leads going into the pads under its lower edge, the dot of pin 1 (the
+  // common) and its marking on the body.
   const rn = pad('RN1');
   const [first, end] = [rn[0], rn.at(-1)];
   const network = first && end
-    ? [rect(first.x - 7, first.y - 6, end.x - first.x + 14, 12, BODY, ' rx="2"'), circle(first.x, first.y, 2, '#e8e4da'), text(first.x + 8, first.y + 4, 10, '4607X', 'start')]
+    ? [
+        ...rn.map((q) => (q.pin === '1' ? rect(q.x - 4, q.y - 4, 8, 8, GOLD) : circle(q.x, q.y, 4, GOLD))),
+        ...rn.map((q) => circle(q.x, q.y, 2, DRILL)),
+        rect(first.x - 7, first.y - 15, end.x - first.x + 14, 14, BODY, ' rx="2"'),
+        rect(first.x - 7, first.y - 15, end.x - first.x + 14, 2, EDGE),
+        circle(first.x, first.y - 8, 2, '#e8e4da'),
+        text(first.x + 8, first.y - 4, 9, '4607X 103', 'start'),
+      ]
     : [];
   // A lying 0603 between its two pads: tinned ends, its body (a ferrite bead black, a capacitor of ceramic).
   const chip = (ref: string, fill: string) => {
@@ -126,6 +139,7 @@ export function frontPartsArt(): string {
     ...(b && a ? [silk(octagon(b.x, b.y, 16, 6)), silk(octagon(a.x, a.y, 16, 6))] : []),
     `<g fill="${SILK}">`,
     ...TEST_PADS.map((p) => mark(p.mark, p.x)),
+    ...KEYPAD.map((k) => glyph(KEY_GLYPH[k.key], k.x + KEY_MARKS[k.key].dx, k.y + KEY_MARKS[k.key].dy)),
     '</g>',
     text(TEST_ROW.label.x, TEST_ROW.label.y, 12, TEST_ROW.label.text),
     ...(tp5 ? [text(tp5.x, tp5.y + 20, 12, 'TP5', 'middle')] : []),
