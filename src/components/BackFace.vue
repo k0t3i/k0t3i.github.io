@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useBackState } from '../composables/useBackState';
+import { useBench } from '../composables/useBench';
 import { bomRows, plain } from '../circuit/bom';
 import type { SiteContent } from '../content/types';
 import BackCircuit from './BackCircuit.vue';
@@ -16,6 +17,18 @@ import BackCircuit from './BackCircuit.vue';
 const props = defineProps<{ back: SiteContent['back'] }>();
 
 const state = useBackState();
+const bench = useBench();
+
+/**
+ * The test bench of the Konami mode (revision 11): the status of each row as it is tested (TEST, then
+ * PASS) and, once passed, its result in place of its part; drawn only (aria-hidden), each part's
+ * description gains its result once the whole bench is done: nothing is said while it runs.
+ */
+const status = (i: number): 'run' | 'pass' | undefined => {
+  const s = bench.state.value;
+  if (!s) return undefined;
+  return i < s.passed ? 'pass' : i < s.tested ? 'run' : undefined;
+};
 
 /**
  * The items of a value, each but the last with its separator glued to its last word: "two words · c"
@@ -37,7 +50,8 @@ const rows = computed(() =>
   bomRows(props.back.bom.rows).map((row) => {
     const linkedItems = row.linked.length ? row.linked.map((to, i) => ({ to, dot: i < row.linked.length - 1 })) : [{ to: props.back.bom.none, dot: false }];
     // Its description: the details of its skill, its value and « Relié à », in the order of the table, in plain text.
-    const description = plain(`${row.details} ${row.value} ${props.back.bom.columns.linked} ${linkedItems.map((l) => l.to).join(' · ')}`);
+    const tested = bench.state.value?.done ? ` ${props.back.bench.described.replace('{result}', row.result)}` : '';
+    const description = plain(`${row.details} ${row.value} ${props.back.bom.columns.linked} ${linkedItems.map((l) => l.to).join(' · ')}${tested}`);
     return { ...row, linkedItems, description, dataLinks: row.links.join(' ') };
   }),
 );
@@ -55,6 +69,7 @@ const point = (event: PointerEvent, ref: string | null): void => {
   <BackCircuit
     :parts="parts"
     :group="props.back.group"
+    :texts="props.back.bench"
   />
   <table class="bom">
     <caption class="bom__caption">
@@ -81,16 +96,21 @@ const point = (event: PointerEvent, ref: string | null): void => {
     </thead>
     <tbody>
       <tr
-        v-for="row in rows"
+        v-for="(row, r) in rows"
         :id="`row-${row.ref}`"
         :key="row.ref"
         :data-ref="row.ref"
         :data-links="row.dataLinks"
+        :data-test="status(r)"
         @pointerenter="point($event, row.ref)"
         @pointerleave="point($event, null)"
       >
         <th scope="row">
-          {{ row.ref }}
+          <span class="bom__ref">{{ row.ref }}<span
+            v-if="status(r)"
+            class="bom__test"
+            aria-hidden="true"
+          >{{ status(r) === 'pass' ? props.back.bench.pass : props.back.bench.test }}</span></span>
         </th>
         <!--
           Two lines to a row (Anthony, 05/11/2026): the skill and its details, the main line, then the
@@ -98,7 +118,14 @@ const point = (event: PointerEvent, ref: string | null): void => {
           item is glued to its dot: a line never starts with a dot.
         -->
         <td>
-          <span class="bom__line bom__main">{{ row.skill }}</span>{{ ' ' }}<span class="bom__line bom__sub">{{ row.part }}</span>
+          <span class="bom__line bom__main">{{ row.skill }}</span>{{ ' ' }}<span
+            class="bom__line bom__sub"
+            :class="{ 'bom__sub--tested': status(r) === 'pass' }"
+          ><span class="bom__part">{{ row.part }}</span><span
+            v-if="status(r) === 'pass'"
+            class="bom__result"
+            aria-hidden="true"
+          >{{ row.result }}</span></span>
         </td>
         <td>
           <span

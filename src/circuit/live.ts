@@ -88,6 +88,11 @@ export interface Live {
   parts: LivePart[];
   nets: LiveNet[];
   marks: LiveMark[];
+  /**
+   * The test bench of the Konami mode (revision 11): the traces of the back, as many as its autorouter
+   * draws and counts (the art draws the same), and the centres of the status LEDs D2–D5 it chases.
+   */
+  bench: { traces: number; leds: [number, number][] };
 }
 
 type Seg = [Point, Point];
@@ -208,6 +213,14 @@ export function liveLayer(): Live {
     parts,
     nets: [...by.values()].map((e) => ({ d: pointsPath(e.t.pts), by: [...e.by].join(' '), rev: [...e.rev].join(' ') })),
     marks: [...marks.values()].map(({ set, ...m }) => ({ ...m, by: [...set].join(' ') })),
+    bench: {
+      traces: BACK_TRACES.length,
+      leds: ['D2', 'D3', 'D4', 'D5'].map((ref) => {
+        const p = BACK_PLACED.find((q) => q.part.ref === ref);
+        if (!p) throw new Error(`no ${ref} on the back`);
+        return [p.box.x + p.box.w / 2, p.box.y + p.box.h / 2];
+      }),
+    },
   };
 }
 

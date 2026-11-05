@@ -267,8 +267,20 @@ test.describe('every way out ends it, and puts the colours and DISP1 back', () =
     ['Escape', (page) => page.keyboard.press('Escape'), 'uptime', FR],
     ['SW1', (page) => sw1(page).click(), 'uptime', FR],
     ['the code typed again', (page) => typeCode(page), 'uptime', FR],
-    ['a turn of the board', (page) => page.locator('.board__face--front button.sw2').click(), 'avatar', FR],
     ['a language switch', (page) => page.getByRole('link', { name: 'English' }).click(), 'avatar', EN],
+    // Revision 11: a turn is no way out; the QUITTER of the back face is one.
+    [
+      'the QUITTER of the back face',
+      async (page) => {
+        await page.locator('.board__face--front button.sw2').click();
+        await page.getByRole('button', { name: FR.back.bench.exitName }).click();
+        await expect(page.locator('html')).not.toHaveAttribute('data-retro', /.*/);
+        await page.locator('.board__face--back button.sw2').click();
+        await expect(page.locator('.board')).not.toHaveAttribute('data-flipped', /.*/);
+      },
+      'uptime',
+      FR,
+    ],
   ];
   for (const [way, leave, screen, copy] of ways) {
     test(`${way}`, async ({ page }) => {
@@ -283,11 +295,6 @@ test.describe('every way out ends it, and puts the colours and DISP1 back', () =
       await page.keyboard.press('a');
       await expect(pixels(page).locator('path.px--head')).toHaveCount(1);
       await leave(page);
-      if (way === 'a turn of the board') {
-        await expect(page.locator('.board')).not.toHaveAttribute('data-turning', /.*/);
-        await page.locator('.board__face--back button.sw2').click();
-        await expect(page.locator('.board')).not.toHaveAttribute('data-flipped', /.*/);
-      }
       await atRest(page, screen, copy);
       // No game left running: the signal does not move, the arrows are the page's.
       await expect(pixels(page).locator('path.px--head')).toHaveCount(0);
@@ -300,7 +307,8 @@ test.describe('every way out ends it, and puts the colours and DISP1 back', () =
     });
   }
 
-  test('the code then SW2 in the same moment: the colours never come back once the game is over', async ({ page }) => {
+  // Revision 11 (Anthony, 05/11/2026): the mode survives the turn of the board, both ways.
+  test('the code then SW2 in the same moment: the mode and its colours go to the back face with the board', async ({ page }) => {
     await booted(page);
     await page.setViewportSize({ width: 1600, height: 900 });
     await open(page);
@@ -312,8 +320,35 @@ test.describe('every way out ends it, and puts the colours and DISP1 back', () =
     await expect(page.locator('.board')).toHaveAttribute('data-flipped', '');
     await expect(page.locator('.board')).not.toHaveAttribute('data-turning', /.*/);
     await page.waitForTimeout(600);
-    await expect(page.locator('html')).not.toHaveAttribute('data-retro', /.*/);
-    await expect(figure(page)).not.toHaveClass(/\bdisp--game\b/);
+    await expect(page.locator('html')).toHaveAttribute('data-retro', '');
+    await expect(figure(page)).toHaveClass(/\bdisp--game\b/);
+  });
+
+  test('a turn of the board, both ways, keeps the game where it was: held, paused, B goes on', async ({ page }) => {
+    await booted(page);
+    await page.setViewportSize({ width: 1600, height: 900 });
+    await open(page);
+    await typeCode(page);
+    await inGame(page);
+    await page.keyboard.press('a');
+    await expect(pixels(page).locator('path.px--head')).toHaveCount(1);
+    await page.locator('.board__face--front button.sw2').click();
+    await expect(page.locator('.board')).toHaveAttribute('data-flipped', '');
+    const head = await headAt(page);
+    await page.waitForTimeout(800);
+    // Held while the back face is up: the signal still, the colours kept.
+    expect(await headAt(page)).toEqual(head);
+    await expect(page.locator('html')).toHaveAttribute('data-retro', '');
+    await page.locator('.board__face--back button.sw2').click();
+    await expect(page.locator('.board')).not.toHaveAttribute('data-flipped', /.*/);
+    await expect(pixels(page).locator('path.px--pause')).toHaveCount(1);
+    expect(await headAt(page)).toEqual(head);
+    await expect(caption(page)).toHaveText(FR.captions.game);
+    await page.keyboard.press('b');
+    await expect(pixels(page).locator('path.px--pause')).toHaveCount(0);
+    await expect.poll(async () => JSON.stringify(await headAt(page)), { timeout: 3000 }).not.toBe(JSON.stringify(head));
+    await page.keyboard.press('Escape');
+    await atRest(page);
   });
 
   test('a sheet over the game: it pauses the game and keeps its keys; one Escape closes it, the next ends the game', async ({ page }) => {
@@ -353,14 +388,20 @@ test.describe('every way out ends it, and puts the colours and DISP1 back', () =
     await expect(said(page)).toHaveText('');
   });
 
-  test('the code does nothing with the back face up, nor on the open-circuit page', async ({ page }) => {
+  // Revision 11: typed with the back face up, the code starts the mode; the front then shows the title.
+  test('the code typed with the back face up starts the mode, the front then on the title of the game; nothing on the open-circuit page', async ({ page }) => {
     await booted(page);
     await open(page);
     await page.locator('.board__face--front button.sw2').click();
     await expect(page.locator('.board')).toHaveAttribute('data-flipped', '');
     await typeCode(page);
-    await page.waitForTimeout(300);
-    await expect(page.locator('html')).not.toHaveAttribute('data-retro', /.*/);
+    await expect(page.locator('html')).toHaveAttribute('data-retro', '');
+    await page.locator('.board__face--back button.sw2').click();
+    await expect(page.locator('.board')).not.toHaveAttribute('data-flipped', /.*/);
+    await inGame(page);
+    // Typed again, the code ends it.
+    await typeCode(page);
+    await atRest(page);
     await page.goto('/nope');
     await expect(page.locator('h1')).toBeVisible();
     await typeCode(page);
@@ -514,7 +555,16 @@ test.describe('« QUITTER » by SW1', () => {
   const ways: [string, (page: Page, isMobile: boolean) => Promise<unknown>][] = [
     ['Escape', (page) => page.keyboard.press('Escape')],
     ['SW1', (page, isMobile) => (isMobile ? sw1(page).tap() : sw1(page).click())],
-    ['a turn of the board', (page, isMobile) => (isMobile ? page.locator('.board__face--front button.sw2').tap() : page.locator('.board__face--front button.sw2').click())],
+    [
+      'the QUITTER of the back face',
+      async (page, isMobile) => {
+        const go = (l: Locator) => (isMobile ? l.tap() : l.click());
+        await go(page.locator('.board__face--front button.sw2'));
+        await go(page.getByRole('button', { name: FR.back.bench.exitName }));
+        await expect(page.locator('html')).not.toHaveAttribute('data-retro', /.*/);
+        await go(page.locator('.board__face--back button.sw2'));
+      },
+    ],
     ['a language switch', (page) => page.getByRole('link', { name: 'English' }).click()],
   ];
   for (const [way, leave] of ways) {

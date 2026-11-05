@@ -4,6 +4,8 @@ import art from '../assets/img/board-back.svg?url';
 import artSmall from '../assets/img/board-back-small.svg?url';
 import LIVE from '../circuit/live.json';
 import { useBackState } from '../composables/useBackState';
+import { useBench } from '../composables/useBench';
+import type { SiteContent } from '../content/types';
 
 /**
  * The circuit of the back face (spec 4.10): the real circuit of the board, an ESP32-S3 that runs the
@@ -24,9 +26,24 @@ const props = defineProps<{
   parts: { ref: string; name: string }[];
   /** The accessible name of their group. */
   group: string;
+  /** The texts of the test bench of the Konami mode (revision 11). */
+  texts: SiteContent['back']['bench'];
 }>();
 
 const state = useBackState();
+
+/*
+ * The test bench of the Konami mode (revision 11, useBench): its counter, drawn on the circuit (the
+ * traces routed out of all of them, then the design rules check), and its stamp, an inspection
+ * sticker printed on the board once every part passed. Drawings (aria-hidden): what the bench says
+ * is said by the face.
+ */
+const bench = useBench();
+const counter = computed(() => {
+  const s = bench.state.value;
+  if (!s) return '';
+  return s.drc ? props.texts.drc : props.texts.routing.replace('{n}', String(s.routed)).replace('{total}', String(bench.total));
+});
 
 interface LivePart {
   ref: string;
@@ -38,7 +55,12 @@ interface LivePart {
   body: [number, number, number, number];
   links: string;
 }
-const live = LIVE as { parts: LivePart[]; nets: { d: string; by: string; rev: string }[]; marks: { x: number; y: number; w: number; h: number; round: boolean; by: string }[] };
+const live = LIVE as {
+  parts: LivePart[];
+  nets: { d: string; by: string; rev: string }[];
+  marks: { x: number; y: number; w: number; h: number; round: boolean; by: string }[];
+  bench: { traces: number; leds: number[][] };
+};
 
 /** The parts drawn on the circuit, in the order of the table, with their name. */
 const drawn = computed(() =>
@@ -181,6 +203,23 @@ function onClick(ref: string): void {
         />
       </template>
     </svg>
+    <p
+      v-if="counter"
+      class="back__counter"
+      aria-hidden="true"
+    >
+      {{ counter }}
+    </p>
+    <p
+      v-if="bench.state.value?.stamp"
+      class="back__stamp"
+      aria-hidden="true"
+    >
+      <span
+        v-for="word in props.texts.stamp.split(' ')"
+        :key="word"
+      >{{ word }}</span>
+    </p>
     <!-- The parts: one tab stop, then the arrows (see onKeydown). -->
     <div
       class="back__parts"

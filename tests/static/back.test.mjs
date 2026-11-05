@@ -131,7 +131,8 @@ test('every list that lights a part of the back face names all eleven parts', ()
 
 test('the passives, the copper and the parts out of the table belong to the art: never lit, never animated', () => {
   const rules = (f) => read(f).replace(/\/\*[\s\S]*?\*\//g, '');
-  assert.doesNotMatch(rules('src/styles/motion.css'), /back__art|psv/);
+  // But in the test bench of the Konami mode (revision 11, data-bench), where its copper fades out and back.
+  assert.doesNotMatch(rules('src/styles/motion.css').replace(/\[data-bench\][^{]*\{[^}]*\}/g, ''), /back__art|psv/);
   for (const list of isLists(rules('src/styles/back.css')).filter((l) => l.includes('data-active'))) assert.doesNotMatch(list, /back__art|psv/);
   // The old inline copper is gone, its tokens with it.
   for (const f of ['src/styles/back.css', 'src/styles/tokens.css', 'src/styles/modes.css']) assert.doesNotMatch(rules(f), /psv-|back__copper|back__psv/, f);

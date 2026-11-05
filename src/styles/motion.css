@@ -61,6 +61,34 @@
       }
     }
 
+    /*
+     * The test bench of the back face (revision 11, back.css): the copper fades out and back, each
+     * trace of the autorouter draws itself along its length, its drawing fades when it is done, and
+     * the stamp is pressed onto the board. The LEDs switch at once: a chase, under 3 flashes a second.
+     */
+    [data-bench] .back__art {
+      transition: opacity 400ms ease-out;
+    }
+
+    .back-route__trace {
+      transition: stroke-dashoffset 160ms linear;
+    }
+
+    .back__route {
+      transition: opacity 600ms ease-out;
+    }
+
+    .back__stamp {
+      animation: stamp-print 320ms cubic-bezier(0.2, 0.8, 0.3, 1.2);
+    }
+
+    @keyframes stamp-print {
+      from {
+        opacity: 0;
+        transform: scale(1.35);
+      }
+    }
+
     /* The way out by SW1 (hotfix of 05/11/2026) fades in as the game mode starts; it goes at once. */
     .sw1__exit {
       animation: exit-in 200ms ease-out;
