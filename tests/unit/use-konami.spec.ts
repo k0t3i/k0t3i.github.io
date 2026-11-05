@@ -4,6 +4,10 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useKonami, type Konami } from '../../src/composables/useKonami';
 import { CODE } from '../../src/lib/konami';
 
+/** Whether a sheet is open (lib/sheet.ts): set by a test. */
+let sheetIsOpen = false;
+vi.mock('../../src/lib/sheet', () => ({ sheetOpen: () => sheetIsOpen }));
+
 const TYPED = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
 /** The code by touch: eight swipes, then two taps. */
 const SWIPES: [number, number][] = [
@@ -62,6 +66,7 @@ afterEach(() => {
   found = 0;
   enabled = true;
   touchOn = true;
+  sheetIsOpen = false;
   vi.restoreAllMocks();
   document.body.innerHTML = '';
 });
@@ -171,6 +176,21 @@ describe('useKonami', () => {
     enabled = false;
     for (const k of CODE) konami.press(k);
     expect(found).toBe(2);
+    wrapper.unmount();
+  });
+
+  // The review of Task 18: with a sheet open, and the focus in it, the code started the game under the sheet.
+  it('takes no step of the code while a sheet is open: keys, swipes and the keypad', async () => {
+    const { wrapper, screen, konami } = mountDisp();
+    await nextTick();
+    sheetIsOpen = true;
+    TYPED.forEach((k) => press(k));
+    for (const [dx, dy] of SWIPES) swipe(screen, dx, dy);
+    for (const k of CODE) konami.press(k);
+    expect(found).toBe(0);
+    sheetIsOpen = false;
+    TYPED.forEach((k) => press(k));
+    expect(found).toBe(1);
     wrapper.unmount();
   });
 

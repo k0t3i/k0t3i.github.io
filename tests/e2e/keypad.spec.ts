@@ -194,6 +194,21 @@ test.describe('the test keypad', () => {
     await expect(key(page, 'up')).toBeFocused();
   });
 
+  // The review of Task 18: the code typed in an open sheet started the game and the retro colours under it.
+  test('the code typed while a sheet is open, the focus in it, starts nothing', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'a keyboard');
+    await booted(page);
+    await open(page);
+    const sheet = page.locator('#sheet-j1');
+    await page.locator('.part__trigger[popovertarget="sheet-j1"]').click();
+    await expect(sheet).toBeVisible();
+    expect(await sheet.evaluate((el) => el.contains(document.activeElement))).toBe(true);
+    for (const k of ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a']) await page.keyboard.press(k);
+    await page.waitForTimeout(300);
+    await expect(page.locator('html')).not.toHaveAttribute('data-retro', /.*/);
+    await expect(pixels(page)).not.toHaveAttribute('data-screen', 'game');
+  });
+
   test('a press while a sheet is open does nothing to the game, nor B typed with the focus out of the sheet', async ({ page, isMobile }) => {
     await booted(page);
     await page.setViewportSize(isMobile ? { width: 390, height: 844 } : { width: 1600, height: 900 });

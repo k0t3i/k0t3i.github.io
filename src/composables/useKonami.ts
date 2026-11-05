@@ -1,5 +1,6 @@
 import { onBeforeUnmount, onMounted, type Ref } from 'vue';
 import { codeDetector, codeKey, gesture, type CodeKey } from '../lib/konami';
+import { sheetOpen } from '../lib/sheet';
 
 export interface Konami {
   /** A step of the code from the test keypad (TestKeypad.vue, revision 10): the same detector as the keys and the swipes. */
@@ -15,6 +16,8 @@ export interface Konami {
  * - touch(): false while the game runs, its swipes and taps then steer it (game/play.ts): the
  *   keyboard still follows the code, so the code typed again ends the game.
  * The keys of the test keypad come through press(), into the same detector, while enabled() too.
+ * While a sheet is open (lib/sheet.ts) no key, swipe or press is a step of the code: the sheet takes
+ * them, and nothing starts or ends under it (the review of Task 18).
  * Client only.
  */
 export function useKonami(screen: Ref<HTMLElement | null>, onCode: () => void, opts: { enabled: () => boolean; touch: () => boolean }): Konami {
@@ -23,7 +26,7 @@ export function useKonami(screen: Ref<HTMLElement | null>, onCode: () => void, o
   let el: HTMLElement | null = null;
 
   const onKey = (event: KeyboardEvent): void => {
-    if (event.repeat || event.ctrlKey || event.altKey || event.metaKey || !opts.enabled()) return;
+    if (event.repeat || event.ctrlKey || event.altKey || event.metaKey || !opts.enabled() || sheetOpen()) return;
     const key = codeKey(event.key);
     if (key !== undefined && detect(key)) onCode();
   };
@@ -37,7 +40,7 @@ export function useKonami(screen: Ref<HTMLElement | null>, onCode: () => void, o
     const t = event.changedTouches[0];
     const start = from;
     from = null;
-    if (!start || !t || !opts.enabled() || !opts.touch()) return;
+    if (!start || !t || !opts.enabled() || !opts.touch() || sheetOpen()) return;
     const step = gesture(t.clientX - start.x, t.clientY - start.y);
     if (step && detect(step)) onCode();
   };
@@ -64,7 +67,7 @@ export function useKonami(screen: Ref<HTMLElement | null>, onCode: () => void, o
 
   return {
     press(key) {
-      if (opts.enabled() && detect(key)) onCode();
+      if (opts.enabled() && !sheetOpen() && detect(key)) onCode();
     },
   };
 }
