@@ -449,7 +449,13 @@ describe('BackFace', () => {
   for (const content of [fr, en]) {
     const oracle = (content.locale === 'fr' ? ORACLE_FR : ORACLE_EN).back;
     // The text of an element, its runs of white space as one space (a no-break space kept: it is the typography).
-    const text = (el: Element): string => (el.textContent ?? '').replace(/[ \t\n\r]+/g, ' ').trim();
+    // Without the result of the test bench of the Konami mode (revision 11): in the cell from the
+    // prerender, hidden until its row passes.
+    const text = (el: Element): string => {
+      const copy = el.cloneNode(true) as Element;
+      copy.querySelectorAll('.bom__result').forEach((r) => r.remove());
+      return (copy.textContent ?? '').replace(/[ \t\n\r]+/g, ' ').trim();
+    };
 
     it(`is a real table, one row per part, its value cell on two lines, with the parts it is linked to (${content.locale})`, () => {
       const { bom } = content.back;
@@ -470,6 +476,7 @@ describe('BackFace', () => {
           const copy = c.cloneNode(true) as Element;
           copy.querySelector('.bom__links')?.remove();
           copy.querySelector('[hidden]')?.remove();
+          copy.querySelector('.bom__result')?.remove();
           return `${c.tagName}${c.getAttribute('scope') ?? ''} ${copy.textContent?.trim()}`;
         }),
       );

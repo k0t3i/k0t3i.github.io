@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { ref, watch } from 'vue';
 import { provideBackState } from '../composables/useBackState';
 import { provideBench } from '../composables/useBench';
 import { useMode } from '../composables/useMode';
@@ -21,11 +21,7 @@ const { active } = provideBackState();
 const face = ref<HTMLElement | null>(null);
 const mode = useMode();
 const bench = provideBench(() => props.back.bench, face);
-const phase = computed(() => {
-  const s = bench.state.value;
-  if (!s) return undefined;
-  return s.done ? 'done' : s.routing ? 'route' : 'test';
-});
+const phase = bench.phase;
 
 /* The way out goes with the mode: the focus it had goes to SW2 beside it, never to the page. */
 const exit = ref<HTMLButtonElement | null>(null);

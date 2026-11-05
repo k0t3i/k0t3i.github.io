@@ -3,8 +3,8 @@ import { computed, onMounted, ref } from 'vue';
 import art from '../assets/img/board-back.svg?url';
 import artSmall from '../assets/img/board-back-small.svg?url';
 import LIVE from '../circuit/live.json';
+import BenchMarks from './BenchMarks.vue';
 import { useBackState } from '../composables/useBackState';
-import { useBench } from '../composables/useBench';
 import type { SiteContent } from '../content/types';
 
 /**
@@ -32,18 +32,7 @@ const props = defineProps<{
 
 const state = useBackState();
 
-/*
- * The test bench of the Konami mode (revision 11, useBench): its counter, drawn on the circuit (the
- * traces routed out of all of them, then the design rules check), and its stamp, an inspection
- * sticker printed on the board once every part passed. Drawings (aria-hidden): what the bench says
- * is said by the face.
- */
-const bench = useBench();
-const counter = computed(() => {
-  const s = bench.state.value;
-  if (!s) return '';
-  return s.drc ? props.texts.drc : props.texts.routing.replace('{n}', String(s.routed)).replace('{total}', String(bench.total));
-});
+
 
 interface LivePart {
   ref: string;
@@ -99,8 +88,11 @@ const current = ref<string>(props.parts[0]?.ref ?? '');
 const buttons = ref<HTMLButtonElement[]>([]);
 
 function onKeydown(event: KeyboardEvent): void {
+  // Escape unpins a pinned part, and only that (the review of Task 19): taken, it ends no mode (useDisplay).
   if (event.key === 'Escape') {
-    if (state.pinned.value) state.toggle(state.pinned.value);
+    if (!state.pinned.value) return;
+    state.toggle(state.pinned.value);
+    event.preventDefault();
     return;
   }
   // Alt+Left, Ctrl+Home and the like belong to the browser and the screen reader.
@@ -203,23 +195,8 @@ function onClick(ref: string): void {
         />
       </template>
     </svg>
-    <p
-      v-if="counter"
-      class="back__counter"
-      aria-hidden="true"
-    >
-      {{ counter }}
-    </p>
-    <p
-      v-if="bench.state.value?.stamp"
-      class="back__stamp"
-      aria-hidden="true"
-    >
-      <span
-        v-for="word in props.texts.stamp.split(' ')"
-        :key="word"
-      >{{ word }}</span>
-    </p>
+    <!-- The counter and the stamp of the test bench (revision 11). -->
+    <BenchMarks :texts="props.texts" />
     <!-- The parts: one tab stop, then the arrows (see onKeydown). -->
     <div
       class="back__parts"

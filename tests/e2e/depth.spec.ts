@@ -419,6 +419,8 @@ test.describe('without JavaScript', () => {
               const cell = c.cloneNode(true) as Element;
               cell.querySelector('.bom__links')?.remove();
               cell.querySelector('[hidden]')?.remove();
+              // The result of the test bench (revision 11), hidden until its row passes.
+              cell.querySelector('.bom__result')?.remove();
               return cell.textContent?.trim();
             }),
           ),

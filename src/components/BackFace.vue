@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useBackState } from '../composables/useBackState';
-import { useBench } from '../composables/useBench';
+import { useBench, type RowTest } from '../composables/useBench';
 import { bomRows, plain } from '../circuit/bom';
 import type { SiteContent } from '../content/types';
 import BackCircuit from './BackCircuit.vue';
@@ -20,15 +20,14 @@ const state = useBackState();
 const bench = useBench();
 
 /**
- * The test bench of the Konami mode (revision 11): the status of each row as it is tested (TEST, then
- * PASS) and, once passed, its result in place of its part; drawn only (aria-hidden), each part's
- * description gains its result once the whole bench is done: nothing is said while it runs.
+ * The test bench of the Konami mode (revision 11): in place of the part of each row, TEST while it is
+ * tested, then its result and PASS. The result is in its cell from the prerender, hidden (visibility,
+ * so not read), stacked with the part (back.css): the cell is as tall as the longer of the two at
+ * every width, and nothing moves when it shows (TEST, shorter than any part, is drawn only then). While the bench runs
+ * both are drawn only (aria-hidden): nothing is said; once it is done they are read in the table, as
+ * shown, and each part's description gains its result.
  */
-const status = (i: number): 'run' | 'pass' | undefined => {
-  const s = bench.state.value;
-  if (!s) return undefined;
-  return i < s.passed ? 'pass' : i < s.tested ? 'run' : undefined;
-};
+const status = (i: number): RowTest => bench.rows[i]?.value;
 
 /**
  * The items of a value, each but the last with its separator glued to its last word: "two words · c"
@@ -50,7 +49,7 @@ const rows = computed(() =>
   bomRows(props.back.bom.rows).map((row) => {
     const linkedItems = row.linked.length ? row.linked.map((to, i) => ({ to, dot: i < row.linked.length - 1 })) : [{ to: props.back.bom.none, dot: false }];
     // Its description: the details of its skill, its value and « Relié à », in the order of the table, in plain text.
-    const tested = bench.state.value?.done ? ` ${props.back.bench.described.replace('{result}', row.result)}` : '';
+    const tested = bench.phase.value === 'done' ? ` ${props.back.bench.described.replace('{result}', row.result)}` : '';
     const description = plain(`${row.details} ${row.value} ${props.back.bom.columns.linked} ${linkedItems.map((l) => l.to).join(' · ')}${tested}`);
     return { ...row, linkedItems, description, dataLinks: row.links.join(' ') };
   }),
@@ -106,11 +105,7 @@ const point = (event: PointerEvent, ref: string | null): void => {
         @pointerleave="point($event, null)"
       >
         <th scope="row">
-          <span class="bom__ref">{{ row.ref }}<span
-            v-if="status(r)"
-            class="bom__test"
-            aria-hidden="true"
-          >{{ status(r) === 'pass' ? props.back.bench.pass : props.back.bench.test }}</span></span>
+          {{ row.ref }}
         </th>
         <!--
           Two lines to a row (Anthony, 05/11/2026): the skill and its details, the main line, then the
@@ -119,13 +114,15 @@ const point = (event: PointerEvent, ref: string | null): void => {
         -->
         <td>
           <span class="bom__line bom__main">{{ row.skill }}</span>{{ ' ' }}<span
-            class="bom__line bom__sub"
-            :class="{ 'bom__sub--tested': status(r) === 'pass' }"
+            class="bom__line bom__sub bom__slot"
           ><span class="bom__part">{{ row.part }}</span><span
-            v-if="status(r) === 'pass'"
             class="bom__result"
+            :aria-hidden="bench.running.value ? 'true' : undefined"
+          >{{ row.result }}<span class="bom__glue"> · <span class="bom__pass">{{ props.back.bench.pass }}</span></span></span><span
+            v-if="status(r) === 'run'"
+            class="bom__test"
             aria-hidden="true"
-          >{{ row.result }}</span></span>
+          >{{ props.back.bench.test }}</span></span>
         </td>
         <td>
           <span

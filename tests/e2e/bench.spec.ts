@@ -21,7 +21,7 @@ const board = (page: Page): Locator => page.locator('div.board');
 const back = (page: Page): Locator => page.locator('section.board__face--back');
 const said = (page: Page): Locator => back(page).locator('> p.vh[aria-live="polite"]');
 const counter = (page: Page): Locator => page.locator('.back__counter');
-const stamp = (page: Page): Locator => page.locator('.back__stamp');
+const stamp = (page: Page): Locator => page.locator('.back-stamp');
 const exit = (page: Page, copy: Copy = FR): Locator => page.getByRole('button', { name: copy.back.bench.exitName });
 const booted = (page: Page): Promise<unknown> => page.addInitScript(() => sessionStorage.setItem('k0t3i.booted', '1'));
 
@@ -58,8 +58,9 @@ async function final(page: Page, copy: Copy = FR): Promise<void> {
   await expect(counter(page)).toHaveText(copy.back.bench.drc);
   await expect(stamp(page)).toBeVisible();
   await expect(page.locator('.bom tbody tr[data-test="pass"]')).toHaveCount(11);
-  await expect(page.locator('.bom__test')).toHaveText(Array(11).fill(copy.back.bench.pass));
-  await expect(page.locator('.bom__result')).toHaveText(copy.back.bench.results);
+  await expect(page.locator('.bom__pass')).toHaveText(Array(11).fill(copy.back.bench.pass));
+  await expect(page.locator('.bom__test')).toHaveCount(0);
+  await expect(page.locator('.bom__result')).toHaveText(copy.back.bench.results.map((r) => `${r} · ${copy.back.bench.pass}`));
   await expect(page.locator('.back__route')).toHaveCount(0);
 }
 
@@ -150,7 +151,7 @@ test.describe('the test bench of the back face', () => {
     await page.keyboard.press('Escape');
     await expect(page.locator('html')).not.toHaveAttribute('data-retro', /.*/);
     await expect(back(page)).not.toHaveAttribute('data-bench', /.*/);
-    await expect(page.locator('.bom__test, .bom__result, .back__counter, .back__stamp, .back__route')).toHaveCount(0);
+    await expect(page.locator('tr[data-test], .back__counter, .back-stamp, .back__route')).toHaveCount(0);
     await expect(exit(page)).toHaveCount(0);
     await expect(board(page)).toHaveAttribute('data-flipped', '');
   });
@@ -232,8 +233,41 @@ test.describe('the test bench of the back face', () => {
     await expect(page.locator('html')).toHaveAttribute('lang', 'en');
     await expect(page.locator('html')).not.toHaveAttribute('data-retro', /.*/);
     await page.waitForTimeout(1500);
-    await expect(page.locator('.back__route, .back__counter, .back__stamp, .bom__test')).toHaveCount(0);
+    await expect(page.locator('.back__route, .back__counter, .back-stamp, tr[data-test]')).toHaveCount(0);
     await expect(back(page)).not.toHaveAttribute('data-bench', /.*/);
+  });
+
+  // The review of Task 19: the results are read in the table once the bench is done, as they are shown.
+  test('once done, PASS and the result are read in each row, as shown; the art takes the hue of the mode', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await booted(page);
+    await open(page);
+    await konami(page);
+    await turn(page, 'front');
+    await final(page);
+    await expect(page.locator('.bom__result[aria-hidden]')).toHaveCount(0);
+    const snap = await page.locator('#row-U10').ariaSnapshot();
+    expect(snap).toContain(FR.back.bench.pass);
+    expect(snap).toContain(FR.back.bench.results[0]);
+    expect(await page.locator('.back__art').evaluate((el) => getComputedStyle(el, '::after').mixBlendMode)).toBe('hue');
+  });
+
+  test('one Escape on a pinned part unpins it, and only that; the next ends the mode', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await booted(page);
+    await open(page);
+    await konami(page);
+    await turn(page, 'front');
+    await final(page);
+    const u14 = page.locator('.back-part[data-ref="U14"]');
+    await u14.focus();
+    await page.keyboard.press('Enter');
+    await expect(u14).toHaveAttribute('aria-pressed', 'true');
+    await page.keyboard.press('Escape');
+    await expect(u14).toHaveAttribute('aria-pressed', 'false');
+    await expect(page.locator('html')).toHaveAttribute('data-retro', '');
+    await page.keyboard.press('Escape');
+    await expect(page.locator('html')).not.toHaveAttribute('data-retro', /.*/);
   });
 
   test('under reduced motion: its end at once, said, no chunk', async ({ page }) => {
@@ -276,16 +310,17 @@ test.describe('the end of the bench in its place', () => {
     test.skip(isMobile, 'the widths are set here');
   });
 
+  for (const copy of [FR, EN]) {
   for (const width of [320, 390, 768, 1264, 1440, 1600]) {
     for (const [label, css] of [
       ['plain', ''],
       ['the root font at 125%', 'html { font-size: 125% !important; }'],
       ['text spacing', TEXT_SPACING],
     ] as const) {
-      test(`${width} px, ${label}`, async ({ page }) => {
+      test(`${width} px, ${label} (${copy.path})`, async ({ page }) => {
         await booted(page);
         await page.setViewportSize({ width, height: 900 });
-        await open(page);
+        await open(page, copy.path);
         if (css) await page.addStyleTag({ content: css });
         await turn(page, 'front');
         const height = await board(page).evaluate((el) => (el as HTMLElement).offsetHeight);
@@ -293,35 +328,46 @@ test.describe('the end of the bench in its place', () => {
         await turn(page, 'back');
         await konami(page);
         await turn(page, 'front');
-        await final(page);
+        await final(page, copy);
         expect(await board(page).evaluate((el) => (el as HTMLElement).offsetHeight)).toBe(height);
+        // The silkscreen references of the art (the picture shown), in the units of the face.
+        const refs = await page.evaluate(async () => {
+          const img = document.querySelector('.back__art img') as HTMLImageElement;
+          const svg = new DOMParser().parseFromString(await (await fetch(img.currentSrc || img.src)).text(), 'image/svg+xml');
+          return [...svg.querySelectorAll('g[font-size="8"] > text')].map((t) => ({
+            text: t.textContent ?? '',
+            x: Number(t.getAttribute('x')),
+            y: Number(t.getAttribute('y')),
+            w: (t.textContent ?? '').length * 5.1,
+          }));
+        });
         expect(await page.locator('.bom tbody tr').evaluateAll((rows) => rows.map((r) => (r as HTMLElement).offsetHeight))).toEqual(cells);
-        const problems = await page.evaluate(() => {
+        const problems = await page.evaluate((refs) => {
           const out: string[] = [];
           const box = (el: Element) => el.getBoundingClientRect();
           const hits = (a: DOMRect, b: DOMRect) => Math.min(a.right, b.right) - Math.max(a.left, b.left) > 0.5 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 0.5;
-          // Each result within its own cell, as high as the part it stands for or less.
+          // Each result in its own line of its cell, under the skill, over the value: never on other text.
           for (const r of document.querySelectorAll('.bom__result')) {
-            const part = box(r.parentElement?.querySelector('.bom__part') as Element);
-            const cell = box(r.closest('td') as Element);
+            const line = box(r.parentElement as Element);
             const b = box(r);
-            if (b.height > part.height + 0.5 && b.bottom > cell.bottom + 0.5) out.push(`a result leaves its row: ${r.textContent}`);
-            if (b.right > cell.right + 0.5) out.push(`a result leaves its cell: ${r.textContent}`);
-          }
-          for (const t of document.querySelectorAll('.bom__test')) {
-            const cell = box(t.closest('th') as Element);
-            if (!(box(t).bottom <= cell.bottom + 0.5 && box(t).right <= cell.right + 0.5)) out.push('a status leaves its cell');
+            if (b.top < line.top - 0.5 || b.bottom > line.bottom + 0.5 || b.left < line.left - 0.5 || b.right > line.right + 0.5) out.push(`a result leaves its place: ${r.textContent}`);
           }
           // The drawings: in the circuit, never over the table, the parts of the table or each other.
           const circuit = box(document.querySelector('.back__circuit') as Element);
           const table = box(document.querySelector('.bom') as Element);
-          for (const q of ['.back__counter', '.back__stamp']) {
+          // The art on the circuit: the whole face on the wide board, the window of the circuit on the flowing one.
+          const wide = matchMedia('(min-width: 79rem)').matches;
+          const [vx, vy, vw] = wide ? [0, 0, 1600] : [120, 80, 664];
+          const cu = circuit.width / vw;
+          const silk = refs.map((r) => ({ text: r.text, r: new DOMRect(circuit.left + (r.x - vx) * cu, circuit.top + (r.y - 6 - vy) * cu, r.w * cu, 8 * cu) }));
+          for (const q of ['.back__counter', '.back-stamp']) {
             const b = box(document.querySelector(q) as Element);
             if (b.left < circuit.left - 0.5 || b.right > circuit.right + 0.5 || b.top < circuit.top - 0.5 || b.bottom > circuit.bottom + 0.5) out.push(`${q} leaves the circuit`);
             if (hits(b, table)) out.push(`${q} over the table`);
             for (const p of document.querySelectorAll('.back-part')) if (hits(b, box(p))) out.push(`${q} over ${(p as HTMLElement).dataset.ref}`);
+            for (const s of silk) if (hits(b, s.r)) out.push(`${q} over the reference ${s.text}`);
           }
-          if (hits(box(document.querySelector('.back__counter') as Element), box(document.querySelector('.back__stamp') as Element))) out.push('the counter over the stamp');
+          if (hits(box(document.querySelector('.back__counter') as Element), box(document.querySelector('.back-stamp') as Element))) out.push('the counter over the stamp');
           // QUITTER: by SW2, on the face, clear of the title, SW2 and the caption; a target of 24 px.
           const exit = box(document.querySelector('.back__exit') as Element);
           const face = box(document.querySelector('.board__face--back') as Element);
@@ -337,10 +383,11 @@ test.describe('the end of the bench in its place', () => {
           // On the flowing board the circuit is under the header; on the wide board it is the whole face.
           if (!matchMedia('(min-width: 79rem)').matches && hits(exit, box(document.querySelector('.back__circuit') as Element))) out.push('QUITTER over the circuit');
           return out;
-        });
+        }, refs);
         expect(problems).toEqual([]);
       });
     }
+  }
   }
 });
 
@@ -399,5 +446,26 @@ test.describe('the back face in the Konami mode, on a phone', () => {
       trs.map((tr) => [...tr.children].slice(0, 4).map((c) => (c.textContent ?? '').replace(/\s+/g, ' ').trim())),
     );
     expect(rows.map((r) => r[0])).toEqual(FR.back.rows.map((r) => r.ref));
+  });
+
+  // The review of Task 19: every touch skipped the bench, so the first scroll down to the table did.
+  test('a finger that scrolls the page skips nothing; a tap skips', async ({ page, browserName }) => {
+    test.skip(browserName !== 'chromium', 'a touch scroll, dispatched by Chromium (CDP)');
+    await booted(page);
+    await open(page);
+    for (const k of ['up', 'up', 'down', 'down', 'left', 'right', 'left', 'right', 'b', 'a']) await page.locator(`.keypad__key[data-key="${k}"]`).tap();
+    await expect(page.locator('html')).toHaveAttribute('data-retro', '');
+    await page.locator('.board__face--front button.sw2').tap();
+    await expect(back(page)).toHaveAttribute('data-bench', 'route');
+    const before = await page.evaluate(() => scrollY);
+    // A finger down on the board, moved 400 px up, lifted: the page scrolls, nothing is clicked.
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 200, y: 600 }] });
+    for (let i = 1; i <= 10; i++) await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 200, y: 600 - 40 * i }] });
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await expect.poll(() => page.evaluate(() => scrollY)).toBeGreaterThan(before + 100);
+    await expect(back(page)).not.toHaveAttribute('data-bench', 'done');
+    await page.locator('.bom caption').tap();
+    await final(page);
   });
 });

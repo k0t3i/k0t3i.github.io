@@ -862,6 +862,8 @@ test.describe('without JavaScript', () => {
               cell.querySelector('.bom__links')?.remove();
               // The hidden description of the part (plain text, read by the part on the circuit).
               cell.querySelector('[hidden]')?.remove();
+              // The result of the test bench (revision 11), hidden until its row passes.
+              cell.querySelector('.bom__result')?.remove();
               return cell.textContent?.trim();
             }),
           ),
