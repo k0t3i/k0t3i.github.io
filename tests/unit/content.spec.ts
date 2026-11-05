@@ -3,7 +3,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative, sep } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { READOUTS as ORACLE_READOUTS, SITE as ORACLE_SITE, absolute } from '../helpers/copy';
+import { EN as ORACLE_EN, FR as ORACLE_FR, READOUTS as ORACLE_READOUTS, SITE as ORACLE_SITE, absolute } from '../helpers/copy';
 import { en } from '../../src/content/en';
 import { fr } from '../../src/content/fr';
 import { READOUTS } from '../../src/content/readouts';
@@ -117,6 +117,32 @@ describe('content', () => {
       for (const [path, text] of strings(c.back)) {
         for (const mark of c.marks) expect(text, path).not.toMatch(word(mark.visible));
       }
+    }
+  });
+
+  // Revision 11 (spec 4.12): the test bench of the back face, as written in annex A (the oracle).
+  it('the test bench says, prints and describes what annex A writes, a result for each row', () => {
+    for (const [c, o] of [
+      [fr, ORACLE_FR],
+      [en, ORACLE_EN],
+    ] as const) {
+      const b = c.back.bench;
+      const ob = o.back.bench;
+      expect({ start: b.start, end: b.end, drc: b.drc, test: b.test, pass: b.pass, stamp: b.stamp, exit: b.exit, exitName: b.exitName }).toEqual({
+        start: ob.start,
+        end: ob.end,
+        drc: ob.drc,
+        test: ob.test,
+        pass: ob.pass,
+        stamp: ob.stamp,
+        exit: ob.exit,
+        exitName: ob.exitName,
+      });
+      expect(b.routing.replace('{n}', '37').replace('{total}', '152')).toBe(ob.routing(37, 152));
+      expect(b.described.replace('{result}', 'x')).toBe(ob.described('x'));
+      expect(c.back.bom.rows.map((r) => r.result)).toEqual(ob.results);
+      // The way out names its visible text first (WCAG 2.5.3, label in name).
+      expect(b.exitName.toUpperCase().startsWith(b.exit)).toBe(true);
     }
   });
 

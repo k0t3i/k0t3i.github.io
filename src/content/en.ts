@@ -89,7 +89,7 @@ export const en: SiteContent = {
       stamp: 'QC PASS',
       described: 'Test bench: {result}, PASS.',
       exit: 'EXIT',
-      exitName: 'Leave test mode',
+      exitName: 'Exit test mode',
     },
   },
   marks: [

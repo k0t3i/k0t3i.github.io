@@ -441,7 +441,7 @@ export const EN: Copy = {
       results: ['reactivity OK', '0 any found', '0 ms wasted', 'no keyboard trap', '0 clickable div', '0 !important', 'debt in check', 'all green', 'no magic smoke', 'all in phase', 'root cause found'],
       described: (result) => `Test bench: ${result}, PASS.`,
       exit: 'EXIT',
-      exitName: 'Leave test mode',
+      exitName: 'Exit test mode',
     },
   },
   marks: [
