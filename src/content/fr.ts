@@ -55,11 +55,11 @@ export const fr: SiteContent = {
     title: 'Face arrière · nomenclature',
     bom: {
       caption: `Nomenclature${NB}: les composants de la carte`,
-      columns: { ref: 'Repère', part: 'Composant', value: 'Valeur / compétence', linked: 'Relié à' },
+      columns: { ref: 'Repère', part: 'Composant', value: `Valeur${NB}/ compétence`, linked: 'Relié à' },
       // The part and the skill as they read in a sentence: the table capitalizes them (circuit/bom.ts).
       rows: [
         { ref: 'U10', part: `micro${SH}contrôleur`, value: 'ESP32-S3 · 240 MHz · USB', skill: 'Vue.js', details: '2 → 3 · Composition API · SSR' },
-        { ref: 'U11', part: 'mémoire flash', value: 'W25Q128 · 16 Mo QSPI', skill: 'TypeScript / JavaScript', details: 'strict · ES modules' },
+        { ref: 'U11', part: 'mémoire flash', value: 'W25Q128 · 16 Mo QSPI', skill: `TypeScript${NB}/ JavaScript`, details: 'strict · ES modules' },
         { ref: 'U12', part: `régu${SH}lateur 3,3${NB}V`, value: 'AP2112K · LDO 600 mA', skill: `perfor${SH}mance web`, details: 'audits · Core Web Vitals' },
         { ref: 'U13', part: `protec${SH}tion USB`, value: 'USBLC6-2 · ESD', skill: `acces${SH}sibilité`, details: 'WCAG 2.2 AA · guidelines produit' },
         { ref: 'U14', part: `exten${SH}seur d’E${WJ}/${WJ}S`, value: `TCA9554 · 8 E${WJ}/${WJ}S I²C`, skill: `HTML séman${SH}tique`, details: 'landmarks · ARIA juste' },

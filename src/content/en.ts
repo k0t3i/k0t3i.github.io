@@ -2,6 +2,8 @@ import { GITHUB_TEXT, SITE, project } from './site';
 import type { SiteContent } from './types';
 
 /** A soft hyphen: where a long name of the table may break, with its hyphen (no dictionary needed). */
+/** A no-break space: before the slash of the table, so a slash never ends up alone on a line. */
+const NB = ' ';
 const SH = '­';
 /** A word joiner (U+2060), round the slash of « E/S » and « I/O »: no line breaks inside them. */
 const WJ = '⁠';
@@ -55,11 +57,11 @@ export const en: SiteContent = {
     title: 'Back side · bill of materials',
     bom: {
       caption: 'Bill of materials: the parts on this board',
-      columns: { ref: 'Ref', part: 'Part', value: 'Value / skill', linked: 'Linked to' },
+      columns: { ref: 'Ref', part: 'Part', value: `Value${NB}/ skill`, linked: 'Linked to' },
       // The part and the skill as they read in a sentence: the table capitalizes them (circuit/bom.ts).
       rows: [
         { ref: 'U10', part: `micro${SH}controller`, value: 'ESP32-S3 · 240 MHz · USB', skill: 'Vue.js', details: '2 → 3 · Composition API · SSR' },
-        { ref: 'U11', part: 'flash memory', value: 'W25Q128 · 16 MB QSPI', skill: 'TypeScript / JavaScript', details: 'strict · ES modules' },
+        { ref: 'U11', part: 'flash memory', value: 'W25Q128 · 16 MB QSPI', skill: `TypeScript${NB}/ JavaScript`, details: 'strict · ES modules' },
         { ref: 'U12', part: `3.3 V regu${SH}lator`, value: 'AP2112K · LDO 600 mA', skill: `web perfor${SH}mance`, details: 'audits · Core Web Vitals' },
         { ref: 'U13', part: `USB protec${SH}tion`, value: 'USBLC6-2 · ESD', skill: `acces${SH}sibility`, details: 'WCAG 2.2 AA · product guidelines' },
         { ref: 'U14', part: `I${WJ}/${WJ}O expan${SH}der`, value: `TCA9554 · 8 I${WJ}/${WJ}O I²C`, skill: `seman${SH}tic HTML`, details: 'landmarks · ARIA done right' },

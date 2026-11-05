@@ -674,6 +674,18 @@ test.describe('the lines of the table', () => {
             }
             if (runs.length > 1 && runs.some((len) => len < 2)) out.push(`${m[0]} (${runs.join('|')})`);
           }
+          // No line of a cell holds a mark alone (a slash, a plus, an arrow): it stays with a word.
+          const lines = new Map<number, string>();
+          for (let k = 0; k < text.length; k++) {
+            const r = table.ownerDocument.createRange();
+            r.setStart(n, k);
+            r.setEnd(n, k + 1);
+            const box = r.getBoundingClientRect();
+            if (!box.width) continue;
+            const top = Math.round(box.top);
+            lines.set(top, (lines.get(top) ?? '') + text[k]);
+          }
+          for (const line of lines.values()) if (/^[\s/+→·]+$/.test(line) && /[/+→]/.test(line)) out.push(`« ${line.trim()} » alone in « ${text.trim()} »`);
         }
         return out;
       });
