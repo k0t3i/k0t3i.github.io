@@ -46,6 +46,23 @@
     --px-grid: #7a8754;
   }
 
+  /* The portrait of the player on the title of the game (game/play.ts), in four tones of the LCD, darkest first. */
+  :root[data-retro] .px--face0 {
+    fill: #1c2912;
+  }
+
+  :root[data-retro] .px--face1 {
+    fill: #3d5424;
+  }
+
+  :root[data-retro] .px--face2 {
+    fill: #67773f;
+  }
+
+  :root[data-retro] .px--face3 {
+    fill: #8d9a62;
+  }
+
   /*
    * The art of the wide board is a picture: its gold takes the hue of the mode from a layer over the
    * face, under everything placed on it. mix-blend-mode: hue keeps the saturation and the lightness of

@@ -125,6 +125,11 @@ test.describe('the code, by keyboard', () => {
   for (const copy of [FR, EN] as Copy[]) {
     test(`starts the game mode, and fetches the game only then (${copy.path})`, async ({ page }) => {
       const asked = chunks(page);
+      // The portrait of the player (Anthony's 32 x 32 avatar), fetched with the game, never before.
+      const portraits: string[] = [];
+      page.on('request', (r) => {
+        if (new URL(r.url()).pathname === '/img/avatar-32.png') portraits.push(r.url());
+      });
       const messages: string[] = [];
       page.on('console', (m) => messages.push(`${m.type()}: ${m.text()}`));
       page.on('pageerror', (e) => messages.push(e.message));
@@ -132,14 +137,21 @@ test.describe('the code, by keyboard', () => {
       await open(page, copy.path);
       await page.waitForLoadState('networkidle');
       expect(asked).toEqual([]);
+      expect(portraits).toEqual([]);
       // Nothing of it in the page as served.
       await expect(page.locator('html')).not.toHaveAttribute('data-retro', /.*/);
       await expect(said(page)).toHaveText('');
       await typeCode(page);
       await inGame(page, copy);
       expect(asked).toHaveLength(1);
-      // Its title: ROUTE, and the key A in its cap.
+      // Its title: ROUTE, the portrait of the player in the four tones of the screen, and the key A in its cap.
       await expect(pixels(page).locator('path.px--key')).toHaveCount(1);
+      await expect(pixels(page).locator('path[class*="px--face"]')).toHaveCount(4);
+      expect(portraits).toHaveLength(1);
+      // Once a game runs, the portrait goes: the field is the game's.
+      await page.keyboard.press('a');
+      await expect(pixels(page).locator('path.px--head')).toHaveCount(1);
+      await expect(pixels(page).locator('path[class*="px--face"]')).toHaveCount(0);
       expect(messages.filter((m) => /hydrat|error|warn/i.test(m))).toEqual([]);
     });
   }

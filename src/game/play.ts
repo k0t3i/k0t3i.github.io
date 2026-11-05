@@ -1,6 +1,7 @@
 import { GAME_WORDS } from '../content/readouts';
 import { codeKey, gesture, type Dir } from '../lib/konami';
 import { layoutText, pixelPath, textWidth, type Pixel } from '../lib/pixelFont';
+import { portrait } from '../lib/portrait';
 import { newRoutage, seeded, step, stepMs, turn, type Cell, type Routage } from '../lib/routage';
 import { sheetOpen } from '../lib/sheet';
 
@@ -12,7 +13,7 @@ import { sheetOpen } from '../lib/sheet';
  */
 
 /** A part of what DISP1 draws, each one a path of its own, coloured by its class (board.css, retro.css). */
-export type GamePart = 'frame' | 'trace' | 'head' | 'pad' | 'word' | 'score' | 'key' | 'glass' | 'pause';
+export type GamePart = 'frame' | 'trace' | 'head' | 'pad' | 'word' | 'score' | 'key' | 'glass' | 'pause' | 'face0' | 'face1' | 'face2' | 'face3';
 export type GameView = { part: GamePart; d: string }[];
 
 export interface GameHost {
@@ -45,11 +46,37 @@ const centred = (text: string, scale: 1 | 2): number => Math.floor((64 - textWid
 const words = (text: string, scale: 1 | 2, y: number): string => pixelPath(layoutText(text, scale), centred(text, scale), y);
 
 const FRAME = pixelPath(box(0, 0, 64, 64));
-/** The key that plays, in its key cap, from the top at y. */
-const keyCap = (y: number): { part: GamePart; d: string } => ({
+/** The key that plays, in its key cap, from the top at y (and from the left at x). */
+const keyCap = (y: number, x = 26): { part: GamePart; d: string } => ({
   part: 'key',
-  d: pixelPath([...box(26, y, 11, 11), ...layoutText(GAME_WORDS.key, 1).map((p) => ({ x: p.x + 29, y: p.y + y + 2 }))]),
+  d: pixelPath([...box(x, y, 11, 11), ...layoutText(GAME_WORDS.key, 1).map((p) => ({ x: p.x + x + 3, y: p.y + y + 2 }))]),
 });
+
+/**
+ * The portrait of the player on the title (Anthony's decision of 05/11/2026): his 32 x 32 avatar,
+ * public/img/avatar-32.png, fetched with the game (never before), drawn one picture pixel to one
+ * screen pixel in the four tones of the screen (lib/portrait.ts, retro.css). Without it (not loaded
+ * yet, or not at all) the title is as before.
+ */
+const PORTRAIT = '/img/avatar-32.png';
+const FACES: GamePart[] = ['face0', 'face1', 'face2', 'face3'];
+
+function loadPortrait(done: (tones: Pixel[][]) => void): void {
+  const img = new Image();
+  img.decoding = 'async';
+  img.src = PORTRAIT;
+  img
+    .decode()
+    .then(() => {
+      const canvas = document.createElement('canvas');
+      [canvas.width, canvas.height] = [img.naturalWidth, img.naturalHeight];
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      ctx.drawImage(img, 0, 0);
+      done(portrait(ctx.getImageData(0, 0, canvas.width, canvas.height).data, canvas.width, canvas.height));
+    })
+    .catch(() => {});
+}
 /** Paused: two bars on a patch of glass, in the middle of the field. */
 const PAUSED: GameView = [
   { part: 'glass', d: pixelPath(rect(26, 25, 11, 13)) },
@@ -95,9 +122,12 @@ export function play(host: GameHost): Game {
   let from: { x: number; y: number } | null = null;
   let moved = false;
   let held = false;
+  let face: GameView = [];
 
   function view(): GameView {
     const out: GameView = [{ part: 'frame', d: FRAME }];
+    // The title: ROUTE over the portrait of the player, its key cap at its right; or, without the portrait, as before.
+    if ((state === 'title' || !game) && face.length) return [...out, { part: 'word', d: words(GAME_WORDS.title, 2, 4) }, ...face, keyCap(39, 45)];
     if (state === 'title' || !game) return [...out, { part: 'word', d: words(GAME_WORDS.title, 2, 12) }, keyCap(38)];
     if (state === 'over') return [...out, { part: 'word', d: words(GAME_WORDS.over, 1, 10) }, { part: 'score', d: words(String(game.score), 2, 22) }, keyCap(42)];
     out.push({ part: 'trace', d: traceOf(game.trace) });
@@ -220,6 +250,12 @@ export function play(host: GameHost): Game {
   el?.addEventListener('touchmove', onMove, { passive: true });
   el?.addEventListener('touchend', onEnd, { passive: true });
   draw();
+  loadPortrait((tones) => {
+    if (stopped) return;
+    // Drawn 32 x 32 from x 10, y 23: under the title, left of the key cap, inside the frame.
+    face = tones.map((t, i) => ({ part: FACES[i] ?? 'face0', d: pixelPath(t, 10, 23) })).filter((f) => f.d);
+    if (state === 'title') draw();
+  });
 
   let stopped = false;
   const stop = (): void => {
