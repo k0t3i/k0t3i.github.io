@@ -23,8 +23,9 @@ describe('the parts a part is linked to', () => {
 
   it('follows the signals of the netlist, power and ground left out (links.ts)', () => {
     expect(Object.fromEntries(BOM_REFS.map((ref) => [ref, linkedTo(ref)]))).toEqual({
-      // J5 is reached through U13, a part of its own: the chip is linked to U13.
-      U10: ['U11', 'U13', 'U14', 'U15', 'U16', 'U17', 'U18', 'Y1', 'J6', 'J7', 'R1', 'LED1', 'D1', 'U2', 'J1', 'J2', 'J3', 'J4', 'DISP1'],
+      // J5 is reached through U13, a part of its own: the chip is linked to U13. The keys of the
+      // keypad (spec 4.11) through their pull-ups, which are not named (parts of the art).
+      U10: ['U11', 'U13', 'U14', 'U15', 'U16', 'U17', 'U18', 'Y1', 'J6', 'J7', 'R1', 'LED1', 'D1', 'U2', 'J1', 'J2', 'J3', 'J4', 'DISP1', 'SW3', 'SW4', 'SW5', 'SW6', 'SW7', 'SW8'],
       U11: ['U10'],
       // The regulator has only power pins: it is linked to the connector that feeds it.
       U12: ['J5'],

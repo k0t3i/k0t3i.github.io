@@ -20,7 +20,7 @@
 <path stroke-width="2" d="M1166 600V658L1178 670H1194"/>
 <path stroke-width="2" d="M1158 670V682L1170 694H1199"/>
 <path stroke-width="2" d="M1150 700V730L1162 742H1199"/>
-<path stroke-width="3" d="M1222 794L1210 806H1112L1100 794V760"/>
+<path stroke-width="3" d="M1222 794L1210 806H1169"/>
 <path stroke-width="2" d="M1000 578H956L944 590V626L952 634H970V647"/>
 <path stroke-width="2" d="M970 621H986V612L992 606"/>
 <path stroke-width="2" d="M962 621V612L956 606"/>
@@ -29,6 +29,31 @@
 <path stroke-width="2" d="M567 634H584"/>
 <path stroke-width="2" d="M778 634H794"/>
 <path stroke-width="2" d="M1066 252H1046"/>
+<path stroke-width="3" d="M1155 806H1112L1100 794V760"/>
+<path stroke-width="2" d="M1155 770V806"/>
+<path stroke-width="2" d="M1173 770V756"/>
+<path stroke-width="2" d="M1025 281H978L970 289V400L980 410"/>
+<path stroke-width="2" d="M980 410H998"/>
+<path stroke-width="2" d="M998 410L1007 419V433L1040 466V470"/>
+<path stroke-width="2" d="M1029 375V384L1016 397V410"/>
+<path stroke-width="2" d="M1016 410H1034"/>
+<path stroke-width="2" d="M1034 410L1043 419V445L1050 452V470"/>
+<path stroke-width="2" d="M1009 319H1047L1055 327V407L1052 410"/>
+<path stroke-width="2" d="M1052 410L1061 419V432H1079V419L1088 410"/>
+<path stroke-width="2" d="M1070 432L1060 442V470"/>
+<path stroke-width="2" d="M1081 337V381L1070 392V410"/>
+<path stroke-width="2" d="M1081 381H1097L1106 390V410"/>
+<path stroke-width="2" d="M1106 410L1097 419V428L1070 455V470"/>
+<path stroke-width="2" d="M1119 355V405L1124 410"/>
+<path stroke-width="2" d="M1124 410L1115 419V423L1080 458V470"/>
+<path stroke-width="2" d="M1159 327V393L1142 410"/>
+<path stroke-width="2" d="M1142 410L1133 419V427L1090 470"/>
+<path stroke-width="2" d="M1047 295L1056 304H1074"/>
+<path stroke-width="2" d="M1029 353L1036 346V342"/>
+<path stroke-width="2" d="M987 333L980 340"/>
+<path stroke-width="2" d="M1081 315L1074 308V304"/>
+<path stroke-width="2" d="M1105 333L1112 326V322"/>
+<path stroke-width="2" d="M1145 305L1152 298V294"/>
 </g>
 <g>
 <use href="#v" x="1046" y="522"/>
@@ -60,6 +85,13 @@
 <use href="#b" x="1214" y="698"/>
 <use href="#b" x="1230" y="698"/>
 <use href="#b" x="1238" y="792"/>
+<use href="#b" x="1036" y="342"/>
+<use href="#b" x="980" y="340"/>
+<use href="#b" x="1074" y="304"/>
+<use href="#b" x="1112" y="322"/>
+<use href="#b" x="1152" y="294"/>
+<use href="#b" x="1172" y="452"/>
+<use href="#b" x="1173" y="756"/>
 </g>
 <!-- End of the generated copper -->
 <!-- Mounting holes, stitching vias, keep-outs -->
@@ -108,6 +140,143 @@
 <!-- Test point -->
 <circle cx="1046" cy="252" r="6" fill="#c9a45c"/>
 <text x="1032" y="257" fill="#a29e95" font-family="JetBrains Mono,ui-monospace,Consolas,Menlo,monospace" font-size="16" text-anchor="end">TP1</text>
+<!-- The parts of the front drawn by the art, generated from src/circuit/keypad.ts, layout.ts and frontArt.ts by tests/unit/front-copper.spec.ts: do not edit by hand -->
+<g>
+<rect x="1022" y="279" width="6" height="4" fill="#c9a45c"/>
+<rect x="1022" y="293" width="6" height="4" fill="#c9a45c"/>
+<rect x="1044" y="293" width="6" height="4" fill="#c9a45c"/>
+<rect x="1044" y="279" width="6" height="4" fill="#c9a45c"/>
+<rect x="1025" y="277" width="22" height="22" rx="2" fill="#6c6f75"/>
+<circle cx="1029" cy="281" r="1" fill="#050506"/>
+<circle cx="1043" cy="281" r="1" fill="#050506"/>
+<circle cx="1029" cy="295" r="1" fill="#050506"/>
+<circle cx="1043" cy="295" r="1" fill="#050506"/>
+<circle cx="1036" cy="288" r="7" fill="#141518"/>
+<circle cx="1036" cy="288" r="5" fill="#2a2c31"/>
+<rect x="1027" y="372" width="4" height="6" fill="#c9a45c"/>
+<rect x="1041" y="372" width="4" height="6" fill="#c9a45c"/>
+<rect x="1027" y="350" width="4" height="6" fill="#c9a45c"/>
+<rect x="1041" y="350" width="4" height="6" fill="#c9a45c"/>
+<rect x="1025" y="353" width="22" height="22" rx="2" fill="#6c6f75"/>
+<circle cx="1029" cy="357" r="1" fill="#050506"/>
+<circle cx="1043" cy="357" r="1" fill="#050506"/>
+<circle cx="1029" cy="371" r="1" fill="#050506"/>
+<circle cx="1043" cy="371" r="1" fill="#050506"/>
+<circle cx="1036" cy="364" r="7" fill="#141518"/>
+<circle cx="1036" cy="364" r="5" fill="#2a2c31"/>
+<rect x="1006" y="317" width="6" height="4" fill="#c9a45c"/>
+<rect x="1006" y="331" width="6" height="4" fill="#c9a45c"/>
+<rect x="984" y="331" width="6" height="4" fill="#c9a45c"/>
+<rect x="984" y="317" width="6" height="4" fill="#c9a45c"/>
+<rect x="987" y="315" width="22" height="22" rx="2" fill="#6c6f75"/>
+<circle cx="991" cy="319" r="1" fill="#050506"/>
+<circle cx="1005" cy="319" r="1" fill="#050506"/>
+<circle cx="991" cy="333" r="1" fill="#050506"/>
+<circle cx="1005" cy="333" r="1" fill="#050506"/>
+<circle cx="998" cy="326" r="7" fill="#141518"/>
+<circle cx="998" cy="326" r="5" fill="#2a2c31"/>
+<rect x="1079" y="334" width="4" height="6" fill="#c9a45c"/>
+<rect x="1065" y="334" width="4" height="6" fill="#c9a45c"/>
+<rect x="1079" y="312" width="4" height="6" fill="#c9a45c"/>
+<rect x="1065" y="312" width="4" height="6" fill="#c9a45c"/>
+<rect x="1063" y="315" width="22" height="22" rx="2" fill="#6c6f75"/>
+<circle cx="1067" cy="319" r="1" fill="#050506"/>
+<circle cx="1081" cy="319" r="1" fill="#050506"/>
+<circle cx="1067" cy="333" r="1" fill="#050506"/>
+<circle cx="1081" cy="333" r="1" fill="#050506"/>
+<circle cx="1074" cy="326" r="7" fill="#141518"/>
+<circle cx="1074" cy="326" r="5" fill="#2a2c31"/>
+<rect x="1117" y="352" width="4" height="6" fill="#c9a45c"/>
+<rect x="1103" y="352" width="4" height="6" fill="#c9a45c"/>
+<rect x="1103" y="330" width="4" height="6" fill="#c9a45c"/>
+<rect x="1117" y="330" width="4" height="6" fill="#c9a45c"/>
+<rect x="1101" y="333" width="22" height="22" rx="2" fill="#6c6f75"/>
+<circle cx="1105" cy="337" r="1" fill="#050506"/>
+<circle cx="1119" cy="337" r="1" fill="#050506"/>
+<circle cx="1105" cy="351" r="1" fill="#050506"/>
+<circle cx="1119" cy="351" r="1" fill="#050506"/>
+<circle cx="1112" cy="344" r="7" fill="#141518"/>
+<circle cx="1112" cy="344" r="5" fill="#2a2c31"/>
+<rect x="1157" y="324" width="4" height="6" fill="#c9a45c"/>
+<rect x="1143" y="324" width="4" height="6" fill="#c9a45c"/>
+<rect x="1143" y="302" width="4" height="6" fill="#c9a45c"/>
+<rect x="1157" y="302" width="4" height="6" fill="#c9a45c"/>
+<rect x="1141" y="305" width="22" height="22" rx="2" fill="#6c6f75"/>
+<circle cx="1145" cy="309" r="1" fill="#050506"/>
+<circle cx="1159" cy="309" r="1" fill="#050506"/>
+<circle cx="1145" cy="323" r="1" fill="#050506"/>
+<circle cx="1159" cy="323" r="1" fill="#050506"/>
+<circle cx="1152" cy="316" r="7" fill="#141518"/>
+<circle cx="1152" cy="316" r="5" fill="#2a2c31"/>
+<circle cx="980" cy="410" r="5" fill="#c9a45c"/>
+<circle cx="998" cy="410" r="5" fill="#c9a45c"/>
+<circle cx="1016" cy="410" r="5" fill="#c9a45c"/>
+<circle cx="1034" cy="410" r="5" fill="#c9a45c"/>
+<circle cx="1052" cy="410" r="5" fill="#c9a45c"/>
+<circle cx="1070" cy="410" r="5" fill="#c9a45c"/>
+<circle cx="1088" cy="410" r="5" fill="#c9a45c"/>
+<circle cx="1106" cy="410" r="5" fill="#c9a45c"/>
+<circle cx="1124" cy="410" r="5" fill="#c9a45c"/>
+<circle cx="1142" cy="410" r="5" fill="#c9a45c"/>
+<rect x="1023" y="464" width="74" height="12" rx="2" fill="#141518"/>
+<circle cx="1030" cy="470" r="2" fill="#e8e4da"/>
+<text x="1038" y="474" fill="#a29e95" font-family="JetBrains Mono,ui-monospace,Consolas,Menlo,monospace" font-size="10">4607X</text>
+<circle cx="1172" cy="452" r="6" fill="#c9a45c"/>
+<rect x="1146" y="800" width="28" height="12" fill="#6c6f75"/>
+<rect x="1153" y="800" width="14" height="12" fill="#141518"/>
+<rect x="1150" y="764" width="28" height="12" fill="#6c6f75"/>
+<rect x="1157" y="764" width="14" height="12" fill="#7c6a50"/>
+</g>
+<path fill="none" stroke="#e8e4da" stroke-opacity=".35" d="M1020 272H1052V310H1090V342H1052V380H1020V342H982V310H1020V272"/>
+<path fill="none" stroke="#e8e4da" stroke-opacity=".35" d="M1102 328H1122L1128 334V354L1122 360H1102L1096 354V334L1102 328"/>
+<path fill="none" stroke="#e8e4da" stroke-opacity=".35" d="M1142 300H1162L1168 306V326L1162 332H1142L1136 326V306L1142 300"/>
+<g fill="#a29e95">
+<path d="M980 419L984 426H976"/>
+<path d="M998 419L1002 426H994"/>
+<path d="M1012 419H1020L1016 426"/>
+<path d="M1030 419H1038L1034 426"/>
+<path d="M1048 423L1055 419V427"/>
+<path d="M1074 423L1067 419V427"/>
+<path d="M1084 423L1091 419V427"/>
+<path d="M1110 423L1103 419V427"/>
+<text x="1124" y="427" fill="#a29e95" font-family="JetBrains Mono,ui-monospace,Consolas,Menlo,monospace" font-size="11" text-anchor="middle">B</text>
+<text x="1142" y="427" fill="#a29e95" font-family="JetBrains Mono,ui-monospace,Consolas,Menlo,monospace" font-size="11" text-anchor="middle">A</text>
+</g>
+<text x="958" y="446" fill="#a29e95" font-family="JetBrains Mono,ui-monospace,Consolas,Menlo,monospace" font-size="12">TEST</text>
+<text x="1172" y="472" fill="#a29e95" font-family="JetBrains Mono,ui-monospace,Consolas,Menlo,monospace" font-size="12" text-anchor="middle">TP5</text>
+<rect x="1076" y="204" width="94" height="38" fill="none" stroke="#e8e4da" stroke-opacity=".35"/>
+<rect x="1085" y="209" width="1" height="20" fill="#a29e95"/>
+<rect x="1088" y="209" width="1" height="20" fill="#a29e95"/>
+<rect x="1090" y="209" width="2" height="20" fill="#a29e95"/>
+<rect x="1093" y="209" width="2" height="20" fill="#a29e95"/>
+<rect x="1096" y="209" width="1" height="20" fill="#a29e95"/>
+<rect x="1098" y="209" width="1" height="20" fill="#a29e95"/>
+<rect x="1100" y="209" width="2" height="20" fill="#a29e95"/>
+<rect x="1104" y="209" width="1" height="20" fill="#a29e95"/>
+<rect x="1106" y="209" width="1" height="20" fill="#a29e95"/>
+<rect x="1108" y="209" width="2" height="20" fill="#a29e95"/>
+<rect x="1111" y="209" width="1" height="20" fill="#a29e95"/>
+<rect x="1113" y="209" width="2" height="20" fill="#a29e95"/>
+<rect x="1117" y="209" width="2" height="20" fill="#a29e95"/>
+<rect x="1120" y="209" width="1" height="20" fill="#a29e95"/>
+<rect x="1122" y="209" width="1" height="20" fill="#a29e95"/>
+<rect x="1124" y="209" width="2" height="20" fill="#a29e95"/>
+<rect x="1127" y="209" width="1" height="20" fill="#a29e95"/>
+<rect x="1130" y="209" width="1" height="20" fill="#a29e95"/>
+<rect x="1132" y="209" width="1" height="20" fill="#a29e95"/>
+<rect x="1134" y="209" width="2" height="20" fill="#a29e95"/>
+<rect x="1137" y="209" width="2" height="20" fill="#a29e95"/>
+<rect x="1140" y="209" width="1" height="20" fill="#a29e95"/>
+<rect x="1143" y="209" width="1" height="20" fill="#a29e95"/>
+<rect x="1145" y="209" width="1" height="20" fill="#a29e95"/>
+<rect x="1147" y="209" width="2" height="20" fill="#a29e95"/>
+<rect x="1150" y="209" width="1" height="20" fill="#a29e95"/>
+<rect x="1153" y="209" width="1" height="20" fill="#a29e95"/>
+<rect x="1155" y="209" width="2" height="20" fill="#a29e95"/>
+<rect x="1158" y="209" width="2" height="20" fill="#a29e95"/>
+<rect x="1161" y="209" width="1" height="20" fill="#a29e95"/>
+<text x="1123" y="238" fill="#a29e95" font-family="JetBrains Mono,ui-monospace,Consolas,Menlo,monospace" font-size="10" text-anchor="middle">S/N 2611</text>
+<!-- End of the generated parts -->
 <!-- DISP1: placement corners and header footprint -->
 <path fill="none" stroke="#e8e4da" stroke-opacity=".35" d="M1182 176V162H1196M1480 162H1494V176M1494 500V514H1480M1196 514H1182V500"/>
 <g id="disp1-pads">

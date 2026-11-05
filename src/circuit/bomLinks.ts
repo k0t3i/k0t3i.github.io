@@ -4,7 +4,7 @@
 import type { BomRef } from './bom';
 
 export const BOM_LINKS: Readonly<Record<BomRef, readonly string[]>> = {
-  U10: ['U11', 'U13', 'U14', 'U15', 'U16', 'U17', 'U18', 'Y1', 'J6', 'J7', 'R1', 'LED1', 'D1', 'U2', 'J1', 'J2', 'J3', 'J4', 'DISP1'],
+  U10: ['U11', 'U13', 'U14', 'U15', 'U16', 'U17', 'U18', 'Y1', 'J6', 'J7', 'R1', 'LED1', 'D1', 'U2', 'J1', 'J2', 'J3', 'J4', 'DISP1', 'SW3', 'SW4', 'SW5', 'SW6', 'SW7', 'SW8'],
   U11: ['U10'],
   U12: ['J5'],
   U13: ['U10', 'J5'],

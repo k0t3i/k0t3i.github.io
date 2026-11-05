@@ -28,6 +28,10 @@ export interface Device {
   vf?: number;
   /** Passive parts are looked through by « Relié à » (spec 4.10): resistors, capacitors, inductors, clamps, test points. */
   transparent?: true;
+  /** A test point or a row of test pads: probed, never a link (its pads are not joined to each other). */
+  probe?: true;
+  /** A bussed resistor network: each element between its pin and the common one (pin 1), never a link between two pins. */
+  bussed?: true;
 }
 
 /** "1 NAME type, 2 NAME type, ...": a pinout as the datasheet prints it. */
@@ -160,7 +164,14 @@ export const DEVICES = {
   bat42w: { mpn: 'BAT42W-E3-08 (Vishay, SOD-123)', datasheet: 'BAT42W datasheet, Fig. 1 Forward current vs forward voltage', pins: pinout('A A passive, K K passive'), transparent: true, vf: 0.25 },
   led0603: { mpn: 'APT1608 (Kingbright, 0603)', datasheet: 'Kingbright APT1608 series', pins: pinout('A A passive, K K passive') },
   led0805: { mpn: 'APT2012SECK (Kingbright, 0805, amber)', datasheet: 'Kingbright APT2012SECK', pins: pinout('A A passive, K K passive') },
-  tp: { mpn: '5019 (Keystone, SMT test point)', datasheet: 'Keystone 5019', pins: { 1: ['TP', 'passive'] }, transparent: true },
+  tp: { mpn: '5019 (Keystone, SMT test point)', datasheet: 'Keystone 5019', pins: { 1: ['TP', 'passive'] }, transparent: true, probe: true },
+  // The ferrite bead of the 5 V input (Murata BLM18PG, 0603: 220 Ω at 100 MHz, 1.4 A), and the TEST row
+  // of the keypad: ten bare gold pads (ENIG), the targets of the spring pins of a test bed (Mill-Max
+  // 0985 pogo pins), no part fitted.
+  fb0603: { mpn: 'BLM18PG221SN1D (Murata, 0603, 220 Ω at 100 MHz)', datasheet: 'Murata BLM18PG series', pins: two('1', '2'), transparent: true },
+  // Bourns 4607X-101-103LF: a bussed network of 6 x 10 kΩ in a SIP-7 (2.54 mm), pin 1 the common.
+  rn7bussed: { mpn: '4607X-101-103LF (Bourns, SIP-7, 6 x 10 kΩ bussed)', datasheet: 'Bourns 4600X series, Bussed circuit (101)', pins: header(7), bussed: true },
+  testpads10: { mpn: 'Test pads 1 x 10, ENIG (targets of Mill-Max 0985 spring pins)', datasheet: 'Mill-Max 0985 spring-loaded pin, recommended target', pins: header(10), transparent: true, probe: true },
   // The parts of the front face: the headers J1 and J2 (2.54 mm), the microSD socket J3, the JST PH J4,
   // the USB-C receptacle J5 (USB 2.0, 16 contacts), the switches and the jumper, the display module.
   header6: { mpn: '61300611121 (Würth WR-PHD, 1 x 6, 2.54 mm)', datasheet: 'Würth WR-PHD 2.54 mm', pins: header(6) },
@@ -185,6 +196,9 @@ export const DEVICES = {
   },
   // Omron B3F-1000 tactile switch: pins 1/2 and 3/4 joined inside, the contact between the pairs.
   tact: { mpn: 'B3F-1000 (Omron)', datasheet: 'Omron B3F, Internal connections', pins: header(4), bridges: [['1', '2'], ['3', '4']] },
+  // Omron B3FS-1000P: the 6 x 6 mm surface-mount tactile switch of the keypad, like SW1 (B3F) with gull
+  // wings; pins 1/2 and 3/4 joined inside, the contact between the pairs.
+  b3fs: { mpn: 'B3FS-1000P (Omron, 6 x 6 mm SMT)', datasheet: 'Omron B3FS, Internal connections', pins: header(4), bridges: [['1', '2'], ['3', '4']] },
   // C&K PCM12SMTR: SPDT slide switch, its common on pin 2.
   slide: { mpn: 'PCM12SMTR (C&K, SPDT)', datasheet: 'C&K PCM12 drawing', pins: pinout('1 1 passive, 2 COM passive, 3 3 passive') },
   // The display: a 240 x 240 TFT module on an ST7789V, its 6-pin header as silkscreened on the front.

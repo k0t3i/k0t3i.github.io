@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
 import { DEVICES, type PinType } from '../../src/circuit/devices';
+import { KEYPAD, TEST_PADS, TEST_ROW } from '../../src/circuit/keypad';
 import { NC, NETS, PARTS, deviceOf, netOf, pinsOf, type Net } from '../../src/circuit/netlist';
 import { en } from '../../src/content/en';
 import { fr } from '../../src/content/fr';
@@ -104,7 +105,8 @@ describe('the netlist of the board', () => {
       }
     }
     // Each rail has its source: the 5 V of USB-C, the regulator, the flash supply of the chip.
-    expect(net('VBUS').pins).toEqual(expect.arrayContaining(['J5.A4', 'J5.B4', 'J5.A9', 'J5.B9', 'U12.1']));
+    expect(net('VBUS_C').pins).toEqual(expect.arrayContaining(['J5.A4', 'J5.B4', 'J5.A9', 'J5.B9']));
+    expect(net('VBUS').pins).toContain('U12.1');
     expect(net('+3V3').pins).toContain('U12.5');
     expect(net('VDD_SPI').pins).toEqual(expect.arrayContaining(['U10.29', 'U11.8']));
     // The flash runs at 3.3 V: VDD_SPI comes from VDD3P3_RTC while GPIO45 (VDD_SPI voltage) reads low,
@@ -272,5 +274,39 @@ describe('the netlist of the board', () => {
     expect(between(/^C\d/, netOf('SW1.1')?.name ?? '', 'GND'), 'SW1 debounced').toHaveLength(1);
     expect(netOf('SW2.2')?.pins).toContain('U14.5');
     expect(netOf('JP1.2')?.pins).toContain('U14.4');
+  });
+
+  it('the test keypad: six switches on free GPIOs of the chip, each pulled up by 10 kΩ, its TEST pads on its net (spec 4.11)', () => {
+    for (const k of KEYPAD) {
+      const part = PARTS.find((p) => p.ref === k.ref);
+      expect([part?.dev, part?.face], k.ref).toEqual(['b3fs', 'front']);
+      // One side of the switch on the key, the other on the ground: a press pulls the line low.
+      expect([netOf(`${k.ref}.1`)?.name, netOf(`${k.ref}.2`)?.name, netOf(`${k.ref}.3`)?.name, netOf(`${k.ref}.4`)?.name], k.ref).toEqual([k.net, k.net, 'GND', 'GND']);
+      // Read by a GPIO of the chip: no strap, no pin of the quad flash (the octal pins GPIO33 to GPIO37
+      // and SPICLK_P / SPICLK_N, GPIO47 / GPIO48, are free with a quad flash).
+      const gpio = net(k.net).pins.filter((p) => at(p).ref === 'U10');
+      expect(gpio, k.net).toHaveLength(1);
+      expect(nameOf(gpio[0] ?? ''), k.net).toMatch(/^(GPIO3[3-7]|SPICLK_[PN])$/);
+      // Its pull-up, 10 kΩ to +3V3: an element of the bussed network RN1, its common on the rail.
+      const rn = net(k.net).pins.filter((p) => /^RN\d/.test(at(p).ref));
+      expect(rn, k.net).toHaveLength(1);
+      const ref = at(rn[0] ?? '').ref;
+      expect(deviceOf(ref).bussed, k.net).toBe(true);
+      expect(netOf(`${ref}.1`)?.name, k.net).toBe('+3V3');
+      expect(PARTS.find((p) => p.ref === ref)?.value, k.net).toBe('10 kΩ');
+    }
+    // Every element of RN1 is used: six keys on pins 2 to 7.
+    expect(pinsOf('RN1').map((p) => netOf(p)?.name)).toEqual(['+3V3', ...KEYPAD.map((k) => k.net)]);
+    // J8: the ten pads of the test bed, in the order of their marks, each on the net of its key.
+    expect(TEST_PADS.map((p) => netOf(`${TEST_ROW.ref}.${p.pin}`)?.name)).toEqual(TEST_PADS.map((p) => p.net));
+    expect(deviceOf(TEST_ROW.ref).probe).toBe(true);
+  });
+
+  it('the 5 V input runs through a ferrite bead and its capacitor, and TP5 is a ground for the test bed', () => {
+    // J5 brings VBUS_C; FB1 (a ferrite bead) passes it on to VBUS, filtered by C27 to ground.
+    expect(netOf('J5.A4')?.name).toBe('VBUS_C');
+    expect(between(/^FB\d/, 'VBUS_C', 'VBUS')).toEqual(['FB1']);
+    expect(between(/^C\d/, 'VBUS', 'GND')).toContain('C27');
+    expect(netOf('TP5.1')?.name).toBe('GND');
   });
 });

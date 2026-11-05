@@ -22,6 +22,17 @@ export const FED_BY: Readonly<Record<string, string>> = { U12: 'J5' };
 
 const partOf = (pin: string): string => pin.split('.')[0] ?? '';
 const transparent = (ref: string): boolean => Boolean((deviceOf(ref) as { transparent?: true }).transparent);
+/** A test point or the TEST row: probed, never a link, and its pads joined to nothing (spec 4.11). */
+const probe = (ref: string): boolean => {
+  const d = deviceOf(ref) as { probe?: true; bussed?: true };
+  // A bussed network too: each of its resistors ends on the common rail, so it links nothing.
+  return Boolean(d.probe || d.bussed);
+};
+/** A passive of the front named in « Relié à »: a part of the page (R1, D1), not one of the art (spec 4.11). */
+const named = (ref: string): boolean => {
+  const p = PARTS.find((x) => x.ref === ref);
+  return p?.face === 'front' && !p.art;
+};
 const netsOfPart = (ref: string): Net[] => NETS.filter((n) => n.pins.some((p) => partOf(p) === ref));
 
 export interface Link {
@@ -46,10 +57,10 @@ export function linksOf(ref: string): Link[] {
     const here = [...path, net.name];
     for (const pin of net.pins) {
       const other = partOf(pin);
-      if (other === ref) continue;
+      if (other === ref || probe(other)) continue;
       if (transparent(other)) {
         // A passive of the front face is named too (its pads show on the page, spec 4.10), and looked through.
-        if (PARTS.find((p) => p.ref === other)?.face === 'front' && !(net.bus && ref !== MASTER)) reach(other, here);
+        if (named(other) && !(net.bus && ref !== MASTER)) reach(other, here);
         for (const next of netsOfPart(other)) if (next !== net) walk(next, here, seen);
         continue;
       }
@@ -61,8 +72,19 @@ export function linksOf(ref: string): Link[] {
   for (const net of netsOfPart(ref)) walk(net, [], new Set());
   const feeder = FED_BY[ref];
   if (feeder) {
-    const shared = NETS.filter((n) => n.kind === 'power' && n.pins.some((p) => partOf(p) === ref) && n.pins.some((p) => partOf(p) === feeder));
-    reach(feeder, shared.map((n) => n.name));
+    // The power nets from the part to its feeder, through the passives between them (the ferrite bead FB1).
+    const mine = NETS.filter((n) => n.kind === 'power' && n.pins.some((p) => partOf(p) === ref));
+    const theirs = (n: Net) => n.pins.some((p) => partOf(p) === feeder);
+    const shared = mine.filter(theirs).map((n) => n.name);
+    if (!shared.length) {
+      for (const n of mine) {
+        for (const via of n.pins.map(partOf).filter((x) => transparent(x) && !probe(x))) {
+          const next = netsOfPart(via).find((m) => m !== n && m.kind === 'power' && theirs(m));
+          if (next) shared.push(n.name, next.name);
+        }
+      }
+    }
+    reach(feeder, shared);
   }
   return [...found].map(([to, nets]) => ({ to, nets: [...nets] })).sort((a, b) => order(a.to) - order(b.to));
 }

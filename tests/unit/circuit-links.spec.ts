@@ -12,7 +12,7 @@ import { NETS, PARTS } from '../../src/circuit/netlist';
 describe('the links of the parts of the bill of materials', () => {
   it('follow the rules of the spec', () => {
     const expected: Record<string, string> = {
-      U10: 'U11 U13 U14 U15 U16 U17 U18 Y1 J6 J7 R1 LED1 D1 U2 J1 J2 J3 J4 DISP1',
+      U10: 'U11 U13 U14 U15 U16 U17 U18 Y1 J6 J7 R1 LED1 D1 U2 J1 J2 J3 J4 DISP1 SW3 SW4 SW5 SW6 SW7 SW8',
       U11: 'U10',
       U12: 'J5',
       U13: 'U10 J5',
@@ -37,9 +37,17 @@ describe('the links of the parts of the bill of materials', () => {
 
   it('name no power link but the one exception, U12 to J5, the connector that feeds it', () => {
     expect(FED_BY).toEqual({ U12: 'J5' });
-    expect(linksOf('U12')).toEqual([{ to: 'J5', nets: ['VBUS'] }]);
+    // Through the ferrite bead FB1, a passive looked through like the others.
+    expect(linksOf('U12')).toEqual([{ to: 'J5', nets: ['VBUS', 'VBUS_C'] }]);
     const signal = (ref: string) => NETS.some((n) => n.kind === 'signal' && n.pins.some((p) => p.startsWith(`${ref}.`)));
     for (const p of PARTS.filter((q) => q.ref !== 'U12' && !signal(q.ref))) expect(linksOf(p.ref), p.ref).toEqual([]);
+  });
+
+  it('name the keys of the keypad, but never their pull-ups nor the pads of the test bed (spec 4.11)', () => {
+    expect(linksOf('U10').find((l) => l.to === 'SW3')?.nets).toEqual(['KEY_UP']);
+    for (const ref of ['RN1', 'J8', 'TP5', 'FB1', 'C27']) expect(linkedTo('U10'), ref).not.toContain(ref);
+    // The TEST row joins none of its nets to another: each key is linked to the chip only.
+    expect(linkedTo('SW5')).toEqual(['U10']);
   });
 
   it('are both ways between the parts of the bill of materials', () => {

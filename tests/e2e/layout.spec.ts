@@ -1,6 +1,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
 import { EN, FR } from '../helpers/copy';
 import { boxStill, tiltStill } from '../helpers/still';
+import { FRONT_PADS } from '../../src/circuit/layout';
 
 // The flowing board (portrait), below 79rem, then the wide board (79rem and up).
 
@@ -634,11 +635,14 @@ function wideProblems(page: Page): Promise<string[]> {
 
 /**
  * Where each live trace of the wide board starts and ends: `<part> <from a via of the art, or from
- * another part> <into the drawing of its part>`. A route runs the way its current flows: from the via
+ * another part, or from a part drawn by the art> <into the drawing of its part>`. A route runs the way its current flows: from the via
  * where its signal comes up from the back (from R1 for LED1) to the part, and out of J5 for its power.
  */
+/** The pads of the parts the art draws, where a route may start (FB1, which takes the 5 V out of J5, spec 4.11). */
+const ART_PADS = FRONT_PADS.filter((p) => p.ref === 'FB1').map((p) => ({ x: p.x, y: p.y, w: p.w, h: p.h }));
+
 function traceEnds(page: Page): Promise<string[]> {
-  return page.evaluate(async () => {
+  return page.evaluate(async (artPads) => {
     type Box = { left: number; right: number; top: number; bottom: number };
     const boardEl = document.querySelector('.board') as HTMLElement;
     const board = boardEl.getBoundingClientRect();
@@ -673,9 +677,10 @@ function traceEnds(page: Page): Promise<string[]> {
       const [source, part] = id === 'j5' ? [end, start] : [start, end];
       const fromVia = vias.some((v) => Math.hypot(source.x - v.x, source.y - v.y) <= v.r);
       const fromPart = ids.some((other) => other !== id && within(source, drawn(other)));
-      return `${id} ${fromVia || fromPart} ${within(part, drawn(id))}`;
+      const fromArt = artPads.some((q) => within(source, { left: board.left + (q.x - q.w / 2) * u, right: board.left + (q.x + q.w / 2) * u, top: board.top + (q.y - q.h / 2) * u, bottom: board.top + (q.y + q.h / 2) * u }));
+      return `${id} ${fromVia || fromPart || fromArt} ${within(part, drawn(id))}`;
     });
-  });
+  }, ART_PADS);
 }
 
 /**

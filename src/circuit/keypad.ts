@@ -5,7 +5,7 @@
  * PartSprite places the parts, with --x / --y), the netlist and the layout take their pads from it,
  * and the art draws the bodies there.
  *
- * - The switches: six Omron B3FS-1000P, 6 x 6 mm surface-mount tactile switches (about 23 units of
+ * - The switches: six Omron B3FS-1000P, 6 x 6 mm surface-mount tactile switches (about 22 units of
  *   the art), a cross ↑ ↓ ← → and B and A, on the nets KEY_UP… of the netlist.
  * - The art draws each switch whole (its four legs, its metal frame, its round plunger), so that the
  *   pad reads as a drawing without JavaScript; the button of the page lies over it, its hit area the
@@ -37,9 +37,9 @@ export interface KeySwitch {
 /** The side of the hit area of each switch, in front units (38 units: 28.5 px at 79rem). */
 export const KEY_HIT = 38;
 
-/** The body of a switch drawn in the art: 6 x 6 mm, its plunger 3.5 mm across. */
-export const KEY_BODY = 23;
-export const KEY_PLUNGER = 13;
+/** The body of a switch drawn in the art (its tin plate, 6 x 6 mm), and its plunger, 3.5 mm across. */
+export const KEY_BODY = 22;
+export const KEY_PLUNGER = 14;
 
 /** The centre of the cross. */
 const CX = 1036;

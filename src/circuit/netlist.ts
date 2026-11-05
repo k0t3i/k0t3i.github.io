@@ -15,6 +15,12 @@ import { DEVICES, type Device, type DeviceId } from './devices';
  *   clamps it to 3.3 V, a Schottky); LED1 lit through R1; C1 the bulk of the 3.3 V rail; U2 (LM75B) measures the
  *   temperature, away from the hot parts; SW1 (debounced by R9 and C18), SW2 and JP1 (the theme) read by
  *   U14 (TCA9554, JP1 on P0, SW2 on P1, SW1 on P2), which raises EXP_INT.
+ * - The test keypad of the front (spec 4.11): SW3 to SW8 (↑ ↓ ← → B A), each between a free GPIO of the
+ *   chip and the ground, pulled up by 10 kΩ (RN1, a bussed network), its pads on the TEST row J8
+ *   (the targets of a test bed); TP5, the ground of the bed. The 5 V of J5 (VBUS_C) reaches the board
+ *   through the ferrite bead FB1, filtered by C27.
+ *   The four JTAG pins are GPIOs (JTAG runs over the native USB): LED_DRV, RTC_INT, SDA and SCL leave the
+ *   chip there, by the devices they serve, so that the keys take six pins of its bottom side.
  * - On I²C (4.7 kΩ pull-ups): U14 0x20, U15 (PCA9633, the four status LEDs) 0x62, U16 (PCF8563, the
  *   uptime, its 32.768 kHz crystal Y2) 0x51, U18 (BH1750, ambient light) 0x23, U2 0x48.
  */
@@ -32,6 +38,11 @@ export interface Net {
 
 export interface Part {
   ref: string;
+  /**
+   * A part of the front drawn by its art only, out of the content of the page: its pads are on the
+   * page, but « Relié à » looks through it without naming it (the pull-ups of the keypad, spec 4.11).
+   */
+  art?: true;
   dev: DeviceId;
   value?: string;
   face: 'back' | 'front';
@@ -135,6 +146,19 @@ export const PARTS: readonly Part[] = [
   front('JP1', 'jumper3'),
   front('DISP1', 'display'),
   front('TP1', 'tp', '3V3'),
+  // The test keypad (spec 4.11, keypad.ts): ↑ ↓ ← → B A, their pull-ups, the TEST row, the ground of the bed.
+  front('SW3', 'b3fs'),
+  front('SW4', 'b3fs'),
+  front('SW5', 'b3fs'),
+  front('SW6', 'b3fs'),
+  front('SW7', 'b3fs'),
+  front('SW8', 'b3fs'),
+  front('RN1', 'rn7bussed', '10 kΩ'),
+  front('J8', 'testpads10'),
+  front('TP5', 'tp', 'GND'),
+  // The 5 V input: the ferrite bead and its capacitor, by J5.
+  front('FB1', 'fb0603', '220 Ω', { art: true }),
+  front('C27', 'c0603', '4.7 µF', { art: true }),
 ];
 
 const net = (name: string, kind: NetKind, pins: string, bus?: Net['bus']): Net => ({ name, kind, pins: pins.trim().split(/\s+/), ...(bus ? { bus } : {}) });
@@ -145,13 +169,15 @@ export const NETS: readonly Net[] = [
     C2.2 C3.2 C4.2 C5.2 C6.2 C7.2 C8.2 C9.2 C10.2 C11.2 C12.2 C13.2 C14.2 C15.2 C16.2 C17.2 C18.2 C19.2 C20.2
     C21.2 C22.2 C23.2 C24.2 C25.2 C26.2 R2.2 R3.2 TP3.1
     C1.2 LED1.K U2.4 U2.5 U2.6 U2.7 J1.6 J2.4 J3.6 J3.S1 J3.S2 J4.3
-    J5.A1 J5.A12 J5.B1 J5.B12 J5.S1 J5.S2 J5.S3 J5.S4 SW1.3 SW1.4 SW2.3 JP1.3 DISP1.1`),
-  net('VBUS', 'power', 'J5.A4 J5.B4 J5.A9 J5.B9 U12.1 U12.3 U13.5 C2.1 C26.1 TP2.1'),
+    J5.A1 J5.A12 J5.B1 J5.B12 J5.S1 J5.S2 J5.S3 J5.S4 SW1.3 SW1.4 SW2.3 JP1.3 DISP1.1
+    SW3.3 SW3.4 SW4.3 SW4.4 SW5.3 SW5.4 SW6.3 SW6.4 SW7.3 SW7.4 SW8.3 SW8.4 TP5.1 C27.2`),
+  net('VBUS_C', 'power', 'J5.A4 J5.B4 J5.A9 J5.B9 FB1.1'),
+  net('VBUS', 'power', 'FB1.2 C27.1 U12.1 U12.3 U13.5 C2.1 C26.1 TP2.1'),
   net('+3V3', 'power', `
     U12.5 C3.1 U10.2 U10.3 U10.20 U10.46 U10.55 U10.56 C4.1 C5.1 C6.1 C8.1 C9.1 C10.1
     R4.1 R5.1 R6.1 R7.1 R8.1 R9.1 R10.1 R11.1 R12.1 R13.1 R14.1 R15.1 R16.1 R17.1 R18.1 R19.1 R20.1
     U14.16 C17.1 U15.8 C19.1 U16.8 C20.1 U17.3 C21.1 U18.1 C22.1 C24.1 C25.1 J6.1
-    C1.1 D1.K U2.8 J1.5 J2.3 J3.4 J4.2 SW2.1 JP1.1 DISP1.2 TP1.1`),
+    C1.1 D1.K U2.8 J1.5 J2.3 J3.4 J4.2 SW2.1 JP1.1 DISP1.2 TP1.1 RN1.1`),
   net('VDD_SPI', 'power', 'U10.29 U11.8 C7.1 C16.1'),
   // The radio, through the π network.
   net('LNA_IN', 'signal', 'U10.1 C14.1 L1.1'),
@@ -187,8 +213,8 @@ export const NETS: readonly Net[] = [
   net('SD_DAT1', 'signal', 'J3.8 R18.2'),
   net('SD_DAT2', 'signal', 'J3.1 R19.2'),
   // The I²C bus.
-  net('SDA', 'signal', 'U10.38 R6.2 U14.15 U15.7 U16.5 U18.4 U2.1 J2.2', 'i2c'),
-  net('SCL', 'signal', 'U10.39 R7.2 U14.14 U15.6 U16.6 U18.6 U2.2 J2.1', 'i2c'),
+  net('SDA', 'signal', 'U10.47 R6.2 U14.15 U15.7 U16.5 U18.4 U2.1 J2.2', 'i2c'),
+  net('SCL', 'signal', 'U10.48 R7.2 U14.14 U15.6 U16.6 U18.6 U2.2 J2.1', 'i2c'),
   // The inputs of the front, read by U14, and its interrupt.
   net('EXP_INT', 'signal', 'U10.12 U14.13 R8.2'),
   net('BTN', 'signal', 'SW1.1 SW1.2 U14.6 R9.2 C18.1'),
@@ -202,8 +228,16 @@ export const NETS: readonly Net[] = [
   // J4: 1-Wire.
   net('ONEWIRE', 'signal', 'U10.23 J4.1 R20.2 D1.A'),
   // LED1, through R1.
-  net('LED_DRV', 'signal', 'U10.36 R1.1'),
+  net('LED_DRV', 'signal', 'U10.44 R1.1'),
   net('LED_A', 'signal', 'R1.2 LED1.A'),
+  // The test keypad: each key on a GPIO of the chip (GPIO33 to GPIO36, GPIO47, GPIO48: with a quad
+  // flash, the octal pins are free), its pull-up in RN1, its TEST pads.
+  net('KEY_UP', 'signal', 'U10.41 SW3.1 SW3.2 RN1.2 J8.1 J8.2'),
+  net('KEY_DOWN', 'signal', 'U10.40 SW4.1 SW4.2 RN1.3 J8.3 J8.4'),
+  net('KEY_LEFT', 'signal', 'U10.39 SW5.1 SW5.2 RN1.4 J8.5 J8.7'),
+  net('KEY_RIGHT', 'signal', 'U10.38 SW6.1 SW6.2 RN1.5 J8.6 J8.8'),
+  net('KEY_B', 'signal', 'U10.37 SW7.1 SW7.2 RN1.6 J8.9'),
+  net('KEY_A', 'signal', 'U10.36 SW8.1 SW8.2 RN1.7 J8.10'),
   // The status LEDs, sunk by U15.
   net('STAT0', 'signal', 'U15.1 D2.K'),
   net('STAT1', 'signal', 'U15.2 D3.K'),
@@ -216,7 +250,7 @@ export const NETS: readonly Net[] = [
   // The RTC: its crystal, its interrupt.
   net('OSCI', 'signal', 'U16.1 Y2.1'),
   net('OSCO', 'signal', 'U16.2 Y2.2'),
-  net('RTC_INT', 'signal', 'U10.37 U16.3 R14.2'),
+  net('RTC_INT', 'signal', 'U10.45 U16.3 R14.2'),
   // The light sensor: DVI held low for a while after power-up (R15, C23).
   net('DVI', 'signal', 'U18.5 R15.2 C23.1'),
 ];
@@ -235,14 +269,8 @@ export const NC: Readonly<Record<string, string>> = {
   'U10.28': 'SPICS1: chip select of an external PSRAM, none fitted',
   'U10.13': UNUSED,
   'U10.14': UNUSED,
-  'U10.40': UNUSED,
-  'U10.41': UNUSED,
   'U10.42': UNUSED,
   'U10.43': UNUSED,
-  'U10.44': 'MTCK: JTAG runs over the native USB',
-  'U10.45': 'MTDO: JTAG runs over the native USB',
-  'U10.47': 'MTDI: JTAG runs over the native USB',
-  'U10.48': 'MTMS: JTAG runs over the native USB',
   'U14.7': 'P3 unused: an input with its internal 100 kΩ pull-up',
   'U14.9': 'P4 unused: an input with its internal 100 kΩ pull-up',
   'U14.10': 'P5 unused: an input with its internal 100 kΩ pull-up',

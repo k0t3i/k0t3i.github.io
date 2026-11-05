@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import BoardSignal from '../../src/components/BoardSignal.vue';
 import { FRONT_NET_PADS, VIA, frontVias, type NetPad } from '../../src/circuit/copper';
+import { BEGIN_PARTS, END_PARTS, frontPartsArt } from '../../src/circuit/frontArt';
 import { CIRCUIT, FRONT_ROUTES, FRONT_TRACES, pointsPath, type Point, type Trace, type Via } from '../../src/circuit/layout';
 
 /*
@@ -87,7 +88,9 @@ describe('the routes of the front', () => {
     expect(padsAt(FRONT_ROUTES.led1.pts[0] as Point, 'LED_A').map((p) => `${p.ref}.${p.pin}`)).toEqual(['R1.2']);
     expect(viaAt(FRONT_ROUTES.c1.pts[0] as Point, '+3V3')?.kind).toBe('blind');
     // The power comes from J5.
-    expect([FRONT_ROUTES.j5.net, padsAt(FRONT_ROUTES.j5.pts[0] as Point, 'VBUS')[0]?.ref]).toEqual(['VBUS', 'J5']);
+    expect([FRONT_ROUTES.j5.net, padsAt(FRONT_ROUTES.j5.pts[0] as Point, 'VBUS_C')[0]?.ref]).toEqual(['VBUS_C', 'J5']);
+    // Through the ferrite bead FB1 (spec 4.11): the route of J5 ends on it.
+    expect(padsAt(FRONT_ROUTES.j5.pts.at(-1) as Point, 'VBUS_C').map((p) => p.ref)).toEqual(['FB1']);
   });
 
   it('pin 1 of U2 is the pad by the dimple of its drawing, as on the page', () => {
@@ -147,7 +150,12 @@ describe('the art of the front (board-wide.svg)', () => {
     const end = art.indexOf(END);
     const want = frontArt();
     if (process.env.UPDATE_ART && begin >= 0 && end > begin) {
-      writeFileSync(ART_FILE, art.slice(0, begin) + want + art.slice(end + END.length));
+      let next = art.slice(0, begin) + want + art.slice(end + END.length);
+      const [pb, pe] = [next.indexOf(BEGIN_PARTS), next.indexOf(END_PARTS)];
+      // The parts after the copper (and after the test point TP1, drawn by hand), before the frame of DISP1.
+      next = pb >= 0 && pe > pb ? next.slice(0, pb) + frontPartsArt() + next.slice(pe + END_PARTS.length) : next.replace('<!-- DISP1: placement corners', `${frontPartsArt()}
+<!-- DISP1: placement corners`);
+      writeFileSync(ART_FILE, next);
       return;
     }
     expect(begin, 'the art has a generated copper block').toBeGreaterThan(0);
@@ -155,6 +163,11 @@ describe('the art of the front (board-wide.svg)', () => {
     // The copper of the header switches is all it leaves out: THEME from JP1, FLIP and the supply of SW2.
     expect(FRONT_TRACES.filter(onHeader).map((t) => t.net).sort()).toEqual(['+3V3', 'FLIP', 'GND', 'THEME']);
     expect(frontVias().filter((v) => !DRAWN_VIAS.some((w) => w.x === v.x && w.y === v.y)).map((v) => v.net).sort()).toEqual(['+3V3', 'FLIP', 'GND', 'THEME']);
+    // The parts the art draws (spec 4.11), their own block, generated too.
+    const pb = art.indexOf(BEGIN_PARTS);
+    const pe = art.indexOf(END_PARTS);
+    expect(pb, 'the art has a generated block of parts').toBeGreaterThan(end);
+    expect(art.slice(pb, pe + END_PARTS.length)).toBe(frontPartsArt());
     // No other copper drawn by hand: the only traces of the art are in the block.
     expect((art.slice(0, begin) + art.slice(end)).match(/<path [^>]*stroke-width/g)).toBeNull();
   });

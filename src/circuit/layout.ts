@@ -1,4 +1,5 @@
 import { FOOTPRINTS, type Footprint, type FootprintId, type Pad, type Rect } from './footprints';
+import { KEYPAD, TEST_PADS, TEST_ROW } from './keypad';
 import { PARTS, type Part } from './netlist';
 import type { DeviceId } from './devices';
 import type { Layer, Point } from './front';
@@ -47,7 +48,8 @@ export type Rot = 0 | 90 | 180 | 270;
 
 /** Where each part of the back is: the top-left corner of its box as placed, and its quarter turns (clockwise). */
 export const PLACE: Readonly<Record<string, [x: number, y: number, rot?: Rot]>> = {
-  // U10 in the middle, turned a quarter: its radio, its crystal and its UART at its top right corner.
+  // U10 in the middle, turned a quarter: its radio, its crystal and its UART at its top right corner;
+  // the keys of the keypad go straight down from its bottom right pins to the network RN1 (spec 4.11).
   U10: [430, 290, 90],
   C5: [550, 250, 270],
   C4: [528, 236, 270],
@@ -60,7 +62,7 @@ export const PLACE: Readonly<Record<string, [x: number, y: number, rot?: Rot]>> 
   Y1: [622, 300, 90],
   C12: [652, 286],
   C13: [668, 304, 90],
-  C8: [590, 390],
+  C8: [598, 398],
   C6: [404, 266],
   // Reset and boot, by J6 at the top.
   J6: [380, 96],
@@ -70,10 +72,10 @@ export const PLACE: Readonly<Record<string, [x: number, y: number, rot?: Rot]>> 
   C11: [404, 196, 90],
   R5: [500, 196, 90],
   TP4: [380, 196],
-  // The flash, under the chip: its near pins face it.
-  U11: [470, 470],
-  C7: [440, 476, 90],
-  C16: [454, 476, 90],
+  // The flash, under the chip, left of RN1: its near pins facing it.
+  U11: [432, 490],
+  C7: [398, 452],
+  C16: [420, 500, 90],
   // U14 and the inputs of the front, on the left, under the header of DISP1.
   U14: [190, 300, 90],
   C17: [256, 284],
@@ -180,6 +182,37 @@ const rect = (ref: string, pin: string, x: number, y: number, w: number, h: numb
 const tht = (ref: string, pin: string, x: number, y: number, r = 4): PlacedPad => ({ ref, pin, x, y, w: 2 * r, h: 2 * r, round: true, layer: 'both' });
 const square = (ref: string, pin: string, x: number, y: number, r = 4): PlacedPad => ({ ref, pin, x, y, w: 2 * r, h: 2 * r, layer: 'both' });
 
+/**
+ * The switches of the keypad (B3FS, keypad.ts): four gull-wing pads round each body, 11 units out from
+ * its centre on one axis and 7 on the other. The pair of the key (pins 1 and 2, joined inside) faces
+ * where its copper leaves: ↑ to its left, round the cross; ← to its right, through the middle of the
+ * cross; the others down. The other pair (3 and 4) is on the ground.
+ */
+export const KEY_SIDE: Readonly<Record<string, 'left' | 'right' | 'down'>> = { SW3: 'left', SW4: 'down', SW5: 'right', SW6: 'down', SW7: 'down', SW8: 'down' };
+
+function KEYPAD_PADS(): PlacedPad[] {
+  return KEYPAD.flatMap(({ ref, x, y }) => {
+    const side = KEY_SIDE[ref];
+    // Pin 1 is the pad its copper leaves from, pin 2 its twin; pin 3 is the ground pad routed, pin 4 its twin.
+    const at: Record<string, [number, number]> =
+      side === 'left'
+        ? { 1: [x - 11, y - 7], 2: [x - 11, y + 7], 3: [x + 11, y + 7], 4: [x + 11, y - 7] }
+        : side === 'right'
+          ? { 1: [x + 11, y - 7], 2: [x + 11, y + 7], 3: [x - 11, y + 7], 4: [x - 11, y - 7] }
+          : ref === 'SW4'
+            ? { 1: [x - 7, y + 11], 2: [x + 7, y + 11], 3: [x - 7, y - 11], 4: [x + 7, y - 11] }
+            : ref === 'SW6'
+              ? { 1: [x + 7, y + 11], 2: [x - 7, y + 11], 3: [x + 7, y - 11], 4: [x - 7, y - 11] }
+              : { 1: [x + 7, y + 11], 2: [x - 7, y + 11], 3: [x - 7, y - 11], 4: [x + 7, y - 11] };
+    const [w, h] = side === 'down' ? [4, 6] : [6, 4];
+    return ['1', '2', '3', '4'].map((pin) => rect(ref, pin, at[pin]?.[0] ?? x, at[pin]?.[1] ?? y, w, h));
+  });
+}
+
+/** The place of RN1 on the front: pin 1, then a pin every 10 units (2.54 mm, as J1) to the right. */
+export const RN1_X = 1030;
+export const RN1_Y = 470;
+
 export const FRONT_PADS: readonly PlacedPad[] = [
   // The principles (PartSprite.vue, at --x of wide.css, y 618): pad centres in front coordinates.
   rect('R1', '1', 119.5, 634, 13, 16),
@@ -235,7 +268,23 @@ export const FRONT_PADS: readonly PlacedPad[] = [
   rect('J5', 'A5', 1223, 772, 4, 4),
   rect('J5', 'B5', 1231, 784, 4, 4),
   rect('J5', 'A1', 1238, 792, 4, 4),
+  ...KEYPAD_PADS(),
+  // The TEST row J8, its pads under the keypad; TP5, the ground of the test bed, by it.
+  ...TEST_PADS.map((p) => ({ ref: TEST_ROW.ref, pin: p.pin, x: p.x, y: p.y, w: 2 * TEST_ROW.r, h: 2 * TEST_ROW.r, round: true, layer: 'F' as const })),
+  { ref: 'TP5', pin: '1', x: 1172, y: 452, w: 12, h: 12, round: true, layer: 'F' },
+  // RN1, the pull-ups of the keys: a bussed network in a SIP-7 under the TEST row, through the board.
+  // Pin 1 (the common, +3V3, square) at the left; pins 2 to 7 the keys ↑ ↓ ← → B A. Seen from the
+  // back, its pads are right under the pins of U10 that read the keys.
+  square('RN1', '1', RN1_X, RN1_Y),
+  ...['2', '3', '4', '5', '6', '7'].map((pin, k) => tht('RN1', pin, RN1_X + 10 * (k + 1), RN1_Y)),
+  // The 5 V input by J5: FB1 on the trace of VBUS (pin 1 to J5, pin 2 to the board), C27 above it.
+  rect('FB1', '1', 1169, 806, 10, 14),
+  rect('FB1', '2', 1151, 806, 10, 14),
+  rect('C27', '1', 1155, 770, 10, 14),
+  rect('C27', '2', 1173, 770, 10, 14),
 ];
+
+
 
 export interface Via {
   net: string;
@@ -287,6 +336,14 @@ export const VIAS: readonly Via[] = [
   blind('+3V3', 1214, 698),
   blind('GND', 1230, 698),
   blind('GND', 1238, 792),
+  // The ground of each switch of the keypad, of TP5 (in its pad) and of C27.
+  blind('GND', 1036, 342),
+  blind('GND', 980, 340),
+  blind('GND', 1074, 304),
+  blind('GND', 1112, 322),
+  blind('GND', 1152, 294),
+  blind('GND', 1172, 452),
+  blind('GND', 1173, 756),
 ];
 
 /**
@@ -305,6 +362,8 @@ export const JOINED: Readonly<Record<string, string>> = {
   'J5.B12': 'J5.A1',
   'J5.S3': 'J5.S1',
   'J5.S4': 'J5.S2',
+  // The twin pins of each switch of the keypad, joined inside it (Omron B3FS: 1 and 2, 3 and 4).
+  ...Object.fromEntries(KEYPAD.flatMap(({ ref }) => [[`${ref}.2`, `${ref}.1`], [`${ref}.4`, `${ref}.3`]])),
 };
 
 /** The front pads that show on the back (through-hole), in back coordinates. */

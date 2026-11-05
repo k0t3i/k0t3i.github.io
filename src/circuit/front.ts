@@ -65,7 +65,8 @@ export const FRONT_ROUTES = {
   j2: front('SCL', 'M1166 600V658L1178 670H1194'),
   j3: front('SD_CS', 'M1158 670V682L1170 694H1199'),
   j4: front('ONEWIRE', 'M1150 700V730L1162 742H1199'),
-  j5: front('VBUS', 'M1222 794L1210 806H1112L1100 794V760', 3),
+  // Out of the receptacle to the ferrite bead FB1, which passes the 5 V on to its via (FRONT_TRACES).
+  j5: front('VBUS_C', 'M1222 794L1210 806H1169', 3),
 } as const satisfies Record<string, Trace>;
 
 /**
@@ -88,4 +89,35 @@ export const FRONT_TRACES: readonly Trace[] = [
   front('GND', 'M1446 70V86L1452 92'),
   front('+3V3', 'M1066 252H1046'),
   front('THEME', 'M1308 64V80L1388 160H1426V446H1462'),
+  // The 5 V on the board, out of FB1 down to the back; C27 filters it.
+  front('VBUS', 'M1155 806H1112L1100 794V760', 3),
+  front('VBUS', 'M1155 770V806'),
+  front('GND', 'M1173 770V756'),
+  // The test keypad (keypad.ts, spec 4.11). Each key from its switch down to its TEST pads, then down
+  // to its pin of RN1, its pull-up, whose pads take it through the board to the chip. ↑ goes round the
+  // cross by its left, ← through its middle; under the row, ← joins its two pads below the pad of →, and
+  // → its two above the pad of ←.
+  front('KEY_UP', 'M1025 281H978L970 289V400L980 410'),
+  front('KEY_UP', 'M980 410H998'),
+  front('KEY_UP', 'M998 410L1007 419V433L1040 466V470'),
+  front('KEY_DOWN', 'M1029 375V384L1016 397V410'),
+  front('KEY_DOWN', 'M1016 410H1034'),
+  front('KEY_DOWN', 'M1034 410L1043 419V445L1050 452V470'),
+  front('KEY_LEFT', 'M1009 319H1047L1055 327V407L1052 410'),
+  front('KEY_LEFT', 'M1052 410L1061 419V432H1079V419L1088 410'),
+  front('KEY_LEFT', 'M1070 432L1060 442V470'),
+  front('KEY_RIGHT', 'M1081 337V381L1070 392V410'),
+  front('KEY_RIGHT', 'M1081 381H1097L1106 390V410'),
+  front('KEY_RIGHT', 'M1106 410L1097 419V428L1070 455V470'),
+  front('KEY_B', 'M1119 355V405L1124 410'),
+  front('KEY_B', 'M1124 410L1115 419V423L1080 458V470'),
+  front('KEY_A', 'M1159 327V393L1142 410'),
+  front('KEY_A', 'M1142 410L1133 419V427L1090 470'),
+  // The ground pad of each switch to its blind via (SW3 to the via of SW6).
+  front('GND', 'M1047 295L1056 304H1074'),
+  front('GND', 'M1029 353L1036 346V342'),
+  front('GND', 'M987 333L980 340'),
+  front('GND', 'M1081 315L1074 308V304'),
+  front('GND', 'M1105 333L1112 326V322'),
+  front('GND', 'M1145 305L1152 298V294'),
 ];

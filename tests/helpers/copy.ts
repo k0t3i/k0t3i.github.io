@@ -217,7 +217,7 @@ export const FR: Copy = {
     caption: `Nomenclature${NB}: les composants de la carte`,
     columns: ['Repère', 'Composant', `Valeur${NB}/ compétence`, 'Relié à'],
     rows: bom([
-      ['U10', `Micro${SH}contrôleur`, 'ESP32-S3 · 240 MHz · USB', 'Vue.js · 2 → 3 · Composition API · SSR', 'U11 · U13–U18 · Y1 · J6 · J7 · R1 · LED1 · D1 · U2 · J1–J4 · DISP1', 'U10, microcontrôleur, Vue.js'],
+      ['U10', `Micro${SH}contrôleur`, 'ESP32-S3 · 240 MHz · USB', 'Vue.js · 2 → 3 · Composition API · SSR', 'U11 · U13–U18 · Y1 · J6 · J7 · R1 · LED1 · D1 · U2 · J1–J4 · DISP1 · SW3–SW8', 'U10, microcontrôleur, Vue.js'],
       ['U11', 'Mémoire flash', 'W25Q128 · 16 Mo QSPI', `TypeScript${NB}/ JavaScript · strict · ES modules`, 'U10', `U11, mémoire flash, TypeScript${NB}/ JavaScript`],
       ['U12', `Régu${SH}lateur 3,3${NB}V`, 'AP2112K · LDO 600 mA', `Perfor${SH}mance web · audits · Core Web Vitals`, 'J5', `U12, régulateur 3,3${NB}V, performance web`],
       ['U13', `Protec${SH}tion USB`, 'USBLC6-2 · ESD', `Acces${SH}sibilité · WCAG 2.2 AA · guidelines produit`, 'U10 · J5', 'U13, protection USB, accessibilité'],
@@ -361,7 +361,7 @@ export const EN: Copy = {
     caption: 'Bill of materials: the parts on this board',
     columns: ['Ref', 'Part', `Value${NB}/ skill`, 'Linked to'],
     rows: bom([
-      ['U10', `Micro${SH}controller`, 'ESP32-S3 · 240 MHz · USB', 'Vue.js · 2 → 3 · Composition API · SSR', 'U11 · U13–U18 · Y1 · J6 · J7 · R1 · LED1 · D1 · U2 · J1–J4 · DISP1', 'U10, microcontroller, Vue.js'],
+      ['U10', `Micro${SH}controller`, 'ESP32-S3 · 240 MHz · USB', 'Vue.js · 2 → 3 · Composition API · SSR', 'U11 · U13–U18 · Y1 · J6 · J7 · R1 · LED1 · D1 · U2 · J1–J4 · DISP1 · SW3–SW8', 'U10, microcontroller, Vue.js'],
       ['U11', 'Flash memory', 'W25Q128 · 16 MB QSPI', `TypeScript${NB}/ JavaScript · strict · ES modules`, 'U10', `U11, flash memory, TypeScript${NB}/ JavaScript`],
       ['U12', `3.3 V regu${SH}lator`, 'AP2112K · LDO 600 mA', `Web perfor${SH}mance · audits · Core Web Vitals`, 'J5', 'U12, 3.3 V regulator, web performance'],
       ['U13', `USB protec${SH}tion`, 'USBLC6-2 · ESD', `Acces${SH}sibility · WCAG 2.2 AA · product guidelines`, 'U10 · J5', 'U13, USB protection, accessibility'],
