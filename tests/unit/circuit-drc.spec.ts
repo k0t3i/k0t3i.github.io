@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from 'vitest';
-import { ALL_VIAS, BACK_PADS, BACK_TRACES, DRC_CLEAR, FRONT_NET_PADS, FRONT_TRACES, HOPS, VIA, backVias, frontVias, grounded, pour, stitching, type NetPad } from '../../src/circuit/copper';
+import { ALL_VIAS, BACK_PADS, BACK_TRACE_CLEAR, BACK_TRACES, BODY_MARGIN, DRC_CLEAR, FRONT_NET_PADS, FRONT_TRACES, HOPS, VIA, backVias, frontVias, grounded, pour, stitching, type NetPad } from '../../src/circuit/copper';
 import { BACK_PLACED, CIRCUIT, JOINED, PLACE, THROUGH_PADS, placedPads, type Point, type Trace, type Via } from '../../src/circuit/layout';
 import { NETS, PARTS, netOf } from '../../src/circuit/netlist';
 
@@ -172,6 +172,30 @@ describe('the copper of the board', () => {
           const d = p.round ? Math.hypot(v.x - p.x, v.y - p.y) - p.w / 2 : Math.hypot(Math.max(Math.abs(v.x - p.x) - p.w / 2, 0), Math.max(Math.abs(v.y - p.y) - p.h / 2, 0));
           expect(d - viaR(v), `${face}: a via of ${v.net} by ${p.ref}.${p.pin}`).toBeGreaterThanOrEqual(DRC_CLEAR);
         }
+      }
+    }
+  });
+
+  it('the back breathes: two traces keep twice the clearance, and a trace keeps clear of the body of a package it has no pin on', () => {
+    for (const [i, a] of BACK_TRACES.entries()) {
+      for (const b of BACK_TRACES.slice(i + 1)) {
+        if (a.net === b.net) continue;
+        let gap = Infinity;
+        for (const s of segs(a)) for (const t of segs(b)) gap = Math.min(gap, between(s, t));
+        expect(gap - (a.w + b.w) / 2, `${a.net} and ${b.net}`).toBeGreaterThanOrEqual(BACK_TRACE_CLEAR);
+      }
+    }
+    expect(BACK_TRACE_CLEAR).toBe(2 * DRC_CLEAR);
+    for (const p of BACK_PLACED) {
+      const nets = new Set(placedPads(p).map((q) => netOf(`${q.ref}.${q.pin}`)?.name));
+      const b = p.fp.body;
+      const quarter = p.rot === 90 || p.rot === 270;
+      const [bw, bh] = quarter ? [b.h, b.w] : [b.w, b.h];
+      const [bx, by] = p.rot === 90 ? [p.box.w - b.y - b.h, b.x] : p.rot === 180 ? [p.box.w - b.x - b.w, p.box.h - b.y - b.h] : p.rot === 270 ? [b.y, p.box.h - b.x - b.w] : [b.x, b.y];
+      const body = { ref: p.part.ref, pin: 'body', x: p.x + bx + bw / 2, y: p.y + by + bh / 2, w: bw, h: bh, layer: 'B' as const, net: undefined };
+      for (const t of BACK_TRACES.filter((x) => !nets.has(x.net))) {
+        const gap = Math.min(...segs(t).map((s) => toPad(s, body)));
+        expect(gap - t.w / 2, `${t.net} by the body of ${p.part.ref}`).toBeGreaterThanOrEqual(BODY_MARGIN);
       }
     }
   });

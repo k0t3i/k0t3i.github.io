@@ -14,6 +14,15 @@ import { BACK_PLACED, CIRCUIT, FRONT_PADS, FRONT_TRACES, JOINED, THROUGH_PADS, V
  */
 
 export const CLEAR = 2.5;
+/**
+ * The back face breathes (Anthony, 05/11/2026): two traces of the back keep twice the clearance of a
+ * trace and a pad (their own grid, so a pad stays reachable), and a trace stays a margin away from the
+ * body of a package it has no pin on. Long, calm runs: a bend costs more.
+ */
+export const TRACE_CLEAR = 5;
+export const BODY_CLEAR = 6;
+const BEND_45 = 4;
+const BEND_90 = 14;
 export const VIA_R = 3;
 export const WIDTH: Record<string, number> = { VBUS: 4, VDD_SPI: 3 };
 
@@ -64,13 +73,38 @@ export function route(order: string[] = [], seed = 0, groundVias: string[] = [])
     ...THROUGH_PADS,
   ].map((p) => ({ ...p, net: netId.get(netOf(`${p.ref}.${p.pin}`)?.name ?? '') ?? -1 }));
   const hw = 1;
+  // The keep-outs of the traces laid, for the traces of the other nets (TRACE_CLEAR).
+  const wires = new Int32Array(N);
+  // Round each body, its margin (BODY_CLEAR): a cell holds the parts it is near (index + 1), or a list of them (−(k + 1)).
+  const margin = new Int32Array(N);
+  const nearBy: number[][] = [];
+  const netsOfPart = BACK_PLACED.map((p) => new Set(placedPads(p).map((q) => netId.get(netOf(`${q.ref}.${q.pin}`)?.name ?? '') ?? -1)));
+  const marginOk = (i: number, id: number): boolean => {
+    const m = margin[i] ?? 0;
+    if (m === 0) return true;
+    if (m > 0) return netsOfPart[m - 1]?.has(id) ?? false;
+    return (nearBy[-m - 1] ?? []).some((k) => netsOfPart[k]?.has(id));
+  };
   // The bodies of the parts: no trace under them (their own pads excepted, below).
-  for (const p of BACK_PLACED) {
+  for (const [k, p] of BACK_PLACED.entries()) {
     const b = p.fp.body;
     const quarter = p.rot === 90 || p.rot === 270;
     const [bw, bh] = quarter ? [b.h, b.w] : [b.w, b.h];
     const [bx, by] = p.rot === 90 ? [p.box.w - b.y - b.h, b.x] : p.rot === 180 ? [p.box.w - b.x - b.w, p.box.h - b.y - b.h] : p.rot === 270 ? [b.y, p.box.h - b.x - b.w] : [b.x, b.y];
     mark(p.x + bx + bw / 2, p.y + by + bh / 2, bw / 2 + CLEAR, bh / 2 + CLEAR, -1);
+    const [cx, cy] = [p.x + bx + bw / 2, p.y + by + bh / 2];
+    for (let y = Math.floor(cy - bh / 2 - BODY_CLEAR); y <= Math.ceil(cy + bh / 2 + BODY_CLEAR); y++) {
+      for (let x = Math.floor(cx - bw / 2 - BODY_CLEAR); x <= Math.ceil(cx + bw / 2 + BODY_CLEAR); x++) {
+        if (!inside(x, y)) continue;
+        const i = idx(x, y);
+        const m = margin[i] ?? 0;
+        if (m === 0) margin[i] = k + 1;
+        else if (m > 0 && m !== k + 1) {
+          nearBy.push([m - 1, k]);
+          margin[i] = -nearBy.length;
+        } else if (m < 0) nearBy[-m - 1]?.push(k);
+      }
+    }
   }
   for (const p of pads) {
     // The pad itself is its net's (a pin on no net: nobody's), its clearance too.
@@ -241,9 +275,13 @@ export function route(order: string[] = [], seed = 0, groundVias: string[] = [])
       came[s] = -1;
       push(hOf(x, y), s);
     }
+    const back = grid === owner;
     const ok = (i: number) => {
       const o = grid[i] ?? 0;
-      return o === 0 || o === id;
+      if (o !== 0 && o !== id) return false;
+      if (!back) return true;
+      const w = wires[i] ?? 0;
+      return (w === 0 || w === id) && marginOk(i, id);
     };
     const bundles = grid === owner;
     let pops = 0;
@@ -269,7 +307,7 @@ export function route(order: string[] = [], seed = 0, groundVias: string[] = [])
           const a = Math.abs(d - dir) % 8;
           const t = Math.min(a, 8 - a);
           if (t >= 3) continue;
-          turn = t === 1 ? 2.5 : t === 2 ? 9 : 0;
+          turn = t === 1 ? BEND_45 : t === 2 ? BEND_90 : 0;
         }
         const [dx, dy] = DIRS[d] as Point;
         const nx = x + dx;
@@ -316,9 +354,10 @@ export function route(order: string[] = [], seed = 0, groundVias: string[] = [])
     const cs = corners(pts);
     traces.push({ net: name, layer: 'B', w, pts: cs });
     for (let i = 1; i < cs.length; i++) markSegment(cs[i - 1] as Point, cs[i] as Point, w / 2 + CLEAR + hw, id);
+    for (let i = 1; i < cs.length; i++) markSegment(cs[i - 1] as Point, cs[i] as Point, w / 2 + TRACE_CLEAR + hw, id, wires);
     // Mark the lane beside it, one pitch away.
     for (const [px, py] of pts) {
-      const r = w / 2 + CLEAR + hw + 2.5;
+      const r = w / 2 + TRACE_CLEAR + hw + 2.5;
       for (let y = Math.floor(py - r); y <= Math.ceil(py + r); y++) {
         for (let x = Math.floor(px - r); x <= Math.ceil(px + r); x++) {
           if (!inside(x, y)) continue;

@@ -11,6 +11,12 @@ import ROUTES from './routes.json';
 export const VIA = { through: 4, blind: 3, drill: 1 };
 /** The clearance of the board between copper of two nets, and of the pour. */
 export const DRC_CLEAR = 2;
+/**
+ * The back face breathes (Anthony, 05/11/2026): on the back, two traces keep twice that clearance, and
+ * a trace keeps it from the body of a package it has no pin on (tests/gen/route.ts routes at 5 and 6).
+ */
+export const BACK_TRACE_CLEAR = 4;
+export const BODY_MARGIN = 4;
 export const POUR_CLEAR = 4;
 /** The width of a hop, a signal trace on an inner layer. */
 export const HOP_W = 2;
