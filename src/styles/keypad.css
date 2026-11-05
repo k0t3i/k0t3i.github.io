@@ -16,7 +16,14 @@
     grid-column: 1 / -1;
     grid-row: 4;
     justify-self: center;
-    width: min(100%, var(--cell) * var(--cols));
+    /*
+     * A width of its own, never a percentage: the figure of DISP1 is as wide as its content
+     * (fit-content), and a percentage here made its art count at the default width of an SVG,
+     * so DISP1 grew past its glass and its pixels sat at the left of it. max-width is ignored by
+     * that sizing: on a narrow face the keypad still shrinks to the figure.
+     */
+    width: calc(var(--cell) * var(--cols));
+    max-width: 100%;
     margin-top: 1rem;
   }
 

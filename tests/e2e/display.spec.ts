@@ -124,6 +124,26 @@ async function startMorse(page: Page): Promise<void> {
 /** An animation of LED1 itself: the glint of the flowing board that runs on its trace is not one. */
 const ledAnimation = (r: string): boolean => r.includes('part-led1') && !r.startsWith('trace-glint');
 
+/*
+ * The glass of DISP1 is the 192 px of its pixels, its padding round them, at every width: the pixel
+ * screens (and the field of the game) fill it, centred. Its width never follows the blocks under it
+ * in the figure (the test keypad, revision 10).
+ */
+test('the glass of DISP1 holds its pixels exactly, centred, on the flowing and the wide board', async ({ page }) => {
+  for (const size of [{ width: 320, height: 640 }, { width: 390, height: 844 }, { width: 768, height: 1024 }, { width: 1600, height: 900 }]) {
+    await page.setViewportSize(size);
+    await page.goto('/');
+    const gaps = await page.evaluate(() => {
+      const glass = (document.querySelector('.disp__screen') as Element).getBoundingClientRect();
+      const px = (document.querySelector('svg.disp__pixels') as Element).getBoundingClientRect();
+      return [px.left - glass.left, glass.right - px.right, px.top - glass.top, glass.bottom - px.bottom].map((v) => Math.round(v * 2) / 2);
+    });
+    const [left = 0, right = 0, top = 0, bottom = 0] = gaps;
+    expect(Math.abs(left - right), `${size.width}px: ${gaps.join(' ')}`).toBeLessThanOrEqual(1);
+    expect(Math.abs(top - bottom), `${size.width}px: ${gaps.join(' ')}`).toBeLessThanOrEqual(1);
+  }
+});
+
 test.describe('DISP1 and SW1', () => {
   test.use({ reducedMotion: 'no-preference' });
 
