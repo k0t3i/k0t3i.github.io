@@ -32,10 +32,10 @@ DOT = (12, 12, 2)  # cx, cy, r
 # Placeholder avatar, until Anthony's own: a calm, neutral pixel character, placed by hand.
 # Light comes from the left; the right side of the face and of the top is in shadow.
 AVATAR_COLOURS = {
-    "H": (0x3A, 0x2E, 0x28),  # hair, dark warm brown (also the eyes and brows)
-    "h": (0x5B, 0x48, 0x3B),  # hair, lit
-    "S": (0xC6, 0x9E, 0x82),  # skin, muted
-    "s": (0xA3, 0x7D, 0x65),  # skin, shadow
+    "H": (0x1E, 0x17, 0x14),  # hair, near-black brown (also the eyes and brows)
+    "h": (0x3B, 0x2C, 0x24),  # hair, lit
+    "S": (0x9A, 0x66, 0x45),  # skin, warm medium brown (Anthony: darker, mixed-race), muted
+    "s": (0x77, 0x4B, 0x31),  # skin, shadow
     "T": (0x2E, 0x46, 0x69),  # top, deep blue
     "t": (0x20, 0x33, 0x50),  # top, shadow and collar
     "G": GOLD,                 # the gold accent: a small pin on the chest
