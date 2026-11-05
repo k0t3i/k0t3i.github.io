@@ -17,7 +17,8 @@ import { sheetOpen } from '../lib/sheet';
  *   button is announced, and the block keeps its size (nothing moves).
  * - One tab stop (a roving tabindex): outside the game mode, the arrows go from key to key in the
  *   order of the references, round, and Home and End to the ends. In the game mode the arrows are the
- *   game's, as everywhere on the page (they steer, game/play.ts): the keypad takes only Home and End.
+ *   game's, as everywhere on the page (they steer, game/play.ts), and with the focus on the keypad
+ *   they never scroll the page, whatever the state of the game: the keypad takes only Home and End.
  *   Enter and Space press the key (the button's click): they go no further, the press is the step
  *   of the code (useKonami). The arrows, Home and End move the focus without scrolling the page, and
  *   still reach the document: the code typed on the keyboard with the focus on the keypad is the
@@ -89,6 +90,9 @@ function onKeydown(event: KeyboardEvent): void {
   const i = KEYPAD.findIndex((k) => k.key === current.value);
   const roving: Record<string, number> = props.game ? {} : { ArrowRight: i + 1, ArrowDown: i + 1, ArrowLeft: i - 1 + n, ArrowUp: i - 1 + n };
   const next = { ...roving, Home: 0, End: n - 1 }[event.key];
+  // In the game mode the arrows are the game's (they go on to the document), and never scroll the
+  // page under the keypad, on the title, in a pause or at a game over too (the review of Task 18).
+  if (props.game && event.key.startsWith('Arrow')) event.preventDefault();
   if (next === undefined) return;
   event.preventDefault();
   const to = KEYPAD[next % n]?.key ?? current.value;

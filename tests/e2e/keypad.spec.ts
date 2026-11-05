@@ -194,6 +194,27 @@ test.describe('the test keypad', () => {
     await expect(key(page, 'up')).toBeFocused();
   });
 
+  // The review of Task 18: on the title of the game, the arrows typed with the focus on the pad scrolled the page.
+  test('in the game mode, out of a game too, the arrows typed on the keypad never scroll the page', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'a keyboard');
+    await booted(page);
+    await page.setViewportSize({ width: 1024, height: 600 });
+    await open(page);
+    await key(page, 'up').focus();
+    for (const k of CODE) {
+      await key(page, k).focus();
+      await page.keyboard.press('Enter');
+    }
+    await inGame(page);
+    // On the title: the page stays where the game put it, the focus on its key.
+    await page.waitForTimeout(600);
+    const at = await page.evaluate(() => scrollY);
+    for (const k of ['ArrowDown', 'ArrowDown', 'ArrowUp', 'ArrowRight']) await page.keyboard.press(k);
+    await page.waitForTimeout(300);
+    expect(await page.evaluate(() => scrollY)).toBe(at);
+    await expect(key(page, 'a')).toBeFocused();
+  });
+
   // The review of Task 18: the code typed in an open sheet started the game and the retro colours under it.
   test('the code typed while a sheet is open, the focus in it, starts nothing', async ({ page, isMobile }) => {
     test.skip(isMobile, 'a keyboard');

@@ -150,7 +150,8 @@ describe('the test keypad', () => {
     expect((document.activeElement as HTMLElement).dataset.key).toBe('b');
   });
 
-  it('in the game mode, leaves the arrows to the game (they steer it): Home and End still move', async () => {
+  // The review of Task 18: on the title, in a pause or at a game over the arrows scrolled the page under the pad.
+  it('in the game mode, leaves the arrows to the game (they steer it), never to the scroll of the page: Home and End still move', async () => {
     const w = mountPad(true);
     await nextTick();
     const b = keys(w);
@@ -158,7 +159,7 @@ describe('the test keypad', () => {
     b[2]?.click();
     const outside = vi.fn();
     document.addEventListener('keydown', outside);
-    for (const key of ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']) expect(down(b[2] as Element, key).defaultPrevented).toBe(false);
+    for (const key of ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight']) expect(down(b[2] as Element, key).defaultPrevented).toBe(true);
     expect((document.activeElement as HTMLElement).dataset.key).toBe('left');
     expect(outside).toHaveBeenCalledTimes(4);
     down(b[2] as Element, 'End');
