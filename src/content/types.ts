@@ -55,6 +55,11 @@ export interface SiteContent {
     /** Board reference of the tactile switch, e.g. SW1. */
     switchRef: string;
     switchHidden: string;
+    /**
+     * The test keypad under DISP1 (revision 10, TestKeypad.vue): the name of its group, and of each of
+     * its six keys, the cross then B and A.
+     */
+    keypad: { group: string; keys: { up: string; down: string; left: string; right: string; b: string; a: string } };
   };
   /** JP1, the jumper that switches the board between green and black: reference, positions, hidden text. */
   theme: { ref: string; green: string; dark: string; switchHidden: string };

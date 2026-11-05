@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { play, type GameView } from '../../src/game/play';
+import { play, type Game, type GameView } from '../../src/game/play';
 import { COLS, newRoutage, ROWS, seeded, step, stepMs, turn, type Cell, type Dir, type Routage } from '../../src/lib/routage';
 import { layoutText, textWidth } from '../../src/lib/pixelFont';
 import { GAME_WORDS } from '../helpers/copy';
@@ -10,13 +10,17 @@ import { GAME_WORDS } from '../helpers/copy';
  * lib/routage.ts played here with the same turns.
  */
 
+/** A sheet is open over the board (lib/sheet.ts: :popover-open, which happy-dom does not know). */
+let sheetIsOpen = false;
+vi.mock('../../src/lib/sheet', () => ({ sheetOpen: () => sheetIsOpen }));
+
 const SEED = 5;
 let el: HTMLElement;
 let view: GameView = [];
 let draws = 0;
 let overs: number[] = [];
 let starts = 0;
-let stop: () => void = () => {};
+let stop: Game = Object.assign(() => {}, { press: () => {} });
 
 /** The lit pixels of a path of squares, as "x,y". */
 function pixels(d = ''): Set<string> {
@@ -72,6 +76,7 @@ beforeEach(() => {
 
 afterEach(() => {
   stop();
+  sheetIsOpen = false;
   vi.useRealTimers();
   document.body.innerHTML = '';
 });
@@ -194,6 +199,76 @@ describe('the play of Routage', () => {
     // Keys from inside a sheet are ignored while it runs too.
     key('b');
     expect(fromSheet('ArrowUp').defaultPrevented).toBe(false);
+  });
+
+  it('a sheet open takes every key, tap and press from the game: none plays it, goes on with it or steers it', () => {
+    key('a');
+    sheetIsOpen = true;
+    const sheet = document.createElement('div');
+    sheet.className = 'sheet';
+    document.body.append(sheet);
+    sheet.dispatchEvent(Object.assign(new Event('toggle'), { newState: 'open' }));
+    expect(parts()).toContain('pause');
+    // B typed, the focus outside the sheet: still paused (the issue left from Task 16).
+    key('b');
+    expect(parts()).toContain('pause');
+    // A tap of DISP1, a press of the keypad: still paused.
+    touch('touchstart', 100, 100);
+    touch('touchend', 100, 100);
+    stop.press('b');
+    stop.press('a');
+    expect(parts()).toContain('pause');
+    // A tap that closes the sheet (a light dismiss, on the lift of the finger) does not go on with the game either:
+    // the sheet closed does.
+    touch('touchstart', 100, 100);
+    sheetIsOpen = false;
+    touch('touchend', 100, 100);
+    expect(parts()).toContain('pause');
+    sheet.dispatchEvent(Object.assign(new Event('toggle'), { newState: 'closed' }));
+    expect(parts()).not.toContain('pause');
+    // Over a sheet, the end screen does not play again.
+    for (let i = 0; i < 40 && overs.length === 0; i++) vi.advanceTimersByTime(stepMs(0));
+    expect(overs).toHaveLength(1);
+    sheetIsOpen = true;
+    key('a');
+    stop.press('a');
+    touch('touchstart', 100, 100);
+    touch('touchend', 100, 100);
+    expect(starts).toBe(1);
+    sheetIsOpen = false;
+    stop.press('a');
+    expect(starts).toBe(2);
+  });
+
+  it('the keypad presses as the keys do: A plays, the arrows steer, B pauses and goes on', () => {
+    // On the title, the arrows and B do nothing.
+    stop.press('down');
+    stop.press('b');
+    expect(starts).toBe(0);
+    stop.press('a');
+    expect(starts).toBe(1);
+    // A again while it runs: no new game.
+    stop.press('a');
+    expect(starts).toBe(1);
+    stop.press('up');
+    vi.advanceTimersByTime(stepMs(0));
+    expect(cellAt(part('head'))).toEqual({ x: 3, y: 6 });
+    stop.press('b');
+    expect(parts()).toContain('pause');
+    // Paused, an arrow steers nothing.
+    stop.press('left');
+    vi.advanceTimersByTime(stepMs(0) * 3);
+    expect(cellAt(part('head'))).toEqual({ x: 3, y: 6 });
+    stop.press('b');
+    expect(parts()).not.toContain('pause');
+    vi.advanceTimersByTime(stepMs(0));
+    expect(cellAt(part('head'))).toEqual({ x: 3, y: 5 });
+    // Stopped: a press does nothing.
+    stop();
+    const before = draws;
+    stop.press('b');
+    stop.press('a');
+    expect(draws).toBe(before);
   });
 
   it('a whole game: the signal connects the pad, then meets the edge: DRC ERR and the score, A plays again', () => {

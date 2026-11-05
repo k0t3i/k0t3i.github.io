@@ -19,14 +19,20 @@ import { EN as ORACLE_EN, FR as ORACLE_FR } from '../helpers/copy';
 
 const hosts: GameHost[] = [];
 const stops: ReturnType<typeof vi.fn>[] = [];
+/** The keys of the keypad the game was given (its press()). */
+const pressed: string[] = [];
 vi.mock('../../src/game/play', () => ({
   play: (host: GameHost) => {
     hosts.push(host);
     const stop = vi.fn();
     stops.push(stop);
-    return stop;
+    return Object.assign(stop, { press: (k: string) => pressed.push(k) });
   },
 }));
+
+/** A sheet is open (lib/sheet.ts reads :popover-open, which happy-dom does not know). */
+let sheetIsOpen = false;
+vi.mock('../../src/lib/sheet', () => ({ sheetOpen: () => sheetIsOpen }));
 
 const TYPED = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
 const type = (keys = TYPED): void => {
@@ -90,6 +96,8 @@ beforeEach(() => {
   stubMotion(true);
   hosts.length = 0;
   stops.length = 0;
+  pressed.length = 0;
+  sheetIsOpen = false;
 });
 
 afterEach(() => {
@@ -257,5 +265,92 @@ describe('the game mode of DISP1', () => {
     expect(hosts).toHaveLength(0);
     expect(root().hasAttribute('data-retro')).toBe(false);
     m.wrapper.unmount();
+  });
+
+  describe('the test keypad', () => {
+    const CODE = ['up', 'up', 'down', 'down', 'left', 'right', 'left', 'right', 'b', 'a'];
+    const tap = (w: VueWrapper, key: string): void => {
+      (w.get(`.keypad__key[data-key="${key}"]`).element as HTMLButtonElement).click();
+    };
+
+    it('is in DISP1, after SW1 and before its caption (the caption stays last), and shown once mounted', async () => {
+      const { wrapper } = mountBoard();
+      await nextTick();
+      const kids = [...wrapper.get('figure.disp').element.children].map((c) => c.classList[0]);
+      expect(kids.slice(-3)).toEqual(['sw1', 'keypad', 'disp__caption']);
+      expect(wrapper.get('.keypad__keys').attributes('hidden')).toBeUndefined();
+      expect(wrapper.get('.keypad__keys').attributes('aria-label')).toBe(ORACLE_FR.keypad.group);
+      wrapper.unmount();
+    });
+
+    it('the code pressed on it starts the game mode; then its keys go to the game, not to the code', async () => {
+      const { wrapper } = mountBoard();
+      await nextTick();
+      for (const k of CODE) tap(wrapper, k);
+      await flushPromises();
+      await nextTick();
+      expect(hosts).toHaveLength(1);
+      expect(root().hasAttribute('data-retro')).toBe(true);
+      expect(wrapper.get('.keypad').element.closest('.disp--game')).not.toBeNull();
+      for (const k of ['a', 'up', 'left', 'b', 'b']) tap(wrapper, k);
+      expect(pressed).toEqual(['a', 'up', 'left', 'b', 'b']);
+      // The whole code pressed again is played, it does not end the game (the keyboard does).
+      for (const k of CODE) tap(wrapper, k);
+      await flushPromises();
+      expect(wrapper.get('figure.disp').classes()).toContain('disp--game');
+      // SW1 ends it, as always.
+      await wrapper.get('button.sw1').trigger('click');
+      await flushPromises();
+      atRest(wrapper);
+      wrapper.unmount();
+    });
+
+    it('the game mode brings DISP1 into view with its keypad, if it is not (the nearest edge, at once under reduced motion)', async () => {
+      const seen: [Element, ScrollIntoViewOptions | boolean | undefined][] = [];
+      const was = Element.prototype.scrollIntoView;
+      Element.prototype.scrollIntoView = function (this: Element, o?: ScrollIntoViewOptions | boolean) {
+        seen.push([this, o]);
+      };
+      try {
+        const { wrapper } = mountBoard();
+        await nextTick();
+        for (const k of CODE) tap(wrapper, k);
+        await flushPromises();
+        expect(seen).toEqual([[wrapper.get('figure.disp').element, { block: 'nearest', behavior: 'instant' }]]);
+        wrapper.unmount();
+      } finally {
+        Element.prototype.scrollIntoView = was;
+      }
+    });
+
+    it('a press while a sheet is open does nothing: no step of the code, nothing to the game', async () => {
+      const { wrapper } = mountBoard();
+      await nextTick();
+      for (const k of CODE.slice(0, 9)) tap(wrapper, k);
+      sheetIsOpen = true;
+      tap(wrapper, 'a');
+      await flushPromises();
+      expect(hosts).toHaveLength(0);
+      sheetIsOpen = false;
+      tap(wrapper, 'a');
+      await flushPromises();
+      await nextTick();
+      expect(hosts).toHaveLength(1);
+      sheetIsOpen = true;
+      tap(wrapper, 'a');
+      tap(wrapper, 'b');
+      expect(pressed).toEqual([]);
+      wrapper.unmount();
+    });
+
+    it('does nothing while the back face is up', async () => {
+      const m = mountBoard();
+      m.flipped.value = true;
+      await nextTick();
+      for (const k of CODE) tap(m.wrapper, k);
+      await flushPromises();
+      expect(hosts).toHaveLength(0);
+      m.wrapper.unmount();
+    });
   });
 });

@@ -1,7 +1,8 @@
 import { mount, type VueWrapper } from '@vue/test-utils';
 import { defineComponent, h, nextTick, ref } from 'vue';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { useKonami } from '../../src/composables/useKonami';
+import { useKonami, type Konami } from '../../src/composables/useKonami';
+import { CODE } from '../../src/lib/konami';
 
 const TYPED = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
 /** The code by touch: eight swipes, then two taps. */
@@ -25,17 +26,19 @@ let touchOn = true;
 const mounted: VueWrapper[] = [];
 
 /** DISP1 with the listeners of the code, and a part of the page beside it. */
-function mountDisp(): { wrapper: VueWrapper; screen: HTMLElement; other: HTMLElement } {
+function mountDisp(): { wrapper: VueWrapper; screen: HTMLElement; other: HTMLElement; konami: Konami } {
+  let konami: Konami | undefined;
   const Harness = defineComponent({
     setup() {
       const el = ref<HTMLElement | null>(null);
-      useKonami(el, () => found++, { enabled: () => enabled, touch: () => touchOn });
+      konami = useKonami(el, () => found++, { enabled: () => enabled, touch: () => touchOn });
       return () => h('div', [h('div', { ref: el, class: 'disp__screen' }), h('p', { class: 'other' })]);
     },
   });
   const wrapper = mount(Harness, { attachTo: document.body });
   mounted.push(wrapper);
-  return { wrapper, screen: wrapper.get('.disp__screen').element as HTMLElement, other: wrapper.get('.other').element as HTMLElement };
+  if (!konami) throw new Error('not set up');
+  return { wrapper, screen: wrapper.get('.disp__screen').element as HTMLElement, other: wrapper.get('.other').element as HTMLElement, konami };
 }
 
 const press = (key: string, init: KeyboardEventInit = {}): KeyboardEvent => {
@@ -146,6 +149,28 @@ describe('useKonami', () => {
     // The keyboard still finds it: typed again, the code ends the game.
     TYPED.forEach((k) => press(k));
     expect(found).toBe(1);
+    wrapper.unmount();
+  });
+
+  it('finds the code pressed on the test keypad, the same detector as the keys and the swipes', async () => {
+    const { wrapper, screen, konami } = mountDisp();
+    await nextTick();
+    for (const k of CODE) konami.press(k);
+    expect(found).toBe(1);
+    // One detector: the steps go on from one way to the other (keys, then the keypad, then a tap).
+    TYPED.slice(0, 4).forEach((k) => press(k));
+    for (const k of CODE.slice(4, 9)) konami.press(k);
+    swipe(screen, 0, 0);
+    expect(found).toBe(2);
+    // A wrong step on the keypad: from the start again.
+    for (const k of CODE.slice(0, 6)) konami.press(k);
+    konami.press('a');
+    for (const k of CODE.slice(6)) konami.press(k);
+    expect(found).toBe(2);
+    // The back face up: nothing.
+    enabled = false;
+    for (const k of CODE) konami.press(k);
+    expect(found).toBe(2);
     wrapper.unmount();
   });
 

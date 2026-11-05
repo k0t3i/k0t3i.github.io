@@ -1,7 +1,9 @@
 import { computed, inject, onBeforeUnmount, onMounted, readonly, ref, watch, type Ref } from 'vue';
 import { MORSE_MESSAGE } from '../content/readouts';
+import type { Key } from '../circuit/keypad';
 import type { Locale, PartId } from '../content/types';
 import { encodeMorse, morseTimeline, MORSE_UNIT_MS } from '../lib/morse';
+import { sheetOpen } from '../lib/sheet';
 import { useBoardState } from './useBoardState';
 import { FLIP } from './useFlip';
 import { useGame, type GameMode } from './useGame';
@@ -35,6 +37,11 @@ export interface Display {
   ledOn: Readonly<Ref<boolean>>;
   /** While the Morse code is being sent: the signal being sent (from 0), or -1 between two; null otherwise. */
   sending: Readonly<Ref<number | null>>;
+  /**
+   * A key of the test keypad (revision 10): a step of the code, or in the game mode a key of the game.
+   * Nothing while the back face is up or a sheet is open.
+   */
+  pad(key: Key): void;
   /** The game mode of the easter egg (revision 8): on, what it draws, what it says. */
   game: Pick<GameMode, 'on' | 'view' | 'news'>;
 }
@@ -152,17 +159,19 @@ export function useDisplay(locale: () => Locale, screen: Ref<HTMLElement | null>
     endBoot();
     stopMorse();
     game.start();
+    // The game is on DISP1: brought into view with its keypad under it, if it is not (on a phone, the
+    // code pressed on the keypad leaves the screen above the window).
+    screen.value?.closest('figure')?.scrollIntoView({ block: 'nearest', behavior: reduced.value ? 'instant' : 'smooth' });
   }
-  useKonami(screen, toggleGame, { enabled: () => !flip?.flipped.value, touch: () => !game.on.value });
+  const konami = useKonami(screen, toggleGame, { enabled: () => !flip?.flipped.value, touch: () => !game.on.value });
 
-  /** A sheet is open (an engine without popovers has none). */
-  const sheetOpen = (): boolean => {
-    try {
-      return document.querySelector('.sheet:popover-open') !== null;
-    } catch {
-      return false;
-    }
-  };
+  // The keypad types the code, as the keys and the swipes do; in the game mode it plays (not the code: the keyboard,
+  // Escape and SW1 end it), as the swipes do.
+  function pad(key: Key): void {
+    if (flip?.flipped.value || sheetOpen()) return;
+    if (game.on.value) game.press(key);
+    else konami.press(key);
+  }
 
   // Escape stops what DISP1 runs, the game first; it also closes sheets, which should not change a
   // still screen (nor have the caption announce it). With a sheet open over the game, one Escape
@@ -199,6 +208,7 @@ export function useDisplay(locale: () => Locale, screen: Ref<HTMLElement | null>
     chosen: readonly(chosen),
     part: readonly(part),
     cycle,
+    pad,
     ledOn: computed(() => (sending.value ?? -1) >= 0),
     sending: readonly(sending),
     game,

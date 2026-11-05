@@ -65,6 +65,8 @@ export interface Copy {
   game: { intro: string; over: (pads: number) => string };
   switchRef: string;
   switchHidden: string;
+  /** The test keypad (revision 10): the name of its group, then of its keys, the cross then B and A. */
+  keypad: { group: string; keys: string[] };
   /** JP1, the jumper that switches the board between green and black. */
   theme: { ref: string; green: string; dark: string; switchHidden: string };
   /** SW2 and the back side: the switch, the title, the bill of materials. */
@@ -207,6 +209,7 @@ export const FR: Copy = {
   },
   switchRef: 'SW1',
   switchHidden: 'changer l’écran',
+  keypad: { group: 'Pavé de test', keys: ['Haut', 'Bas', 'Gauche', 'Droite', 'B', 'A'] },
   theme: { ref: 'JP1', green: 'VERT', dark: 'NOIR', switchHidden: 'carte noire' },
   back: {
     ref: 'SW2',
@@ -351,6 +354,7 @@ export const EN: Copy = {
   },
   switchRef: 'SW1',
   switchHidden: 'change screen',
+  keypad: { group: 'Test keypad', keys: ['Up', 'Down', 'Left', 'Right', 'B', 'A'] },
   theme: { ref: 'JP1', green: 'GREEN', dark: 'BLACK', switchHidden: 'black board' },
   back: {
     ref: 'SW2',

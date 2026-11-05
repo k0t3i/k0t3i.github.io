@@ -45,6 +45,7 @@ export const fr: SiteContent = {
     },
     switchRef: 'SW1',
     switchHidden: 'changer l’écran',
+    keypad: { group: 'Pavé de test', keys: { up: 'Haut', down: 'Bas', left: 'Gauche', right: 'Droite', b: 'B', a: 'A' } },
   },
   theme: { ref: 'JP1', green: 'VERT', dark: 'NOIR', switchHidden: 'carte noire' },
   back: {

@@ -47,6 +47,7 @@ export const en: SiteContent = {
     },
     switchRef: 'SW1',
     switchHidden: 'change screen',
+    keypad: { group: 'Test keypad', keys: { up: 'Up', down: 'Down', left: 'Left', right: 'Right', b: 'B', a: 'A' } },
   },
   theme: { ref: 'JP1', green: 'GREEN', dark: 'BLACK', switchHidden: 'black board' },
   back: {

@@ -18,8 +18,8 @@ test('tab order', async ({ page, browserName, isMobile }) => {
   const withLinks = browserName !== 'webkit';
   const tab = 'Tab';
   const seen: string[] = [];
-  // Three links (WebKit: none), JP1, SW2, SW1 and every part.
-  for (let i = 0; i < (withLinks ? 3 : 0) + 3 + IDS.length; i++) {
+  // Three links (WebKit: none), JP1, SW2, SW1, the test keypad (one stop) and every part.
+  for (let i = 0; i < (withLinks ? 3 : 0) + 4 + IDS.length; i++) {
     await page.keyboard.press(tab);
     seen.push(
       await page.evaluate(() => {
@@ -30,13 +30,14 @@ test('tab order', async ({ page, browserName, isMobile }) => {
         if (el.matches('.sw1')) return 'sw1';
         if (el.matches('.jp1')) return 'jp1';
         if (el.matches('.sw2')) return 'sw2';
+        if (el.matches('.keypad__key')) return `pad:${(el as HTMLElement).dataset.key}`;
         return el.getAttribute('popovertarget') ?? el.tagName;
       }),
     );
   }
   expect(IDS).toHaveLength(10);
   // The SW2 of the back face is inert while the front face is up: out of the tab order.
-  const buttons = ['jp1', 'sw2', 'sw1', ...IDS.map((id) => `sheet-${id}`)];
+  const buttons = ['jp1', 'sw2', 'sw1', 'pad:up', ...IDS.map((id) => `sheet-${id}`)];
   expect(seen).toEqual(withLinks ? ['skip', 'lang:fr', 'lang:en', ...buttons] : buttons);
   if (!withLinks) {
     // WebKit: each link before JP1 takes the focus (their place in the order: the DOM-order test below).
@@ -53,10 +54,10 @@ test('focusable elements are in the DOM order, with no positive tabindex', async
       .filter((el) => !el.closest('.sheet, [inert]') && el.tabIndex >= 0)
       .map((el) => (el.matches('.skip-link') ? 'skip' : (el.getAttribute('hreflang') ?? el.getAttribute('popovertarget') ?? el.className))),
   );
-  expect(order).toEqual(['skip', 'fr', 'en', 'jp1', 'sw2', 'sw1', ...IDS.map((id) => `sheet-${id}`)]);
-  // Only the roving tab stop of the parts of the back face sets a tabindex, and never above 0.
+  expect(order).toEqual(['skip', 'fr', 'en', 'jp1', 'sw2', 'sw1', 'keypad__key', ...IDS.map((id) => `sheet-${id}`)]);
+  // Only the roving tab stops of the test keypad and of the parts of the back face set a tabindex, and never above 0.
   expect(await page.evaluate(() => [...document.querySelectorAll<HTMLElement>('[tabindex]')].filter((el) => el.tabIndex > 0).length)).toBe(0);
-  expect(await page.locator('[tabindex="0"]').evaluateAll((els) => els.map((el) => el.matches('button.back-part')))).toEqual([true]);
+  expect(await page.locator('[tabindex="0"]').evaluateAll((els) => els.map((el) => el.className))).toEqual(['keypad__key', 'back-part']);
 });
 
 test('enter opens the sheet and focuses its title', async ({ page, isMobile }) => {

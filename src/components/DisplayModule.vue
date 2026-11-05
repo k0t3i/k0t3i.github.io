@@ -4,6 +4,7 @@ import { useDisplay } from '../composables/useDisplay';
 import type { Locale, PartId, SiteContent } from '../content/types';
 import PixelScreen from './PixelScreen.vue';
 import TactileSwitch from './TactileSwitch.vue';
+import TestKeypad from './TestKeypad.vue';
 
 const props = defineProps<{
   display: SiteContent['display'];
@@ -21,7 +22,7 @@ const pins = computed(() => props.display.pins.split(' '));
  * DISP1 keys LED1 (data-led, on or off: motion.css; the LED is a part of the principles, after DISP1).
  */
 const glass = ref<HTMLElement | null>(null);
-const { screen, chosen, part, cycle, ledOn, sending, game } = useDisplay(() => props.locale, glass);
+const { screen, chosen, part, cycle, pad, ledOn, sending, game } = useDisplay(() => props.locale, glass);
 const led = computed(() => (sending.value === null ? undefined : ledOn.value ? 'on' : 'off'));
 // The avatar is out of sight under the other screens, still in the figure with its text alternative;
 // under the boot, the veil of the power-on lifts onto it.
@@ -93,6 +94,12 @@ const said = computed(() => {
       :designator="props.display.switchRef"
       :hidden="props.display.switchHidden"
       @press="cycle"
+    />
+    <!-- The test keypad (revision 10): it types the code, then plays; placed on the art of the wide board. -->
+    <TestKeypad
+      :keypad="props.display.keypad"
+      :game="game.on.value"
+      @press="pad"
     />
     <figcaption
       id="disp1-caption"

@@ -9,6 +9,8 @@ import './styles/board.css';
 import './styles/open.css';
 import './styles/parts.css';
 import './styles/sheets.css';
+// The test keypad: rules in board, wide, motion and modes (its own file, the layers keep the order).
+import './styles/keypad.css';
 import './styles/wide.css';
 import './styles/back.css';
 import './styles/depth.css';
