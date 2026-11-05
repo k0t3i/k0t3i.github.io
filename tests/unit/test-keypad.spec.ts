@@ -124,9 +124,11 @@ describe('the test keypad', () => {
       await nextTick();
       expect(stop()).toEqual([to]);
     }
-    // The keys it takes go no further: the code detector of the page does not see them.
-    expect(outside).not.toHaveBeenCalled();
-    // Enter and Space are the button's (its click): not prevented, not seen by the page either.
+    // The arrows, Home and End still reach the page: the code typed with the focus here is the code
+    // (the review of Task 18), they only do not scroll it.
+    expect(outside).toHaveBeenCalledTimes(seq.length);
+    outside.mockClear();
+    // Enter and Space are the button's (its click, a step of the code): not prevented, not seen by the page.
     expect(down(b[0] as Element, 'Enter').defaultPrevented).toBe(false);
     expect(down(b[0] as Element, ' ').defaultPrevented).toBe(false);
     expect(outside).not.toHaveBeenCalled();
