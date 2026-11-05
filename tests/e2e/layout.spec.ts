@@ -727,6 +727,22 @@ function connectorColumn(page: Page): Promise<string[]> {
   });
 }
 
+/**
+ * The room between the footer (the uptime, which may wrap, and the marks) and the bottom edge of the
+ * face, in px: the review of Task 18 found the uptime 1 px from the edge at 1264 px with the root
+ * font at 125 %. Now 9 px there, 5.5 px with the text spacing at 1264 px (the marks), 30 px and more plain.
+ */
+const FOOTER_MARGIN = 5;
+const footerMargin = (page: Page): Promise<number> =>
+  page.evaluate(() => {
+    const face = (document.querySelector('.board__face--front') as Element).getBoundingClientRect();
+    // What is drawn: the lines of the uptime and the marks (a margin of the text spacing is no ink).
+    const range = document.createRange();
+    range.selectNodeContents(document.querySelector('.board__footer .uptime') as Element);
+    const marks = [...document.querySelectorAll('.board__footer .pcb-marks > li')].map((li) => li.getBoundingClientRect());
+    return face.bottom - Math.max(...[...range.getClientRects(), ...marks].map((r) => r.bottom));
+  });
+
 test.describe('wide board', () => {
   for (const viewport of [
     { width: 1264, height: 800 },
@@ -738,6 +754,7 @@ test.describe('wide board', () => {
         await page.goto(path);
         await expect(page.locator('.board__signal')).toBeVisible();
         expect(await wideProblems(page), path).toEqual([]);
+        expect(await footerMargin(page), path).toBeGreaterThanOrEqual(FOOTER_MARGIN);
       }
     });
   }
@@ -1013,6 +1030,7 @@ test.describe('wide board with user text settings', () => {
           await expect(page.locator('.board__signal')).toBeVisible();
           expect(await connectorColumn(page), path).toEqual([]);
           if (whole) expect(await wideProblems(page), path).toEqual([]);
+          expect(await footerMargin(page), path).toBeGreaterThanOrEqual(FOOTER_MARGIN);
           expect(await traceEnds(page), path).toEqual(IDS.map((id) => `${id} true true`));
         }
       });

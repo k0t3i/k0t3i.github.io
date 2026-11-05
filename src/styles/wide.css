@@ -421,12 +421,17 @@
       line-height: 1.3;
     }
 
-    /* Footer: the uptime and the marks along the bottom edge, centred on the line of the bottom holes. */
+    /*
+     * Footer: the uptime and the marks along the bottom edge, centred on the line of the bottom holes
+     * (half the height of a framed mark above it, 1.25rem / 2). The uptime is set at a leading of 1.3
+     * here, so that where it wraps (the root font at 125 % at 1264 px) its second line keeps 9 px from
+     * the edge of the board (the review of Task 18; layout.spec.ts holds 5 px in every case).
+     */
     .board--home .board__footer {
       --x: 112;
       --y: 848;
 
-      top: calc(var(--y) * var(--u) - 0.67rem);
+      top: calc(var(--y) * var(--u) - 0.625rem);
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -438,6 +443,7 @@
     .board--home .uptime {
       min-width: 0;
       max-width: none;
+      line-height: 1.3;
     }
 
     .board--home .pcb-marks {
