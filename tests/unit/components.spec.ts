@@ -341,15 +341,18 @@ describe('BoardPage', () => {
 });
 
 describe('PcbMarks', () => {
-  it('renders the three marks', () => {
+  it('renders the marks, the verified ones framed by a class', () => {
     const wrapper = mount(PcbMarks, { props: { marks: fr.marks } });
     expect(wrapper.get('ul.pcb-marks').attributes('role')).toBe('list');
     const items = wrapper.findAll('ul.pcb-marks > li');
-    expect(items).toHaveLength(3);
+    expect(items).toHaveLength(fr.marks.length);
     items.forEach((li, i) => {
-      expect(li.get('span[aria-hidden="true"]').text()).toBe(fr.marks[i]?.visible);
+      const shown = li.get('span[aria-hidden="true"]');
+      expect(shown.text()).toBe(fr.marks[i]?.visible);
+      expect(shown.classes('pcb-mark--framed')).toBe(Boolean(fr.marks[i]?.framed));
       expect(li.get('span.vh').text()).toBe(fr.marks[i]?.hidden);
     });
+    expect(wrapper.html()).not.toContain('style=');
   });
 });
 

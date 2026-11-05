@@ -84,7 +84,11 @@ export interface SiteContent {
     };
     group: string;
   };
-  marks: { visible: string; hidden: string }[];
+  /**
+   * The PCB marks of the footer, six at most, in order (Anthony, 05/11/2026). A verified mark (a11y AA,
+   * LH 100: the tests of the board check them) is framed, like a conformity mark.
+   */
+  marks: { visible: string; hidden: string; framed?: true }[];
   sections: { principles: { id: string; title: string }; connectors: { id: string; title: string } };
   principles: PartContent[];
   connectors: PartContent[];

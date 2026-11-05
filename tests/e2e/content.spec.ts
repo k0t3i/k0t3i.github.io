@@ -149,7 +149,7 @@ for (const copy of [FR, EN] as Copy[]) {
       await expect(page.locator('section.board__face--back[aria-labelledby="back-title"] .board__sw2 > button.sw2')).toHaveCount(1);
     });
 
-    test('the three PCB marks', async ({ page }) => {
+    test('the PCB marks', async ({ page }) => {
       const marks = page.locator('.pcb-marks > li');
       await expect(marks).toHaveCount(copy.marks.length);
       for (const [i, m] of copy.marks.entries()) {

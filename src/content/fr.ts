@@ -77,9 +77,12 @@ export const fr: SiteContent = {
     group: 'Composants de la face arrière',
   },
   marks: [
-    { visible: 'a11y AA', hidden: 'Accessibilité WCAG 2.2, niveau AA' },
-    { visible: 'INTJ-A', hidden: 'Personnalité INTJ-A' },
     { visible: 'Vue 3', hidden: 'Construit avec Vue 3' },
+    { visible: 'a11y AA', hidden: 'Accessibilité WCAG 2.2, niveau AA', framed: true },
+    { visible: 'INTJ-A', hidden: 'Personnalité INTJ-A' },
+    { visible: 'LH 100', hidden: 'Lighthouse 100 dans chaque catégorie', framed: true },
+    { visible: 'IA', hidden: `Compétence${NB}: intelligence artificielle` },
+    { visible: 'n8n', hidden: `Compétence${NB}: automatisation avec n8n` },
   ],
   sections: {
     principles: { id: 'principes', title: 'Principes' },

@@ -419,11 +419,16 @@
       width: calc(1376 * var(--u));
     }
 
+    /* The uptime gives way (it may wrap): the six marks stay on one line, on the edge of the board. */
     .board--home .uptime {
+      min-width: 0;
       max-width: none;
     }
 
     .board--home .pcb-marks {
+      flex: none;
+      flex-wrap: nowrap;
+      column-gap: 0.75rem;
       margin-inline-end: 0;
     }
 

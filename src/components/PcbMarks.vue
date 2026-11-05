@@ -14,7 +14,10 @@ const props = defineProps<{ marks: SiteContent['marks'] }>();
       v-for="mark in props.marks"
       :key="mark.visible"
     >
-      <span aria-hidden="true">{{ mark.visible }}</span>
+      <span
+        aria-hidden="true"
+        :class="{ 'pcb-mark--framed': mark.framed }"
+      >{{ mark.visible }}</span>
       <span class="vh">{{ mark.hidden }}</span>
     </li>
   </ul>

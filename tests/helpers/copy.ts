@@ -83,7 +83,7 @@ export interface Copy {
     /** The accessible name of the group of the parts drawn on the back face. */
     group: string;
   };
-  marks: { visible: string; hidden: string }[];
+  marks: { visible: string; hidden: string; framed?: true }[];
   sections: { principles: { id: string; title: string }; connectors: { id: string; title: string } };
   close: string;
   /** Read after the text of a link that opens in a new tab (revision 8), visually hidden. */
@@ -235,9 +235,12 @@ export const FR: Copy = {
     group: 'Composants de la face arrière',
   },
   marks: [
-    { visible: 'a11y AA', hidden: 'Accessibilité WCAG 2.2, niveau AA' },
-    { visible: 'INTJ-A', hidden: 'Personnalité INTJ-A' },
     { visible: 'Vue 3', hidden: 'Construit avec Vue 3' },
+    { visible: 'a11y AA', hidden: 'Accessibilité WCAG 2.2, niveau AA', framed: true },
+    { visible: 'INTJ-A', hidden: 'Personnalité INTJ-A' },
+    { visible: 'LH 100', hidden: 'Lighthouse 100 dans chaque catégorie', framed: true },
+    { visible: 'IA', hidden: `Compétence${NB}: intelligence artificielle` },
+    { visible: 'n8n', hidden: `Compétence${NB}: automatisation avec n8n` },
   ],
   sections: {
     principles: { id: 'principes', title: 'Principes' },
@@ -380,9 +383,12 @@ export const EN: Copy = {
     group: 'Back-side components',
   },
   marks: [
-    { visible: 'a11y AA', hidden: 'Accessibility WCAG 2.2, level AA' },
-    { visible: 'INTJ-A', hidden: 'Personality INTJ-A' },
     { visible: 'Vue 3', hidden: 'Built with Vue 3' },
+    { visible: 'a11y AA', hidden: 'Accessibility WCAG 2.2, level AA', framed: true },
+    { visible: 'INTJ-A', hidden: 'Personality INTJ-A' },
+    { visible: 'LH 100', hidden: 'Lighthouse 100 in every category', framed: true },
+    { visible: 'AI', hidden: 'Skill: artificial intelligence' },
+    { visible: 'n8n', hidden: 'Skill: automation with n8n' },
   ],
   sections: {
     principles: { id: 'principles', title: 'Principles' },

@@ -79,9 +79,12 @@ export const en: SiteContent = {
     group: 'Back-side components',
   },
   marks: [
-    { visible: 'a11y AA', hidden: 'Accessibility WCAG 2.2, level AA' },
-    { visible: 'INTJ-A', hidden: 'Personality INTJ-A' },
     { visible: 'Vue 3', hidden: 'Built with Vue 3' },
+    { visible: 'a11y AA', hidden: 'Accessibility WCAG 2.2, level AA', framed: true },
+    { visible: 'INTJ-A', hidden: 'Personality INTJ-A' },
+    { visible: 'LH 100', hidden: 'Lighthouse 100 in every category', framed: true },
+    { visible: 'AI', hidden: 'Skill: artificial intelligence' },
+    { visible: 'n8n', hidden: 'Skill: automation with n8n' },
   ],
   sections: {
     principles: { id: 'principles', title: 'Principles' },

@@ -98,19 +98,24 @@ describe('content', () => {
     }
   });
 
-  it('marks are the three PCB marks', () => {
-    expect(fr.marks.map((m) => m.visible)).toEqual(['a11y AA', 'INTJ-A', 'Vue 3']);
-    expect(en.marks.map((m) => m.visible)).toEqual(['a11y AA', 'INTJ-A', 'Vue 3']);
+  it('marks are the PCB marks of Anthony, six at most, the verified ones framed (decision of 05/11/2026)', () => {
+    expect(fr.marks.map((m) => m.visible)).toEqual(['Vue 3', 'a11y AA', 'INTJ-A', 'LH 100', 'IA', 'n8n']);
+    expect(en.marks.map((m) => m.visible)).toEqual(['Vue 3', 'a11y AA', 'INTJ-A', 'LH 100', 'AI', 'n8n']);
+    for (const c of [fr, en]) {
+      expect(c.marks.length).toBeLessThanOrEqual(6);
+      expect(c.marks.filter((m) => m.framed).map((m) => m.visible)).toEqual(['a11y AA', 'LH 100']);
+    }
   });
 
   it('the bill of materials lists U10 to U18, Y1 and J6, the same parts in both languages', () => {
     const refs = ['U10', 'U11', 'U12', 'U13', 'U14', 'U15', 'U16', 'U17', 'U18', 'Y1', 'J6'];
     expect(fr.back.bom.rows.map((r) => r.ref)).toEqual(refs);
     expect(en.back.bom.rows.map((r) => r.ref)).toEqual(refs);
-    // The marks a11y AA, INTJ-A and Vue 3 belong to the PCB marks only.
+    // The PCB marks belong to the PCB marks only (as words: « IA » is in « ARIA »; the marks have no character special to a pattern).
+    const word = (mark: string) => new RegExp(`(^|[^\\p{L}\\p{N}])${mark}($|[^\\p{L}\\p{N}])`, 'u');
     for (const c of [fr, en]) {
       for (const [path, text] of strings(c.back)) {
-        for (const mark of c.marks) expect(text, path).not.toContain(mark.visible);
+        for (const mark of c.marks) expect(text, path).not.toMatch(word(mark.visible));
       }
     }
   });

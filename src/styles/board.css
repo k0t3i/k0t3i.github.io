@@ -570,8 +570,8 @@
     letter-spacing: 0.04em;
   }
 
-  /* The first one, a11y AA, is a conformity mark: it alone keeps a thin frame. */
-  .pcb-marks > li:first-child > [aria-hidden="true"] {
+  /* The verified marks (a11y AA, LH 100: the tests of the board check them) keep a thin frame, like a conformity mark. */
+  .pcb-marks > li > .pcb-mark--framed {
     padding: 0.0625rem 0.3125rem;
     border: 1px solid var(--line);
     border-radius: 0.125rem;
