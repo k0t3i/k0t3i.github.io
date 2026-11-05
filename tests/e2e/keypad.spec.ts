@@ -121,6 +121,18 @@ test.describe('the test keypad', () => {
     await expect(key(page, 'b')).toBeFocused();
   });
 
+  // The review of Task 18: the keypad kept the arrows from the document, so the code typed with the focus on it was lost.
+  test('the code typed on the keyboard with the focus on the keypad starts the game, the page not scrolled', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'a keyboard');
+    await booted(page);
+    await open(page);
+    await key(page, 'up').focus();
+    for (const k of ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a']) await page.keyboard.press(k);
+    await inGame(page);
+    expect(await page.evaluate(() => document.activeElement?.classList.contains('keypad__key'))).toBe(true);
+    expect(await page.evaluate(() => scrollY)).toBe(0);
+  });
+
   test('the whole code pressed on it starts the game (taps on the phones, clicks elsewhere), only then fetched', async ({ page, isMobile }) => {
     const asked: string[] = [];
     page.on('request', (r) => {

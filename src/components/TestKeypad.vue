@@ -18,8 +18,10 @@ import { sheetOpen } from '../lib/sheet';
  * - One tab stop (a roving tabindex): outside the game mode, the arrows go from key to key in the
  *   order of the references, round, and Home and End to the ends. In the game mode the arrows are the
  *   game's, as everywhere on the page (they steer, game/play.ts): the keypad takes only Home and End.
- *   Enter and Space press the key (the button's click). The keys the keypad takes go no further, so
- *   the code detector does not count them twice (useKonami).
+ *   Enter and Space press the key (the button's click): they go no further, the press is the step
+ *   of the code (useKonami). The arrows, Home and End move the focus without scrolling the page, and
+ *   still reach the document: the code typed on the keyboard with the focus on the keypad is the
+ *   code (the review of Task 18).
  * - A press is the button's click, mouse, finger, pen, keyboard or assistive technology alike: one
  *   event, never a touch and then a click (and nothing on the way down: WCAG 2.5.2). A press that
  *   meets an open sheet, or that began over one (a tap outside a sheet closes it), presses nothing.
@@ -89,7 +91,6 @@ function onKeydown(event: KeyboardEvent): void {
   const next = { ...roving, Home: 0, End: n - 1 }[event.key];
   if (next === undefined) return;
   event.preventDefault();
-  event.stopPropagation();
   const to = KEYPAD[next % n]?.key ?? current.value;
   current.value = to;
   buttons.value.find((b) => b.dataset.key === to)?.focus();
