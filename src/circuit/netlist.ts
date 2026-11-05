@@ -231,7 +231,9 @@ export const NETS: readonly Net[] = [
   net('LED_DRV', 'signal', 'U10.44 R1.1'),
   net('LED_A', 'signal', 'R1.2 LED1.A'),
   // The test keypad: each key on a GPIO of the chip (GPIO33 to GPIO36, GPIO47, GPIO48: with a quad
-  // flash, the octal pins are free), its pull-up in RN1, its TEST pads.
+  // flash, the octal pins are free), its pull-up in RN1, its TEST pads. GPIO47 and GPIO48 (SPICLK_P,
+  // SPICLK_N) are in the VDD_SPI power domain: VDD_SPI is 3.3 V here (GPIO45 low, its strap), so their
+  // pull-ups to +3V3 never drive them above their own supply.
   net('KEY_UP', 'signal', 'U10.41 SW3.1 SW3.2 RN1.2 J8.1 J8.2'),
   net('KEY_DOWN', 'signal', 'U10.40 SW4.1 SW4.2 RN1.3 J8.3 J8.4'),
   net('KEY_LEFT', 'signal', 'U10.39 SW5.1 SW5.2 RN1.4 J8.5 J8.7'),
