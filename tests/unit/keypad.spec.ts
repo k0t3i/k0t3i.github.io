@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { KEYPAD, KEYPAD_FLOW, KEYPAD_SLOT, KEY_HIT, TEST_PADS, TEST_ROW } from '../../src/circuit/keypad';
+import { KEYPAD, KEYPAD_FLOW, KEYPAD_SLOT, KEY_BODY, KEY_HIT, TEST_PADS, TEST_ROW } from '../../src/circuit/keypad';
 
 /*
  * The place of the test keypad and of its TEST row on the front face (spec 4.11): the data the page,
@@ -18,6 +18,8 @@ describe('the test keypad', () => {
   it('gives each switch a hit area of at least 24 CSS px on the smallest wide board, root font at 125 % too (WCAG 2.5.8)', () => {
     // 79rem wide: a 1200 px board (0.75 px a unit); with the root font at 125 %, 0.74 px a unit.
     expect(KEY_HIT * 0.74).toBeGreaterThanOrEqual(24);
+    // Room between two bodies for a trace and its clearance.
+    expect(KEY_HIT - KEY_BODY).toBeGreaterThanOrEqual(14);
   });
 
   it('keeps the hit areas apart and in the slot of the group', () => {
@@ -34,7 +36,7 @@ describe('the test keypad', () => {
     // The title ends before x 954 above y 410, the subtitle before x 789 above y 509; DISP1 starts at 1188.
     expect(KEYPAD_SLOT.x).toBeGreaterThan(954 + 20);
     expect(KEYPAD_SLOT.x + KEYPAD_SLOT.w).toBeLessThan(1188 - 16);
-    expect(overlap({ x0: 1046 - 6, y0: 252 - 6, x1: 1046 + 6, y1: 252 + 6 }, { x0: KEYPAD_SLOT.x, y0: KEYPAD_SLOT.y, x1: 1163, y1: 405 })).toBe(false);
+    expect(overlap({ x0: 1046 - 6, y0: 252 - 6, x1: 1046 + 6, y1: 252 + 6 }, { x0: KEYPAD_SLOT.x, y0: KEYPAD_SLOT.y, x1: 1171, y1: 383 })).toBe(false);
   });
 
   it('fits the flowing board: the hit areas apart, the group within its cells', () => {
@@ -58,10 +60,13 @@ describe('the TEST row', () => {
     for (const p of TEST_PADS) expect(p.net).toBe(netOf[key[p.mark as keyof typeof key]]);
   });
 
-  it('lies under the keypad, clear of the subtitle (x 789, y 509) and above the copper of the principles (y 522)', () => {
+  it('lies under the keypad, clear of the title (x 954 above y 410), of the subtitle (x 789) and above the copper of the principles (y 522)', () => {
     expect(TEST_ROW.y - TEST_ROW.r).toBeGreaterThan(KEYPAD_SLOT.y + KEYPAD_SLOT.h + 20);
-    expect(TEST_ROW.label.x - 40).toBeGreaterThan(789 + 40);
-    expect(TEST_ROW.y + 30).toBeLessThan(522);
+    expect(TEST_ROW.x - TEST_ROW.r).toBeGreaterThan(954 + 16);
+    // The label, 12 units high, under the line of the title, right of the subtitle.
+    expect(TEST_ROW.label.y - 12).toBeGreaterThan(410 + 16);
+    expect(TEST_ROW.label.x).toBeGreaterThan(789 + 40);
+    expect(TEST_ROW.y + 90).toBeLessThan(522);
     expect((TEST_PADS.at(-1)?.x ?? 0) + TEST_ROW.r).toBeLessThan(1188 - 16);
   });
 });
