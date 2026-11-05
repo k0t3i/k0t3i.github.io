@@ -24,7 +24,7 @@ const SWIPES: [number, number][] = [
 ];
 
 let found = 0;
-let enabled = true;
+/** A touch on DISP1 is a step of the code (useDisplay: not while the game runs, its swipes steer it). */
 let touchOn = true;
 /** Every DISP1 mounted by a test: unmounted after it, even when it fails. */
 const mounted: VueWrapper[] = [];
@@ -35,7 +35,7 @@ function mountDisp(): { wrapper: VueWrapper; screen: HTMLElement; other: HTMLEle
   const Harness = defineComponent({
     setup() {
       const el = ref<HTMLElement | null>(null);
-      konami = useKonami(el, () => found++, { enabled: () => enabled, touch: () => touchOn });
+      konami = useKonami(() => found++, { area: (target) => touchOn && !!el.value?.contains(target) });
       return () => h('div', [h('div', { ref: el, class: 'disp__screen' }), h('p', { class: 'other' })]);
     },
   });
@@ -64,7 +64,6 @@ function swipe(target: HTMLElement, dx: number, dy: number, fingers = 1): void {
 afterEach(() => {
   for (const w of mounted.splice(0)) if (w.vm) w.unmount();
   found = 0;
-  enabled = true;
   touchOn = true;
   sheetIsOpen = false;
   vi.restoreAllMocks();
@@ -111,14 +110,15 @@ describe('useKonami', () => {
 
   it('finds the code swiped and tapped on DISP1, its listeners passive: the page still scrolls', async () => {
     const added: { el: EventTarget; type: string; passive?: boolean }[] = [];
-    const add = HTMLElement.prototype.addEventListener;
-    vi.spyOn(HTMLElement.prototype, 'addEventListener').mockImplementation(function (this: HTMLElement, type, l, o) {
-      if (type.startsWith('touch')) added.push({ el: this, type, passive: typeof o === 'object' ? o.passive : undefined });
-      add.call(this, type, l, o);
+    const add = document.addEventListener.bind(document);
+    vi.spyOn(document, 'addEventListener').mockImplementation((type: string, l: EventListenerOrEventListenerObject, o?: boolean | AddEventListenerOptions) => {
+      if (type.startsWith('touch')) added.push({ el: document, type, passive: typeof o === 'object' ? o.passive : undefined });
+      add(type, l, o);
     });
     const { wrapper, screen, other } = mountDisp();
     await nextTick();
-    const mine = added.filter((a) => a.el === screen);
+    // On the document, passive; a touch counts only where the area says (DISP1 here).
+    const mine = added.filter((a) => a.el === document);
     expect(mine.map((a) => [a.type, a.passive])).toEqual([
       ['touchstart', true],
       ['touchend', true],
@@ -140,14 +140,9 @@ describe('useKonami', () => {
     wrapper.unmount();
   });
 
-  it('does nothing while the back face is up, and leaves the touches to the game while it runs', async () => {
+  it('leaves the touches to the game while it runs, and the keys still find it', async () => {
     const { wrapper, screen } = mountDisp();
     await nextTick();
-    enabled = false;
-    TYPED.forEach((k) => press(k));
-    for (const [dx, dy] of SWIPES) swipe(screen, dx, dy);
-    expect(found).toBe(0);
-    enabled = true;
     touchOn = false;
     for (const [dx, dy] of SWIPES) swipe(screen, dx, dy);
     expect(found).toBe(0);
@@ -171,10 +166,6 @@ describe('useKonami', () => {
     for (const k of CODE.slice(0, 6)) konami.press(k);
     konami.press('a');
     for (const k of CODE.slice(6)) konami.press(k);
-    expect(found).toBe(2);
-    // The back face up: nothing.
-    enabled = false;
-    for (const k of CODE) konami.press(k);
     expect(found).toBe(2);
     wrapper.unmount();
   });

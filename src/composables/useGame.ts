@@ -17,13 +17,18 @@ export interface GameMode {
   press(key: PadKey): void;
   /** Ends the game mode; `fade` cross-fades the colours back (an exit in place: Escape, SW1, the code). */
   quit(fade?: boolean): void;
+  /**
+   * The back face is up (true) or the front again (false), revision 11: the mode stays on, the game
+   * is held where it was (paused, its timers stopped, deaf), then let go (B or A goes on).
+   */
+  hold(on: boolean): void;
 }
 
 /**
  * The game mode of DISP1 (revision 8), from the code typed to its end. On start: <html> takes
  * data-retro (the old LCD greens of retro.css, set with the DOM API, never in the prerender), the
  * rules are said, and the game « Routage » is loaded (game/play.ts, a chunk of its own: nothing of it
- * is fetched before) and runs on `screen`. quit() stops it, its timers and listeners with it, and
+ * is fetched before) and runs on `screen`; hold() keeps it while the back face is up (revision 11). quit() stops it, its timers and listeners with it, and
  * gives the page its colours back. The colours change in a short cross-fade of the page where the
  * browser has view transitions and motion is welcome, else at once. Leaving the page ends it, also
  * when the browser keeps the page for its back button (pagehide). Client only.
@@ -36,6 +41,8 @@ export function useGame(screen: Ref<HTMLElement | null>): GameMode {
   let stop: Game | undefined;
   /** The game mode now on: a game that loads for an earlier one never starts. */
   let round = 0;
+  /** The back face is up: a game that loads then starts held. */
+  let held = false;
 
   /**
    * The page takes the colours of the state of the game mode, as it is when they are applied: a view
@@ -76,6 +83,7 @@ export function useGame(screen: Ref<HTMLElement | null>): GameMode {
           over: (pads) => (news.value = { kind: 'over', pads }),
           playing: () => (news.value = null),
         });
+        if (held) stop.hold(true);
       })
       .catch(() => {
         if (mine === round) quit();
@@ -96,5 +104,9 @@ export function useGame(screen: Ref<HTMLElement | null>): GameMode {
     start,
     quit,
     press: (key) => stop?.press(key),
+    hold(on) {
+      held = on;
+      stop?.hold(on);
+    },
   };
 }

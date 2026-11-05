@@ -19,14 +19,15 @@ import { EN as ORACLE_EN, FR as ORACLE_FR } from '../helpers/copy';
 
 const hosts: GameHost[] = [];
 const stops: ReturnType<typeof vi.fn>[] = [];
-/** The keys of the keypad the game was given (its press()). */
+/** The keys of the keypad the game was given (its press()), and its holds (hold()). */
 const pressed: string[] = [];
+const holds: boolean[] = [];
 vi.mock('../../src/game/play', () => ({
   play: (host: GameHost) => {
     hosts.push(host);
     const stop = vi.fn();
     stops.push(stop);
-    return Object.assign(stop, { press: (k: string) => pressed.push(k) });
+    return Object.assign(stop, { press: (k: string) => pressed.push(k), hold: (on: boolean) => holds.push(on) });
   },
 }));
 
@@ -97,6 +98,7 @@ beforeEach(() => {
   hosts.length = 0;
   stops.length = 0;
   pressed.length = 0;
+  holds.length = 0;
   sheetIsOpen = false;
 });
 
@@ -181,7 +183,6 @@ describe('the game mode of DISP1', () => {
     ['Escape', async () => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))],
     ['SW1', async (w: VueWrapper) => w.get('button.sw1').trigger('click')],
     ['the code typed again', async () => type()],
-    ['a turn of the board', async (_: VueWrapper, m: ReturnType<typeof mountBoard>) => (m.flipped.value = true)],
     ['a language switch', async (_: VueWrapper, m: ReturnType<typeof mountBoard>) => (m.locale.value = 'en')],
   ] as [string, (w: VueWrapper, m: ReturnType<typeof mountBoard>) => Promise<unknown>][]) {
     it(`${way} ends it: the game stopped, the colours and DISP1 back`, async () => {
@@ -195,9 +196,8 @@ describe('the game mode of DISP1', () => {
       await nextTick();
       expect(stops.at(-1)).toHaveBeenCalledTimes(1);
       const display = m.locale.value === 'en' ? en.display : fr.display;
-      // A language switch, as a turn of the board, puts DISP1 back on the avatar; the others keep the screen chosen.
-      const back = way === 'a language switch' ? display.captions.avatar : display.captions.uptime;
-      atRest(m.wrapper, way === 'a turn of the board' ? display.captions.avatar : back);
+      // A language switch puts DISP1 back on the avatar; the others keep the screen chosen.
+      atRest(m.wrapper, way === 'a language switch' ? display.captions.avatar : display.captions.uptime);
       m.wrapper.unmount();
     });
   }
@@ -217,8 +217,8 @@ describe('the game mode of DISP1', () => {
       const m = mountBoard();
       await nextTick();
       type();
-      // SW2 in the same task: an exit without a fade.
-      m.flipped.value = true;
+      // A language switch in the same task: an exit without a fade.
+      m.locale.value = 'en';
       await nextTick();
       for (const cb of pending.splice(0)) cb();
       await flushPromises();
@@ -256,13 +256,41 @@ describe('the game mode of DISP1', () => {
     wrapper.unmount();
   });
 
-  it('the code does nothing while the back face is up', async () => {
+  // Revision 11 (Anthony, 05/11/2026): the mode survives the turn of the board, both ways.
+  it('a turn of the board keeps it: the game held while the back face is up, the colours kept, then let go', async () => {
+    const m = mountBoard();
+    await m.wrapper.get('button.sw1').trigger('click');
+    await start(m.wrapper);
+    m.flipped.value = true;
+    await nextTick();
+    expect(holds).toEqual([true]);
+    expect(stops.at(-1)).not.toHaveBeenCalled();
+    expect(root().hasAttribute('data-retro')).toBe(true);
+    m.flipped.value = false;
+    await nextTick();
+    expect(holds).toEqual([true, false]);
+    expect(screen(m.wrapper)).toBe('game');
+    expect(caption(m.wrapper)).toBe(fr.display.captions.game);
+    // Then a way out: DISP1 back on the screen SW1 chose.
+    await m.wrapper.get('button.sw1').trigger('click');
+    atRest(m.wrapper, fr.display.captions.uptime);
+    m.wrapper.unmount();
+  });
+
+  it('the code typed with the back face up starts it, the game held on its title until the front comes back', async () => {
     const m = mountBoard();
     m.flipped.value = true;
     await nextTick();
     type();
     await flushPromises();
-    expect(hosts).toHaveLength(0);
+    await nextTick();
+    expect(hosts).toHaveLength(1);
+    expect(holds).toEqual([true]);
+    expect(root().hasAttribute('data-retro')).toBe(true);
+    // Typed again, on either face, the code ends it.
+    type();
+    await nextTick();
+    expect(stops.at(-1)).toHaveBeenCalledTimes(1);
     expect(root().hasAttribute('data-retro')).toBe(false);
     m.wrapper.unmount();
   });

@@ -8,6 +8,7 @@ import { useBoardState } from './useBoardState';
 import { FLIP } from './useFlip';
 import { useGame, type GameMode } from './useGame';
 import { useKonami } from './useKonami';
+import { useMode } from './useMode';
 import { useReducedMotion } from './useReducedMotion';
 
 /** What DISP1 shows. */
@@ -62,9 +63,10 @@ export interface Display {
  * - The code of the easter egg (revision 8, useKonami: typed, or swiped and tapped on `screen`, the
  *   glass of DISP1) starts the game mode on the front face (useGame): DISP1 is the game's, a part
  *   pointed at no longer shows its readout, the caption names the game. Escape, SW1, the code again,
- *   a turn of the board, a language switch and the unmount end it; DISP1 is then back on the screen
- *   chosen with SW1 (on the avatar after a turn or a switch, as above). The game plays on under
- *   reduced motion: it is what the visitor asked for.
+ *   a language switch and the unmount end it; DISP1 is then back on the screen chosen with SW1 (on
+ *   the avatar after a switch). A turn of the board does not (revision 11): the game is held while
+ *   the back face is up, the code also works there, and the back plays its test bench (useBench).
+ *   The game plays on under reduced motion: it is what the visitor asked for.
  * Client only: nothing changes before a visitor acts, so the prerender and the hydration show the avatar.
  */
 export function useDisplay(locale: () => Locale, screen: Ref<HTMLElement | null> = ref(null)): Display {
@@ -72,6 +74,8 @@ export function useDisplay(locale: () => Locale, screen: Ref<HTMLElement | null>
   const reduced = useReducedMotion();
   const flip = inject(FLIP, null);
   const game = useGame(screen);
+  // The back face sees the mode (revision 11): it plays its test bench in it, and can end it.
+  useMode()?.attach({ on: game.on, quit: () => game.quit(true) });
 
   const chosen = ref<ChosenScreen>('avatar');
   const part = ref<PartId | null>(null);
@@ -160,10 +164,16 @@ export function useDisplay(locale: () => Locale, screen: Ref<HTMLElement | null>
     stopMorse();
     game.start();
     // The game is on DISP1: brought into view with its keypad under it, if it is not (on a phone, the
-    // code pressed on the keypad leaves the screen above the window).
+    // code pressed on the keypad leaves the screen above the window). Typed on the back face, the
+    // game waits on its title for the front face to come back.
+    if (flip?.flipped.value) return;
     screen.value?.closest('figure')?.scrollIntoView({ block: 'nearest', behavior: reduced.value ? 'instant' : 'smooth' });
   }
-  const konami = useKonami(screen, toggleGame, { enabled: () => !flip?.flipped.value, touch: () => !game.on.value });
+  // A touch is a step of the code on the glass of DISP1 (but in the game, whose swipes steer it), or
+  // on the circuit of the back face while it is up (revision 11: the back has no DISP1 and no keypad).
+  const konami = useKonami(toggleGame, {
+    area: (target) => (flip?.flipped.value ? !!target.closest('.back__circuit') : !game.on.value && !!screen.value?.contains(target)),
+  });
 
   // The keypad types the code, as the keys and the swipes do; in the game mode it plays (not the code: the keyboard,
   // Escape and SW1 end it), as the swipes do.
@@ -196,11 +206,12 @@ export function useDisplay(locale: () => Locale, screen: Ref<HTMLElement | null>
   watch(reduced, (now) => {
     if (now) stopMorse();
   });
+  // A turn of the board stops what DISP1 runs unseen, but no longer ends the game mode (revision 11):
+  // the game is held where it was while the back face is up, and let go when the front comes back.
   if (flip)
     watch(flip.flipped, (back) => {
-      if (!back) return;
-      game.quit();
-      rest();
+      game.hold(back);
+      if (back) rest(game.on.value);
     });
 
   return {

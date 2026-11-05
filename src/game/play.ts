@@ -30,8 +30,12 @@ export interface GameHost {
 /** A key of the test keypad (TestKeypad.vue): an arrow, B or A. */
 export type PadKey = Dir | 'b' | 'a';
 
-/** The running game: called, it stops for good; press() is a key of the test keypad. */
-export type Game = (() => void) & { press(key: PadKey): void };
+/**
+ * The running game: called, it stops for good; press() is a key of the test keypad; hold(true) holds
+ * it while the back face is up (revision 11): paused where it was, its timer stopped, deaf to every
+ * key, tap and press, until hold(false); then B or A goes on.
+ */
+export type Game = (() => void) & { press(key: PadKey): void; hold(on: boolean): void };
 
 const rect = (x: number, y: number, w: number, h: number): Pixel[] =>
   Array.from({ length: w * h }, (_, i) => ({ x: x + (i % w), y: y + Math.floor(i / w) }));
@@ -90,6 +94,7 @@ export function play(host: GameHost): Game {
   let timer: ReturnType<typeof setTimeout> | undefined;
   let from: { x: number; y: number } | null = null;
   let moved = false;
+  let held = false;
 
   function view(): GameView {
     const out: GameView = [{ part: 'frame', d: FRAME }];
@@ -141,10 +146,12 @@ export function play(host: GameHost): Game {
     draw();
   }
 
-  /** A key of the game, typed or pressed on the keypad: an arrow turns, A plays, B pauses or goes on. */
+  /** A key of the game, typed or pressed on the keypad: an arrow turns, A plays (or goes on), B pauses or goes on. */
   function input(key: PadKey): void {
+    if (held) return;
     if (key === 'a') {
       if (state === 'title' || state === 'over') begin();
+      else resume();
     } else if (key === 'b') {
       if (state === 'play') pause();
       else resume();
@@ -153,7 +160,7 @@ export function play(host: GameHost): Game {
 
   // A key typed in a sheet is the sheet's: it scrolls it, it never steers the game under it.
   const onKey = (event: KeyboardEvent): void => {
-    if (event.ctrlKey || event.altKey || event.metaKey || (event.target as Element | null)?.closest?.('.sheet') || sheetOpen()) return;
+    if (held || event.ctrlKey || event.altKey || event.metaKey || (event.target as Element | null)?.closest?.('.sheet') || sheetOpen()) return;
     const key = codeKey(event.key);
     if (key === 'up' || key === 'down' || key === 'left' || key === 'right') {
       if (state !== 'play' || !game) return;
@@ -165,7 +172,7 @@ export function play(host: GameHost): Game {
   // One finger: each swipe turns, from where the last one turned; a tap plays, or goes on.
   const onStart = (event: TouchEvent): void => {
     const t = event.touches.length === 1 ? event.touches[0] : undefined;
-    from = t && !sheetOpen() ? { x: t.clientX, y: t.clientY } : null;
+    from = t && !held && !sheetOpen() ? { x: t.clientX, y: t.clientY } : null;
     moved = false;
   };
   const onMove = (event: TouchEvent): void => {
@@ -183,7 +190,7 @@ export function play(host: GameHost): Game {
     const t = event.changedTouches[0];
     const tap = from && t && !moved && gesture(t.clientX - from.x, t.clientY - from.y) === 'tap';
     from = null;
-    if (!tap || sheetOpen()) return;
+    if (!tap || held || sheetOpen()) return;
     if (state === 'title' || state === 'over') begin();
     else resume();
   };
@@ -200,7 +207,7 @@ export function play(host: GameHost): Game {
       pause();
     } else if (bySheet) {
       bySheet = false;
-      resume();
+      if (!held) resume();
     }
   };
 
@@ -232,6 +239,11 @@ export function play(host: GameHost): Game {
   return Object.assign(stop, {
     press: (key: PadKey): void => {
       if (!stopped && !sheetOpen()) input(key);
+    },
+    hold: (on: boolean): void => {
+      if (stopped) return;
+      held = on;
+      if (on) pause();
     },
   });
 }

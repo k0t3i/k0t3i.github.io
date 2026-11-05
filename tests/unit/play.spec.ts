@@ -20,7 +20,7 @@ let view: GameView = [];
 let draws = 0;
 let overs: number[] = [];
 let starts = 0;
-let stop: Game = Object.assign(() => {}, { press: () => {} });
+let stop: Game = Object.assign(() => {}, { press: () => {}, hold: () => {} });
 
 /** The lit pixels of a path of squares, as "x,y". */
 function pixels(d = ''): Set<string> {
@@ -349,6 +349,43 @@ describe('the play of Routage', () => {
     touch('touchstart', 100, 100);
     touch('touchend', 100, 100);
     expect(starts).toBe(2);
+  });
+
+  // Revision 11 (Anthony, 05/11/2026): the board turned to its back keeps the game, held where it was.
+  it('held while the back face is up: paused, its timers stopped, no key, tap or press; let go, B or A goes on', () => {
+    key('a');
+    vi.advanceTimersByTime(stepMs(0) * 2);
+    const head = cellAt(part('head'));
+    stop.hold(true);
+    expect(parts()).toContain('pause');
+    expect(vi.getTimerCount()).toBe(0);
+    for (const k of ['b', 'a', 'ArrowDown']) expect(key(k).defaultPrevented).toBe(false);
+    stop.press('b');
+    touch('touchstart', 100, 100);
+    touch('touchend', 100, 100);
+    document.dispatchEvent(new Event('visibilitychange'));
+    vi.advanceTimersByTime(stepMs(0) * 5);
+    expect(parts()).toContain('pause');
+    expect(cellAt(part('head'))).toEqual(head);
+    // Let go: still paused, where it was, until B (or A) goes on.
+    stop.hold(false);
+    expect(parts()).toContain('pause');
+    vi.advanceTimersByTime(stepMs(0) * 3);
+    expect(cellAt(part('head'))).toEqual(head);
+    key('a');
+    expect(parts()).not.toContain('pause');
+    vi.advanceTimersByTime(stepMs(0));
+    expect(cellAt(part('head'))).toEqual({ x: head.x + 1, y: head.y });
+  });
+
+  it('held on its title, it stays on its title, and A plays once let go', () => {
+    stop.hold(true);
+    key('a');
+    expect(starts).toBe(0);
+    stop.hold(false);
+    expect(parts()).toContain('word');
+    key('a');
+    expect(starts).toBe(1);
   });
 
   it('stops for good: no timer, no listener, no drawing', () => {

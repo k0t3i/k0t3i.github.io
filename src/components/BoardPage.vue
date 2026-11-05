@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, provide, ref } from 'vue';
 import { provideBoardState } from '../composables/useBoardState';
 import { useBoot } from '../composables/useBoot';
 import { FLIP, useFlip } from '../composables/useFlip';
+import { provideMode } from '../composables/useMode';
 import { useTilt } from '../composables/useTilt';
 import type { PartId, SiteContent } from '../content/types';
 import BoardBack from './BoardBack.vue';
@@ -25,6 +26,8 @@ const props = defineProps<{ content: SiteContent }>();
 const board = ref<HTMLElement | null>(null);
 provide(FLIP, useFlip(board));
 useTilt(board);
+// The Konami mode, DISP1's (useDisplay), seen by the back face too (revision 11).
+provideMode();
 
 /*
  * The live state of the board, for the parts and DISP1: the part the current runs to, and the
