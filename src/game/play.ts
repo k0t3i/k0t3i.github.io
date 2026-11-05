@@ -4,6 +4,7 @@ import { layoutText, pixelPath, textWidth, type Pixel } from '../lib/pixelFont';
 import { portrait } from '../lib/portrait';
 import { newRoutage, seeded, step, stepMs, turn, type Cell, type Routage } from '../lib/routage';
 import { sheetOpen } from '../lib/sheet';
+import { synth, type Sfx } from './sound';
 
 /*
  * The play of « Routage » on DISP1 (revision 8): a chunk of its own, loaded when the code of the
@@ -26,6 +27,8 @@ export interface GameHost {
   playing(): void;
   /** The seed of the pads (the unit tests); else the time. */
   seed?: number;
+  /** The sound is on (the SON switch, Task 20); on unless false. */
+  sound?: boolean;
 }
 
 /** A key of the test keypad (TestKeypad.vue): an arrow, B or A. */
@@ -34,9 +37,9 @@ export type PadKey = Dir | 'b' | 'a';
 /**
  * The running game: called, it stops for good; press() is a key of the test keypad; hold(true) holds
  * it while the back face is up (revision 11): paused where it was, its timer stopped, deaf to every
- * key, tap and press, until hold(false); then B or A goes on.
+ * key, tap and press, until hold(false); then B or A goes on. sound() is the SON switch (Task 20).
  */
-export type Game = (() => void) & { press(key: PadKey): void; hold(on: boolean): void };
+export type Game = (() => void) & { press(key: PadKey): void; hold(on: boolean): void; sound(on: boolean): void };
 
 const rect = (x: number, y: number, w: number, h: number): Pixel[] =>
   Array.from({ length: w * h }, (_, i) => ({ x: x + (i % w), y: y + Math.floor(i / w) }));
@@ -123,6 +126,19 @@ export function play(host: GameHost): Game {
   let moved = false;
   let held = false;
   let face: GameView = [];
+  /*
+   * The bleeps (Task 20, game/sound.ts): the AudioContext is made, or resumed, only as a game starts or
+   * goes on on the visitor's key, tap or press; it sleeps on a pause, at the end of a game, while the
+   * tab is hidden or the window has lost the focus, while the back face is up; it is closed with the game.
+   */
+  let loud = host.sound !== false;
+  const sfx = synth(() => (typeof AudioContext === 'function' ? new AudioContext() : null));
+  const wake = (): void => {
+    if (loud) sfx.wake();
+  };
+  const beep = (s: Sfx, score?: number): void => {
+    if (loud) sfx.play(s, score);
+  };
 
   function view(): GameView {
     const out: GameView = [{ part: 'frame', d: FRAME }];
@@ -146,32 +162,45 @@ export function play(host: GameHost): Game {
   function tick(): void {
     timer = undefined;
     if (!game || state !== 'play') return;
-    if (step(game) === 'over') {
+    const moved = step(game);
+    if (moved === 'over') {
       state = 'over';
       host.over(game.score);
-    } else schedule();
+      beep('over');
+      sfx.sleep();
+    } else {
+      if (moved === 'connected') beep('pad', game.score);
+      schedule();
+    }
     draw();
   }
 
   function begin(): void {
     game = newRoutage(rand);
     state = 'play';
+    wake();
+    beep('start');
     host.playing();
     schedule();
     draw();
   }
 
-  function pause(): void {
+  /** Paused by B (`click`): a click, then the sound sleeps; else (a hidden tab, a blur, a sheet, the back face) it sleeps at once. */
+  function pause(click?: boolean): void {
     if (state !== 'play') return;
     clearTimeout(timer);
     timer = undefined;
     state = 'pause';
+    if (click) beep('click');
+    sfx.sleep(!click);
     draw();
   }
 
   function resume(): void {
     if (state !== 'pause') return;
     state = 'play';
+    wake();
+    beep('click');
     schedule();
     draw();
   }
@@ -183,7 +212,7 @@ export function play(host: GameHost): Game {
       if (state === 'title' || state === 'over') begin();
       else resume();
     } else if (key === 'b') {
-      if (state === 'play') pause();
+      if (state === 'play') pause(true);
       else resume();
     } else if (state === 'play' && game) turn(game, key);
   }
@@ -227,6 +256,7 @@ export function play(host: GameHost): Game {
   const onHide = (): void => {
     if (document.visibilityState === 'hidden') pause();
   };
+  const onBlur = (): void => pause();
   // A sheet open over the board pauses the game, the sheet closed lets it go on (unless B paused it).
   // The toggle of a popover does not bubble: it is caught on its way down.
   let bySheet = false;
@@ -245,7 +275,7 @@ export function play(host: GameHost): Game {
   document.addEventListener('keydown', onKey);
   document.addEventListener('visibilitychange', onHide);
   document.addEventListener('toggle', onSheet, { capture: true });
-  window.addEventListener('blur', pause);
+  window.addEventListener('blur', onBlur);
   el?.addEventListener('touchstart', onStart, { passive: true });
   el?.addEventListener('touchmove', onMove, { passive: true });
   el?.addEventListener('touchend', onEnd, { passive: true });
@@ -266,7 +296,8 @@ export function play(host: GameHost): Game {
     document.removeEventListener('keydown', onKey);
     document.removeEventListener('visibilitychange', onHide);
     document.removeEventListener('toggle', onSheet, { capture: true });
-    window.removeEventListener('blur', pause);
+    window.removeEventListener('blur', onBlur);
+    sfx.close();
     el?.removeEventListener('touchstart', onStart);
     el?.removeEventListener('touchmove', onMove);
     el?.removeEventListener('touchend', onEnd);
@@ -280,6 +311,12 @@ export function play(host: GameHost): Game {
       if (stopped) return;
       held = on;
       if (on) pause();
+    },
+    sound: (on: boolean): void => {
+      if (stopped) return;
+      loud = on;
+      if (!on) sfx.sleep(true);
+      else if (state === 'play' && !held) sfx.wake();
     },
   });
 }

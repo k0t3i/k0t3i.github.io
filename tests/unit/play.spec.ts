@@ -3,6 +3,7 @@ import { play, type Game, type GameView } from '../../src/game/play';
 import { COLS, newRoutage, ROWS, seeded, step, stepMs, turn, type Cell, type Dir, type Routage } from '../../src/lib/routage';
 import { layoutText, textWidth } from '../../src/lib/pixelFont';
 import { GAME_WORDS } from '../helpers/copy';
+import { notes, padHz } from '../../src/game/sound';
 
 /*
  * The play of « Routage » on DISP1 (the chunk loaded when the code is typed): its screens, its keys
@@ -20,7 +21,7 @@ let view: GameView = [];
 let draws = 0;
 let overs: number[] = [];
 let starts = 0;
-let stop: Game = Object.assign(() => {}, { press: () => {}, hold: () => {} });
+let stop: Game = Object.assign(() => {}, { press: () => {}, hold: () => {}, sound: () => {} });
 
 /** The lit pixels of a path of squares, as "x,y". */
 function pixels(d = ''): Set<string> {
@@ -401,5 +402,149 @@ describe('the play of Routage', () => {
     vi.advanceTimersByTime(5000);
     expect(draws).toBe(before);
     expect(starts).toBe(1);
+  });
+});
+
+/** A stand-in for AudioContext (Task 20): the contexts made, the pitch of each note started, the calls on its state. */
+class Ctx {
+  static made: Ctx[] = [];
+  state: AudioContextState = 'running';
+  currentTime = 0;
+  destination = {};
+  freqs: number[] = [];
+  log: string[] = [];
+  constructor() {
+    Ctx.made.push(this);
+  }
+  createGain() {
+    return { gain: { value: 0, setValueAtTime() {}, linearRampToValueAtTime() {} }, connect: (n: unknown) => n };
+  }
+  createOscillator() {
+    const freqs = this.freqs;
+    const o = { type: '', frequency: { value: 0 }, connect: (n: unknown) => n, start: () => freqs.push(o.frequency.value), stop() {} };
+    return o;
+  }
+  resume() {
+    this.log.push('resume');
+    this.state = 'running';
+    return Promise.resolve();
+  }
+  suspend() {
+    this.log.push('suspend');
+    this.state = 'suspended';
+    return Promise.resolve();
+  }
+  close() {
+    this.log.push('close');
+    this.state = 'closed';
+    return Promise.resolve();
+  }
+}
+const pitches = (s: Parameters<typeof notes>[0], score?: number): number[] => notes(s, score).map((n) => n.f);
+
+describe('the sound of the game (Task 20)', () => {
+  beforeEach(() => {
+    Ctx.made = [];
+    vi.stubGlobal('AudioContext', Ctx);
+  });
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+  const ctx = (): Ctx => Ctx.made[0] as Ctx;
+
+  it('no AudioContext on its title: a game started on A, a tap or the keypad makes it, and plays the jingle', () => {
+    key('b');
+    key('ArrowUp');
+    vi.advanceTimersByTime(5000);
+    expect(Ctx.made).toHaveLength(0);
+    key('a');
+    expect(Ctx.made).toHaveLength(1);
+    expect(ctx().freqs).toEqual(pitches('start'));
+    stop();
+    expect(ctx().log.at(-1)).toBe('close');
+    for (const go of [() => stop.press('a'), () => (touch('touchstart', 100, 100), touch('touchend', 100, 100))]) {
+      Ctx.made = [];
+      stop = play({ el, seed: SEED, draw: () => {}, over: () => {}, playing: () => {} });
+      go();
+      expect(ctx().freqs).toEqual(pitches('start'));
+      stop();
+    }
+  });
+
+  it('a pad connected bips, higher for each pad; the game over plays its falling phrase, then the context sleeps', () => {
+    key('a');
+    const mirror: Routage = newRoutage(seeded(SEED));
+    const head = (): Cell => mirror.trace[0] as Cell;
+    let result = '';
+    for (let i = 0; i < 100 && result !== 'connected'; i++) {
+      const pad = mirror.pad as Cell;
+      const d: Dir = pad.x > head().x && mirror.dir !== 'left' ? 'right' : pad.y > head().y && mirror.dir !== 'up' ? 'down' : pad.y < head().y && mirror.dir !== 'down' ? 'up' : mirror.dir;
+      key(ARROW[d]);
+      turn(mirror, d);
+      const ms = stepMs(mirror.score);
+      result = step(mirror);
+      vi.advanceTimersByTime(ms);
+    }
+    expect(result).toBe('connected');
+    expect(ctx().freqs).toEqual([...pitches('start'), ...pitches('pad', 1)]);
+    expect(ctx().freqs.at(-2)).toBe(padHz(1));
+    for (let i = 0; i < 40 && overs.length === 0; i++) vi.advanceTimersByTime(stepMs(1));
+    expect(overs).toEqual([1]);
+    expect(ctx().freqs.slice(-pitches('over').length)).toEqual(pitches('over'));
+    expect(ctx().log).not.toContain('suspend');
+    vi.advanceTimersByTime(1000);
+    expect(ctx().log).toEqual(['suspend']);
+    // A plays again: the same context, woken.
+    key('a');
+    expect(Ctx.made).toHaveLength(1);
+    expect(ctx().log).toEqual(['suspend', 'resume']);
+  });
+
+  it('B pauses on a click, then sleeps; B goes on with a click, awake; a hidden tab, a blur, a hold sleep at once', () => {
+    key('a');
+    const n = ctx().freqs.length;
+    key('b');
+    expect(ctx().freqs.slice(n)).toEqual(pitches('click'));
+    expect(ctx().log).toEqual([]);
+    // After the last note (the clock of the stand-in stands still: the jingle is still due).
+    vi.advanceTimersByTime(1000);
+    expect(ctx().log).toEqual(['suspend']);
+    key('b');
+    expect(ctx().log).toEqual(['suspend', 'resume']);
+    expect(ctx().freqs.slice(n)).toEqual([...pitches('click'), ...pitches('click')]);
+    window.dispatchEvent(new Event('blur'));
+    expect(ctx().log.at(-1)).toBe('suspend');
+    key('b');
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' });
+    document.dispatchEvent(new Event('visibilitychange'));
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' });
+    expect(ctx().log.at(-1)).toBe('suspend');
+    key('b');
+    stop.hold(true);
+    expect(ctx().log.at(-1)).toBe('suspend');
+    expect(vi.getTimerCount()).toBe(0);
+    stop();
+    expect(ctx().log.at(-1)).toBe('close');
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it('muted: no AudioContext at all; muted in a game, it sleeps at once and stays silent; sound back, it wakes', () => {
+    stop();
+    stop = play({ el, seed: SEED, draw: () => {}, over: () => {}, playing: () => {}, sound: false });
+    key('a');
+    key('b');
+    key('b');
+    expect(Ctx.made).toHaveLength(0);
+    stop.sound(true);
+    expect(Ctx.made).toHaveLength(1);
+    expect(ctx().freqs).toEqual([]);
+    key('b');
+    stop.sound(false);
+    expect(ctx().log.at(-1)).toBe('suspend');
+    const n = ctx().freqs.length;
+    key('b');
+    expect(ctx().freqs.length).toBe(n);
+    stop.sound(true);
+    expect(ctx().log.at(-1)).toBe('resume');
   });
 });
