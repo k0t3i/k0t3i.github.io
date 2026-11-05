@@ -64,7 +64,9 @@ async function capture(browser, origin, { path, locale }) {
   if (new URL(page.url()).pathname !== path) throw new Error(`og: ${path} went to ${page.url()}`);
   // Mounted (JP1 and SW2 are shown then), fonts and images ready: the page as a visitor sees it.
   await page.locator('button.jp1').waitFor({ state: 'visible' });
-  await page.evaluate(() => Promise.all([document.fonts.ready, ...[...document.images].map((img) => img.decode())]));
+  // The front only: the art of the back face (hidden, a large SVG) is not in the capture, and decoding
+  // it there made headless Chromium crash.
+  await page.evaluate(() => Promise.all([document.fonts.ready, ...[...document.images].filter((img) => !img.closest('.back__art')).map((img) => img.decode())]));
   const inWindow = await measure(page);
   // The same board, with room around it (see ROOM).
   await page.setViewportSize(VIEWPORT);
