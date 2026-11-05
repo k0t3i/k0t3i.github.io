@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { KEYPAD, KEYPAD_FLOW, KEYPAD_SLOT, KEY_BODY, KEY_HIT, KEY_PLUNGER, type Key } from '../circuit/keypad';
+import { KEYPAD, KEYPAD_FLOW, KEY_BODY, KEY_HIT, type Key } from '../circuit/keypad';
 import type { SiteContent } from '../content/types';
+import { adoptKeypadPlaces } from '../lib/keypadPlaces';
 import { sheetOpen } from '../lib/sheet';
 
 /**
  * The test keypad under DISP1 (spec 4.11, revision 10): six tactile switches, SW3 to SW8, a cross and
  * B and A. Where they are comes from circuit/keypad.ts, the module the netlist and the art read too.
  * - On the wide board the art draws each switch whole: the buttons are clear hit areas over them,
- *   placed in front units (wide.css reads --kx… and --x…, set here once mounted).
+ *   placed in front units (styles/keypad.css reads --kx… and --x…, adopted here once mounted).
  * - On the flowing board there is no art: the block draws its six switches itself (aria-hidden), in
  *   cells of KEYPAD_FLOW, and the buttons lie over them.
  * - Without JavaScript the pad would do nothing: it reads as a drawing only. The group of buttons is
@@ -32,7 +33,6 @@ const props = defineProps<{
 const emit = defineEmits<{ press: [key: Key] }>();
 
 const ready = ref(false);
-const group = ref<HTMLElement | null>(null);
 const buttons = ref<HTMLButtonElement[]>([]);
 const current = ref<Key>(KEYPAD[0]?.key ?? 'up');
 
@@ -44,25 +44,13 @@ const drawn = KEYPAD.map((k) => {
 });
 const view = `0 0 ${KEYPAD_FLOW.w} ${KEYPAD_FLOW.h}`;
 
-/** Places the group and its keys from the module (the CSSOM: no style attribute in the page). */
-function place(): void {
-  const set = (el: HTMLElement | null | undefined, vars: Record<string, string | number>): void => {
-    for (const [k, v] of Object.entries(vars)) el?.style.setProperty(`--${k}`, String(v));
-  };
-  set(group.value, { kx: KEYPAD_SLOT.x, ky: KEYPAD_SLOT.y, kw: KEYPAD_SLOT.w, kh: KEYPAD_SLOT.h, hit: KEY_HIT, cell: KEYPAD_FLOW.cell });
-  for (const k of KEYPAD) {
-    const [cx, cy] = KEYPAD_FLOW.centres[k.key];
-    set(
-      buttons.value.find((b) => b.dataset.key === k.key),
-      { x: k.x - KEY_HIT / 2 - KEYPAD_SLOT.x, y: k.y - KEY_HIT / 2 - KEYPAD_SLOT.y, fx: `${((cx - 0.5) / KEYPAD_FLOW.w) * 100}%`, fy: `${((cy - 0.5) / KEYPAD_FLOW.h) * 100}%` },
-    );
-  }
-  set(group.value, { plunger: `${(KEY_PLUNGER / KEY_HIT) * 100}%`, fw: `${(1 / KEYPAD_FLOW.w) * 100}%`, fh: `${(1 / KEYPAD_FLOW.h) * 100}%` });
-}
-
+/**
+ * The places of the keys come in a stylesheet of their own, made from the module (lib/keypadPlaces.ts)
+ * and adopted once by the document: no style attribute in the page. An engine without constructed
+ * stylesheets keeps the keypad a drawing, as without JavaScript.
+ */
 onMounted(() => {
-  place();
-  ready.value = true;
+  ready.value = adoptKeypadPlaces(document);
 });
 
 function onKeydown(event: KeyboardEvent): void {
@@ -120,7 +108,6 @@ function onClick(event: MouseEvent, key: Key): void {
       />
     </svg>
     <div
-      ref="group"
       class="keypad__keys"
       role="group"
       :aria-label="props.keypad.group"

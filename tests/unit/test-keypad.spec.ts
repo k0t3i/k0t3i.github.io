@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import TestKeypad from '../../src/components/TestKeypad.vue';
 import { KEYPAD, KEYPAD_FLOW, KEYPAD_SLOT, KEY_HIT } from '../../src/circuit/keypad';
 import { en } from '../../src/content/en';
+import { keypadPlaces } from '../../src/lib/keypadPlaces';
 import { fr } from '../../src/content/fr';
 import { EN as ORACLE_EN, FR as ORACLE_FR } from '../helpers/copy';
 
@@ -63,19 +64,36 @@ describe('the test keypad', () => {
       expect(group.attributes('aria-label')).toBe(oracle.keypad.group);
       expect(keys(w).map((b) => b.textContent?.trim())).toEqual(oracle.keypad.keys);
       expect(keys(w).map((b) => b.type)).toEqual(Array(6).fill('button'));
-      const g = group.element as HTMLElement;
-      expect([g.style.getPropertyValue('--kx'), g.style.getPropertyValue('--ky'), g.style.getPropertyValue('--kw'), g.style.getPropertyValue('--kh')]).toEqual(
-        [KEYPAD_SLOT.x, KEYPAD_SLOT.y, KEYPAD_SLOT.w, KEYPAD_SLOT.h].map(String),
-      );
-      expect(g.style.getPropertyValue('--hit')).toBe(String(KEY_HIT));
-      for (const [i, k] of KEYPAD.entries()) {
-        const b = keys(w)[i] as HTMLButtonElement;
-        expect(b.dataset.key).toBe(k.key);
-        expect(Number(b.style.getPropertyValue('--x'))).toBe(k.x - KEY_HIT / 2 - KEYPAD_SLOT.x);
-        expect(Number(b.style.getPropertyValue('--y'))).toBe(k.y - KEY_HIT / 2 - KEYPAD_SLOT.y);
-      }
+      expect(keys(w).map((b) => b.dataset.key)).toEqual(KEYPAD.map((k) => k.key));
       w.unmount();
       mounted.splice(0);
+    }
+  });
+
+  it('places its keys from the module, in a stylesheet adopted once by the document (no style attribute)', async () => {
+    const before = document.adoptedStyleSheets.length;
+    mountPad();
+    mountPad(false, en.display);
+    await nextTick();
+    const added = document.adoptedStyleSheets.length - before;
+    expect(added).toBeLessThanOrEqual(1);
+    expect(document.querySelectorAll('[style]')).toHaveLength(0);
+    // What it holds: the slot and each key, in front units and in shares of the block of the flowing board.
+    const css = keypadPlaces();
+    const vars = (selector: string): Record<string, string> => {
+      const at = css.indexOf(`${selector}{`);
+      const block = at < 0 ? '' : css.slice(at + selector.length + 1, css.indexOf('}', at));
+      return Object.fromEntries([...block.matchAll(/--([\w-]+):([^;]+)/g)].map(([, k, v]) => [k, v as string]));
+    };
+    expect(css.startsWith('@layer board{')).toBe(true);
+    expect(vars('.keypad__keys')).toMatchObject({ kx: String(KEYPAD_SLOT.x), ky: String(KEYPAD_SLOT.y), kw: String(KEYPAD_SLOT.w), kh: String(KEYPAD_SLOT.h), hit: String(KEY_HIT) });
+    for (const k of KEYPAD) {
+      const v = vars(`.keypad__key[data-key="${k.key}"]`);
+      expect(Number(v.x), k.ref).toBe(k.x - KEY_HIT / 2 - KEYPAD_SLOT.x);
+      expect(Number(v.y), k.ref).toBe(k.y - KEY_HIT / 2 - KEYPAD_SLOT.y);
+      const [cx, cy] = KEYPAD_FLOW.centres[k.key];
+      expect(parseFloat(v.fx ?? '')).toBeCloseTo(((cx - 0.5) / KEYPAD_FLOW.w) * 100, 2);
+      expect(parseFloat(v.fy ?? '')).toBeCloseTo(((cy - 0.5) / KEYPAD_FLOW.h) * 100, 2);
     }
   });
 

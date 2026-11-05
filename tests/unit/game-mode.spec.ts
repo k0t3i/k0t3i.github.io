@@ -305,6 +305,24 @@ describe('the game mode of DISP1', () => {
       wrapper.unmount();
     });
 
+    it('the game mode brings DISP1 into view with its keypad, if it is not (the nearest edge, at once under reduced motion)', async () => {
+      const seen: [Element, ScrollIntoViewOptions | boolean | undefined][] = [];
+      const was = Element.prototype.scrollIntoView;
+      Element.prototype.scrollIntoView = function (this: Element, o?: ScrollIntoViewOptions | boolean) {
+        seen.push([this, o]);
+      };
+      try {
+        const { wrapper } = mountBoard();
+        await nextTick();
+        for (const k of CODE) tap(wrapper, k);
+        await flushPromises();
+        expect(seen).toEqual([[wrapper.get('figure.disp').element, { block: 'nearest', behavior: 'instant' }]]);
+        wrapper.unmount();
+      } finally {
+        Element.prototype.scrollIntoView = was;
+      }
+    });
+
     it('a press while a sheet is open does nothing: no step of the code, nothing to the game', async () => {
       const { wrapper } = mountBoard();
       await nextTick();

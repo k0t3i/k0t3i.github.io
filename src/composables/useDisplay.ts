@@ -159,6 +159,9 @@ export function useDisplay(locale: () => Locale, screen: Ref<HTMLElement | null>
     endBoot();
     stopMorse();
     game.start();
+    // The game is on DISP1: brought into view with its keypad under it, if it is not (on a phone, the
+    // code pressed on the keypad leaves the screen above the window).
+    screen.value?.closest('figure')?.scrollIntoView({ block: 'nearest', behavior: reduced.value ? 'instant' : 'smooth' });
   }
   const konami = useKonami(screen, toggleGame, { enabled: () => !flip?.flipped.value, touch: () => !game.on.value });
 

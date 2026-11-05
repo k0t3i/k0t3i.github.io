@@ -1,7 +1,8 @@
 /*
  * The test keypad (revision 10, TestKeypad.vue): six tactile switches in DISP1, after SW1. Where its
- * keys are comes from circuit/keypad.ts, set on the keys once mounted (--kx… on the group, --x… and
- * --fx… on each key); only the cell of the flowing board is written here (tests/unit/keypad-css.spec.ts).
+ * keys are comes from circuit/keypad.ts (--kx… on the group, --x… and
+ * --fx… on each key, in a stylesheet adopted once mounted: lib/keypadPlaces.ts); only the cell of the
+ * flowing board is written here (tests/unit/keypad-css.spec.ts).
  * The keys are clear hit areas over the drawn switches: the focus draws a ring, a press lights the
  * plunger (only when motion is welcome, motion layer), and nothing of it moves at rest.
  */
