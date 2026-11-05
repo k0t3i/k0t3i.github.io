@@ -239,6 +239,18 @@ describe('the netlist of the board', () => {
     expect(between(/^C\d/, out, 'GND'), 'shunt on the antenna side').toHaveLength(1);
   });
 
+  it('the clamp of the 1-Wire line holds it within the 3.6 V the ESP32-S3 allows, and C1 is the bulk of the 3.3 V rail', () => {
+    // D1, from the line (anode) to +3V3 (cathode): the line rises at most 3.3 V plus its forward voltage
+    // at 1 mA, the current of a fault the 4.7 kΩ pull-up and the port see.
+    expect([netOf('D1.A')?.name, netOf('D1.K')?.name]).toEqual(['ONEWIRE', '+3V3']);
+    const vf = deviceOf('D1').vf;
+    expect(vf, 'the forward voltage of D1 at 1 mA').toBeDefined();
+    expect(3.3 + (vf ?? 1)).toBeLessThanOrEqual(3.6);
+    // C1, far from any chip, is no decoupling capacitor: a bulk one, of microfarads.
+    expect([netOf('C1.1')?.name, netOf('C1.2')?.name]).toEqual(['+3V3', 'GND']);
+    expect(PARTS.find((p) => p.ref === 'C1')?.value).toMatch(/^\d+ µF$/);
+  });
+
   it('the parts of the front face have a real role', () => {
     // LED1 lit by the chip through R1.
     const drive = netOf('R1.1');

@@ -137,9 +137,9 @@ export const LANG_LINKS = [
 
 export const READOUTS = {
   r1: '10kΩ',
-  c1: '100nF',
+  c1: '10µF',
   led1: '20mA',
-  d1: '1N4148',
+  d1: 'BAT42W',
   u2: 'SOIC-8',
   j1: 'KIT 72H',
   j2: 'SPLITR',

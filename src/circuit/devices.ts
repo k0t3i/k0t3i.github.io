@@ -24,6 +24,8 @@ export interface Device {
   supply?: number;
   /** The load capacitance of a crystal, in pF (CL): its load capacitors are 2 (CL − Cstray). */
   load?: number;
+  /** The forward voltage of a diode at 1 mA, in V (typical, from its forward characteristic). */
+  vf?: number;
   /** Passive parts are looked through by « Relié à » (spec 4.10): resistors, capacitors, inductors, clamps, test points. */
   transparent?: true;
 }
@@ -153,8 +155,9 @@ export const DEVICES = {
   c0603: { mpn: 'GRM188 (Murata, 0603)', datasheet: 'Murata GRM series', pins: two('1', '2'), transparent: true },
   c0805: { mpn: 'GRM21B (Murata, 0805)', datasheet: 'Murata GRM series', pins: two('1', '2'), transparent: true },
   l0402: { mpn: 'LQP15MN2N7B02 (Murata, 0402, 2.7 nH)', datasheet: 'Murata LQP15MN series', pins: two('1', '2'), transparent: true },
-  // Vishay 1N4148W (SOD-123): anode, cathode.
-  d1n4148: { mpn: '1N4148W-E3-08 (Vishay, SOD-123)', datasheet: '1N4148W datasheet', pins: pinout('A A passive, K K passive'), transparent: true },
+  // Vishay BAT42W (SOD-123), a small-signal Schottky diode: anode, cathode. About 0.25 V at 1 mA, so the
+  // line it clamps to 3.3 V stays under the 3.6 V of the ESP32-S3.
+  bat42w: { mpn: 'BAT42W-E3-08 (Vishay, SOD-123)', datasheet: 'BAT42W datasheet, Fig. 1 Forward current vs forward voltage', pins: pinout('A A passive, K K passive'), transparent: true, vf: 0.25 },
   led0603: { mpn: 'APT1608 (Kingbright, 0603)', datasheet: 'Kingbright APT1608 series', pins: pinout('A A passive, K K passive') },
   led0805: { mpn: 'APT2012SECK (Kingbright, 0805, amber)', datasheet: 'Kingbright APT2012SECK', pins: pinout('A A passive, K K passive') },
   tp: { mpn: '5019 (Keystone, SMT test point)', datasheet: 'Keystone 5019', pins: { 1: ['TP', 'passive'] }, transparent: true },

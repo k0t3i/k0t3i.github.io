@@ -12,7 +12,7 @@ import { DEVICES, type Device, type DeviceId } from './devices';
  *   (C14, L1, C15) to J7, its quad flash U11 on VDD_SPI (3.3 V: GPIO45 left to its weak pull-down).
  * - The front: DISP1 on SPI (SCK, MOSI, DC, CS); J3 (microSD) on the same bus, in SPI mode; J1, four
  *   GPIOs and 3.3 V; J2, the I²C bus (SCL, SDA, 3V3, GND, as a Grove port); J4, a 1-Wire port (4.7 kΩ pull-up, D1
- *   clamps it to 3.3 V); LED1 lit through R1; C1 bypasses the 3.3 V rail; U2 (LM75B) measures the
+ *   clamps it to 3.3 V, a Schottky); LED1 lit through R1; C1 the bulk of the 3.3 V rail; U2 (LM75B) measures the
  *   temperature, away from the hot parts; SW1 (debounced by R9 and C18), SW2 and JP1 (the theme) read by
  *   U14 (TCA9554, JP1 on P0, SW2 on P1, SW1 on P2), which raises EXP_INT.
  * - On I²C (4.7 kΩ pull-ups): U14 0x20, U15 (PCA9633, the four status LEDs) 0x62, U16 (PCF8563, the
@@ -113,20 +113,17 @@ export const PARTS: readonly Part[] = [
   part('TP3', 'tp', 'GND'),
   part('TP4', 'tp', 'EN'),
   // The front face: its principles, its connectors, its switches, its display, its test point.
-  // The values of the four principles are printed on the front (DISP1's readouts, content/readouts.ts),
-  // so they stay what the page says:
+  // The values of the principles are printed on the front too (DISP1's readouts, content/readouts.ts):
   // - R1, 10 kΩ: LED1 as a dim status indicator, (3.3 V − 2.0 V) / 10 kΩ ≈ 0.13 mA, the brightness of a
   //   standby light; its readout « 20mA » is the rated current of the LED, not what it draws here.
-  // - C1, 100 nF: a high-frequency bypass of the 3.3 V rail at the far end of its run on the front (the
-  //   row of the principles, where no chip decouples it); the bulk capacitance of the rail is C3
-  //   (10 µF) at the output of the regulator.
-  // - D1, 1N4148: the clamp of the 1-Wire line to 3.3 V; at about 0.7 V it lets a fault lift the line
-  //   to about 4 V, above the 3.6 V the ESP32-S3 allows: a Schottky (BAT54 class) would hold it under,
-  //   but the readout names the 1N4148 (left to Anthony, task 17 report).
+  // - C1, 10 µF: the bulk capacitance of the 3.3 V rail at the far end of its run on the front (the row
+  //   of the principles, where no chip needs a decoupling capacitor), as C3 is at the regulator.
+  // - D1, BAT42W: the Schottky clamp of the 1-Wire line to 3.3 V, about 0.25 V at 1 mA: a fault lifts
+  //   the line to about 3.55 V, within the 3.6 V the ESP32-S3 allows (Anthony's choice, 05/11/2026).
   front('R1', 'r0805', '10 kΩ'),
-  front('C1', 'c0805', '100 nF'),
+  front('C1', 'c0805', '10 µF'),
   front('LED1', 'led0805', 'amber'),
-  front('D1', 'd1n4148', '1N4148'),
+  front('D1', 'bat42w', 'BAT42W'),
   front('U2', 'lm75b', undefined, { address: 0x48, decoupling: { 8: ['C25'] } }),
   front('J1', 'header6'),
   front('J2', 'header4'),
