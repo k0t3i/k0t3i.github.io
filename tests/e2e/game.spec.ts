@@ -493,6 +493,11 @@ test.describe('the retro colours', () => {
       else await typeCode(page);
       await expect(page.locator('html')).toHaveAttribute('data-retro', '');
       const axe = async () => (await new AxeBuilder({ page }).withTags(TAGS).analyze()).violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(' ')).join(', ')}`);
+      // With the SON switch (Task 20), on, then off.
+      await expect(page.locator('button.snd')).toBeVisible();
+      expect(await axe()).toEqual([]);
+      await page.locator('button.snd').click();
+      await expect(page.locator('button.snd')).toHaveAttribute('aria-pressed', 'false');
       expect(await axe()).toEqual([]);
       // The board and the page are in their old LCD greens, apart from the green and the black of the boards.
       const colours = await page.evaluate(() => [getComputedStyle(document.body).backgroundColor, getComputedStyle(document.querySelector('.board__face') as Element).backgroundColor]);
@@ -589,12 +594,15 @@ test.describe('« QUITTER » by SW1', () => {
       await expect(exit(page)).toBeVisible();
       await expect(exit(page)).toHaveText(FR.game.exit);
       await expect(exit(page)).toHaveAttribute('aria-hidden', 'true');
+      // The SON switch (Task 20) comes and goes with it.
+      await expect(page.locator('button.snd')).toBeVisible();
       // Said nowhere: the name of SW1 is what it was.
       await expect(sw1(page)).toHaveAccessibleName(`${FR.switchRef} ${FR.switchHidden}`);
       expect(await exit(page).evaluate((el) => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(12);
       await leave(page, isMobile);
       await expect(page.locator('html')).not.toHaveAttribute('data-retro', /.*/);
       await expect(page.locator('button.sw1 .sw1__exit')).toHaveCount(0);
+      await expect(page.locator('button.snd')).toHaveCount(0);
       if (way === 'a language switch') await expect(sw1(page)).toHaveAccessibleName(`${EN.switchRef} ${EN.switchHidden}`);
       else expect(await sw1(page).evaluate((el) => el.textContent)).toBe(name);
     });
@@ -670,10 +678,188 @@ test.describe('the caption of the game fits', () => {
           const hits = (a: DOMRect, b: DOMRect) => Math.min(a.right, b.right) - Math.max(a.left, b.left) > 0.5 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 0.5;
           const others = ['#disp1-caption', '.disp__screen', 'button.sw1 .sw1__body', 'button.sw1 .part__ref', '.keypad__key', '.keypad__art > *', '.silk-heading', '.part__trigger', '.board__header', '.jp1'];
           for (const q of others) for (const el of document.querySelectorAll(q)) if (hits(exit, el.getBoundingClientRect())) out.push(`QUITTER over ${q}`);
+          // The SON switch (Task 20): on the face, its texts 12 px at least on one line each, a 24 px target
+          // at least, clear of all that, of QUITTER, of the pins and of the next section.
+          const snd = document.querySelector('button.snd') as HTMLElement;
+          const sb = snd.getBoundingClientRect();
+          if (sb.left < face.left + 2 || sb.right > face.right - 2 || sb.top < face.top || sb.bottom > face.bottom) out.push(`SON off the face: ${sb.left}-${sb.right} in ${face.left}-${face.right}`);
+          if (sb.width < 24 || sb.height < 24) out.push(`SON target ${sb.width} x ${sb.height}`);
+          for (const t of snd.querySelectorAll('span:not(.vh)')) {
+            const r = t.getBoundingClientRect();
+            const px = parseFloat(getComputedStyle(t).fontSize);
+            if (px < 12) out.push(`SON text at ${px}px`);
+            if (t.getClientRects().length !== 1 || r.height > px * 2) out.push(`SON text wraps: ${t.textContent}`);
+            if (r.left < sb.left - 0.5 || r.right > sb.right + 0.5) out.push(`SON text out of its button: ${t.textContent}`);
+          }
+          for (const q of [...others, '.sw1__exit', '.disp__pins']) for (const el of document.querySelectorAll(q)) if (hits(sb, el.getBoundingClientRect())) out.push(`SON over ${q}`);
+          const next = document.querySelector('figure.disp')?.nextElementSibling;
+          for (const el of next ? [next, ...next.querySelectorAll('*')] : []) if (hits(sb, el.getBoundingClientRect())) out.push(`SON over ${el.tagName} ${el.getAttribute('class')}`);
           return out;
         });
         expect(problems).toEqual([]);
       });
     }
   }
+});
+
+/*
+ * The sound of the game (Task 20): bleeps, on by default, with the SON switch in the game mode. The
+ * AudioContext of the page is spied on by a script of the test only (nothing ships for it): how many
+ * are made, the pitch of each note started, the calls on their state.
+ */
+type Spy = { made: number; freqs: number[]; calls: string[] };
+const spyAudio = (page: Page): Promise<unknown> =>
+  page.addInitScript(() => {
+    const w = window as unknown as { AudioContext?: typeof AudioContext; spy: Spy };
+    const spy: Spy = { made: 0, freqs: [], calls: [] };
+    w.spy = spy;
+    // Playwright's WebKit on Windows has no Web Audio (the game is then silent): a stand-in of the test there.
+    const param = () => ({ value: 0, setValueAtTime() {}, linearRampToValueAtTime() {} });
+    const node = () => ({ connect: (n: unknown) => n });
+    const Real =
+      w.AudioContext ??
+      (class {
+        state = 'running';
+        currentTime = 0;
+        destination = node();
+        createGain() {
+          return { ...node(), gain: param() };
+        }
+        createOscillator() {
+          return { ...node(), type: '', frequency: param(), start() {}, stop() {} };
+        }
+        async suspend() {
+          this.state = 'suspended';
+        }
+        async resume() {
+          this.state = 'running';
+        }
+        async close() {
+          this.state = 'closed';
+        }
+      } as unknown as typeof AudioContext);
+    w.AudioContext = class extends Real {
+      constructor(o?: AudioContextOptions) {
+        super(o);
+        spy.made++;
+      }
+      override createOscillator(): OscillatorNode {
+        const o = super.createOscillator();
+        const start = o.start.bind(o);
+        o.start = (t?: number) => {
+          spy.freqs.push(Math.round(o.frequency.value));
+          start(t);
+        };
+        return o;
+      }
+      override suspend(): Promise<void> {
+        spy.calls.push('suspend');
+        return super.suspend();
+      }
+      override resume(): Promise<void> {
+        spy.calls.push('resume');
+        return super.resume();
+      }
+      override close(): Promise<void> {
+        spy.calls.push('close');
+        return super.close();
+      }
+    };
+  });
+const spied = (page: Page): Promise<Spy> => page.evaluate(() => (window as unknown as { spy: Spy }).spy);
+const snd = (page: Page): Locator => page.locator('button.snd');
+const JINGLE = [440, 587, 880];
+
+test.describe('the sound of the game', () => {
+  test.use({ reducedMotion: 'reduce' });
+
+  test('no AudioContext at load nor with the code: it comes with the first game, on A, plays the jingle, sleeps on B, wakes on B, closes on the way out', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'a keyboard: the phone is below');
+    await spyAudio(page);
+    await booted(page);
+    await open(page);
+    await page.waitForTimeout(300);
+    expect((await spied(page)).made).toBe(0);
+    await expect(snd(page)).toHaveCount(0);
+    await typeCode(page);
+    await inGame(page);
+    await expect(snd(page)).toHaveAttribute('aria-pressed', 'true');
+    await expect(snd(page)).toHaveAccessibleName(FR.game.sound.name);
+    expect((await spied(page)).made).toBe(0);
+    await page.keyboard.press('a');
+    await expect.poll(async () => (await spied(page)).freqs.slice(0, 3)).toEqual(JINGLE);
+    expect((await spied(page)).made).toBe(1);
+    // A context may be made suspended (Firefox), and resumed at once: the calls are counted from here.
+    const n = (await spied(page)).calls.length;
+    await page.keyboard.press('b');
+    await expect.poll(async () => (await spied(page)).calls.slice(n)).toEqual(['suspend']);
+    await page.keyboard.press('b');
+    await expect.poll(async () => (await spied(page)).calls.slice(n)).toEqual(['suspend', 'resume']);
+    await page.keyboard.press('Escape');
+    await atRest(page);
+    await expect.poll(async () => (await spied(page)).calls.at(-1)).toBe('close');
+    await expect(snd(page)).toHaveCount(0);
+  });
+
+  test('the switch: after SW1 and the keypad, Enter and Space toggle it, the arrows stay the game’s; off, kept over a reload, no AudioContext', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'a keyboard: the phone is below');
+    await page.setViewportSize({ width: 1024, height: 700 });
+    await spyAudio(page);
+    await booted(page);
+    await open(page);
+    await typeCode(page);
+    await inGame(page);
+    await sw1(page).focus();
+    await page.keyboard.press('Tab');
+    await expect(page.locator('.keypad__key[tabindex="0"]')).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(snd(page)).toBeFocused();
+    await page.keyboard.press('Enter');
+    await expect(snd(page)).toHaveAttribute('aria-pressed', 'false');
+    await page.keyboard.press(' ');
+    await expect(snd(page)).toHaveAttribute('aria-pressed', 'true');
+    await page.keyboard.press('Enter');
+    await expect(snd(page)).toHaveAttribute('aria-pressed', 'false');
+    expect(await page.evaluate(() => localStorage.getItem('k0t3i.sound'))).toBe('off');
+    // A game, muted: no AudioContext. The arrows typed on the switch steer the game, never the page nor the switch.
+    await page.keyboard.press('a');
+    await expect(pixels(page).locator('path.px--head')).toHaveCount(1);
+    const y = await settledScroll(page);
+    const before = await headAt(page);
+    await page.keyboard.press('ArrowDown');
+    await expect.poll(async () => (await headAt(page))?.y ?? 0).toBeGreaterThan(before?.y ?? 0);
+    expect(await settledScroll(page)).toBe(y);
+    await expect(snd(page)).toBeFocused();
+    await expect(snd(page)).toHaveAttribute('aria-pressed', 'false');
+    expect((await spied(page)).made).toBe(0);
+    // Kept over a reload.
+    await page.reload();
+    await expect(page.locator('button.jp1')).toBeVisible();
+    await typeCode(page);
+    await inGame(page);
+    await expect(snd(page)).toHaveAttribute('aria-pressed', 'false');
+    await page.keyboard.press('a');
+    await page.waitForTimeout(300);
+    expect((await spied(page)).made).toBe(0);
+    // On again in a game: it wakes at once.
+    await snd(page).click();
+    await expect(snd(page)).toHaveAttribute('aria-pressed', 'true');
+    await expect.poll(async () => (await spied(page)).made).toBe(1);
+  });
+
+  test('on a phone: the switch tapped toggles; A tapped plays with the jingle', async ({ page, isMobile }) => {
+    test.skip(!isMobile, 'the touch screens');
+    await spyAudio(page);
+    await booted(page);
+    await open(page);
+    for (const k of ['up', 'up', 'down', 'down', 'left', 'right', 'left', 'right', 'b', 'a']) await page.locator(`.keypad__key[data-key="${k}"]`).tap();
+    await expect(page.locator('html')).toHaveAttribute('data-retro', '');
+    await snd(page).tap();
+    await expect(snd(page)).toHaveAttribute('aria-pressed', 'false');
+    await snd(page).tap();
+    await expect(snd(page)).toHaveAttribute('aria-pressed', 'true');
+    expect((await spied(page)).made).toBe(0);
+    await page.locator('.keypad__key[data-key="a"]').tap();
+    await expect.poll(async () => (await spied(page)).freqs.slice(0, 3)).toEqual(JINGLE);
+  });
 });

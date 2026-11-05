@@ -206,7 +206,9 @@
     .jp1[aria-pressed="false"] .jp1__pos--green,
     .jp1[aria-pressed="true"] .jp1__pos--dark,
     .sw2[aria-pressed="false"] .sw2__pos--top,
-    .sw2[aria-pressed="true"] .sw2__pos--bot {
+    .sw2[aria-pressed="true"] .sw2__pos--bot,
+    .snd[aria-pressed="false"] .sw2__pos--top,
+    .snd[aria-pressed="true"] .sw2__pos--bot {
       color: CanvasText;
     }
 
@@ -237,7 +239,8 @@
     .part__trigger:focus-visible,
     .sw1:focus-visible,
     .jp1:focus-visible,
-    .sw2:focus-visible {
+    .sw2:focus-visible,
+    .snd:focus-visible {
       --pad: Highlight;
       --body-edge: Highlight;
     }

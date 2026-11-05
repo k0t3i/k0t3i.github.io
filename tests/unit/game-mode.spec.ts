@@ -411,7 +411,9 @@ describe('the game mode of DISP1', () => {
       const b = snd(wrapper);
       expect(b.attributes('type')).toBe('button');
       expect(b.attributes('aria-pressed')).toBe('true');
-      expect(b.attributes('aria-label')).toBe(ORACLE_FR.game.sound.name);
+      // Named by its hidden text, as JP1 and SW2 are: no aria-label, whose name would not hold the positions drawn.
+      expect(b.attributes('aria-label')).toBeUndefined();
+      expect(b.get('.vh').text()).toBe(ORACLE_FR.game.sound.name);
       expect(b.get('.part__ref').text()).toBe(ORACLE_FR.game.sound.label);
       expect(b.findAll('[aria-hidden="true"]').map((e) => e.text())).toEqual([ORACLE_FR.game.sound.off, '', ORACLE_FR.game.sound.on, ORACLE_FR.game.sound.label]);
       // After SW1 and the keypad, before the caption: in the path of the keyboard, the caption still last.

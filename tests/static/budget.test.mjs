@@ -18,8 +18,11 @@ import { firstLoad, jsLoadedBy, wireSize } from '../helpers/load.mjs';
 // JS raised from 66 to 72 KB with Anthony’s approval of 2026-11-04, as the brief of Task 18 grants it
 // (revision 10: the test keypad, its places and its entry points into the code and the game), once the
 // savings found were not enough: 72 KB is the cap he approved.
+// CSS raised from 13 to 14 KB with Anthony’s approval of 2026-11-04, as the brief of Task 18 grants it
+// and the brief of Task 20 sets it (the SON switch of the game mode, built on the rules of SW2, its
+// inner parts in SW2's own classes), once the savings found were not enough: 14 KB is the cap he approved.
 const KB = 1024;
-const BUDGET = { page: 20 * KB, css: 13 * KB, js: 72 * KB, wide: 170 * KB };
+const BUDGET = { page: 20 * KB, css: 14 * KB, js: 72 * KB, wide: 170 * KB };
 
 /** The two home pages: the JavaScript and the first load are the same budget for both languages. */
 const HOMES = ['/', '/en/'];
@@ -37,7 +40,7 @@ test('every HTML page under 20 KB', (t) => {
   }
 });
 
-test('all the CSS under 13 KB', (t) => {
+test('all the CSS under 14 KB', (t) => {
   const sheets = distFiles().filter((f) => f.endsWith('.css'));
   assert.ok(sheets.length > 0, 'no stylesheet built');
   const total = sum(sheets.map((f) => wireSize(`/${f}`)));

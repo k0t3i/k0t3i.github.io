@@ -117,26 +117,26 @@ watch(game.on, (on) => {
       class="snd"
       type="button"
       :aria-pressed="game.sound.value"
-      :aria-label="props.display.game.sound.name"
       @click="game.toggleSound"
     >
       <span
-        class="snd__pos snd__pos--off"
+        class="sw2__pos sw2__pos--top"
         aria-hidden="true"
       >{{ props.display.game.sound.off }}</span>
       <svg
-        class="snd__body"
+        class="sw2__body"
         aria-hidden="true"
         focusable="false"
       ><use href="#part-slide-switch" /></svg>
       <span
-        class="snd__pos snd__pos--on"
+        class="sw2__pos sw2__pos--bot"
         aria-hidden="true"
       >{{ props.display.game.sound.on }}</span>
       <span
         class="part__ref"
         aria-hidden="true"
       >{{ props.display.game.sound.label }}</span>
+      <span class="vh">{{ props.display.game.sound.name }}</span>
     </button>
     <figcaption
       id="disp1-caption"

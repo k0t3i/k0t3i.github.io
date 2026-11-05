@@ -273,6 +273,26 @@
       text-align: left;
     }
 
+    /* The SON switch (Task 20): upright in the clear strip right of the module, over SW1; its reference, ON, the switch, OFF from the top. */
+    .board--home .snd {
+      --x: 1544;
+      --y: 340;
+
+      top: calc((var(--y) - var(--disp-y)) * var(--u));
+      right: auto;
+      left: calc((var(--x) - var(--disp-x)) * var(--u));
+      display: flex;
+      flex-direction: column-reverse;
+      align-items: center;
+      margin: 0;
+      translate: -50% -50%;
+    }
+
+    .board--home .snd .sw2__body {
+      margin-block: 0.5625rem;
+      rotate: -90deg;
+    }
+
     /* The section headings, on one line over the two groups. */
     .board--home .parts > .silk-heading {
       --y: 580;

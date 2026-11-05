@@ -184,7 +184,8 @@
    * jumper (its shunt on pins 1-2 or 2-3), SW2 a slide switch (its slider at TOP or at BOT).
    */
   .jp1,
-  .sw2 {
+  .sw2,
+  .snd {
     --shunt-a: 1;
     --shunt-b: 0;
     --slider-top: 1;
@@ -209,13 +210,15 @@
     --shunt-b: 1;
   }
 
-  .sw2[aria-pressed="true"] {
+  .sw2[aria-pressed="true"],
+  .snd[aria-pressed="true"] {
     --slider-top: 0;
     --slider-bot: 1;
   }
 
   .jp1 .part__ref,
-  .sw2 .part__ref {
+  .sw2 .part__ref,
+  .snd .part__ref {
     grid-area: ref;
     justify-self: center;
     padding: 0;
@@ -252,12 +255,15 @@
   .jp1[aria-pressed="false"] .jp1__pos--green,
   .jp1[aria-pressed="true"] .jp1__pos--dark,
   .sw2[aria-pressed="false"] .sw2__pos--top,
-  .sw2[aria-pressed="true"] .sw2__pos--bot {
+  .sw2[aria-pressed="true"] .sw2__pos--bot,
+  .snd[aria-pressed="false"] .sw2__pos--top,
+  .snd[aria-pressed="true"] .sw2__pos--bot {
     color: var(--silk);
   }
 
   .jp1:focus-visible,
-  .sw2:focus-visible {
+  .sw2:focus-visible,
+  .snd:focus-visible {
     --pad: var(--pad-lit);
 
     outline-offset: -0.125rem;
@@ -266,14 +272,16 @@
   @media (hover: hover) {
     /* Only the pads light up: the position the part is not on stays dim. */
     .jp1:hover,
-    .sw2:hover {
+    .sw2:hover,
+    .snd:hover {
       --pad: var(--pad-lit);
     }
   }
 
   /* Pressed: the part is pushed down, at once. */
   .jp1:active .jp1__body,
-  .sw2:active .sw2__body {
+  .sw2:active .sw2__body,
+  .snd:active .sw2__body {
     scale: 0.92;
   }
 
@@ -339,6 +347,7 @@
    * screwed onto the main board. The caption and SW1 sit under it.
    */
   .disp {
+    position: relative;
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     width: fit-content;
@@ -551,6 +560,19 @@
     --body-edge: var(--body-edge-lit);
 
     scale: 0.92;
+  }
+
+  /*
+   * The SON switch of the game mode (Task 20, DisplayModule.vue): built as SW2 (its parts take the
+   * classes of SW2's, its OFF on the side of TOP, its ON on the side of BOT), out of the flow so
+   * nothing moves as it comes and goes; on the flowing board under the keypad at the right, in the
+   * room before the next section (wide.css: by the module).
+   */
+  .snd {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 0.25rem;
   }
 
   /* Footer: the uptime in silkscreen, and the manufacturing marks along the bottom edge. */
