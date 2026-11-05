@@ -49,7 +49,9 @@ export type Rot = 0 | 90 | 180 | 270;
 /** Where each part of the back is: the top-left corner of its box as placed, and its quarter turns (clockwise). */
 export const PLACE: Readonly<Record<string, [x: number, y: number, rot?: Rot]>> = {
   // U10 in the middle, turned a quarter: its radio, its crystal and its UART at its top right corner;
-  // the keys of the keypad go straight down from its bottom right pins to the network RN1 (spec 4.11).
+  // the keys of the keypad go down from its bottom right pins to the network RN1 (spec 4.11), which
+  // sits 15 units right of them, so the keys step aside from the lines of the flash (the review of
+  // Task 18: no comb of eleven lines under U10).
   U10: [430, 290, 90],
   C5: [550, 250, 270],
   C4: [528, 236, 270],
@@ -209,8 +211,8 @@ function KEYPAD_PADS(): PlacedPad[] {
   });
 }
 
-/** The place of RN1 on the front: pin 1, then a pin every 10 units (2.54 mm, as J1) to the right. */
-export const RN1_X = 1030;
+/** The place of RN1 on the front: pin 1, then a pin every 10 units (2.54 mm, as J1) to the right (back x 525–585). */
+export const RN1_X = 1015;
 export const RN1_Y = 495;
 
 export const FRONT_PADS: readonly PlacedPad[] = [
