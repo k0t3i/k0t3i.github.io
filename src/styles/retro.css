@@ -52,6 +52,16 @@
    * what is under it: the mask, already of that hue (99°), stays as on the flowing board, the veils
    * stay grey, the gold turns green.
    */
+  /* The art of the back face, too, at every width (revision 11: the test bench plays in retro). */
+  :root[data-retro] .back__art::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: #73aa55;
+    mix-blend-mode: hue;
+    pointer-events: none;
+  }
+
   @media (min-width: 79rem) {
     :root[data-retro] .board--home .board__face--front::before {
       content: "";
