@@ -106,7 +106,7 @@ export const TEST_ROW = {
 const NET_OF: Readonly<Record<string, string>> = { '↑': 'KEY_UP', '↓': 'KEY_DOWN', '←': 'KEY_LEFT', '→': 'KEY_RIGHT', B: 'KEY_B', A: 'KEY_A' };
 
 /** The pads of the TEST row: pin (from 1), centre, and the net of its key. */
-export const TEST_PADS: readonly { pin: string; x: number; y: number; net: string; mark: string }[] = TEST_ROW.marks.map((mark, k) => ({
+export const TEST_PADS: readonly { pin: string; x: number; y: number; net: string; mark: string }[] = /* @__PURE__ */ TEST_ROW.marks.map((mark, k) => ({
   pin: String(k + 1),
   x: TEST_ROW.x + TEST_ROW.pitch * k,
   y: TEST_ROW.y,
