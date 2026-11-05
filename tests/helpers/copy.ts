@@ -132,7 +132,7 @@ export interface BenchCopy {
 }
 
 /** « Relié à » of a part with no signal link. */
-export const BOM_NONE = '—';
+export const BOM_NONE = '-';
 
 /** The skill alone, and its details: line 2 cut at its first dot. */
 export const bomSkill = (r: BomRow): string => r.skill.slice(0, r.skill.indexOf(' · '));

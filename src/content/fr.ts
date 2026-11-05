@@ -75,7 +75,7 @@ export const fr: SiteContent = {
         { ref: 'J6', part: `connec${SH}teur de debug`, value: 'UART + boot · 6 broches', skill: 'debug', details: 'navigateurs · réseau · mémoire', result: 'cause trouvée' },
       ],
       // « Relié à » of a part with no signal link (U12: power only).
-      none: '—',
+      none: '-',
     },
     group: 'Composants de la face arrière',
     bench: {

@@ -77,7 +77,7 @@ export const en: SiteContent = {
         { ref: 'J6', part: 'debug header', value: 'UART + boot · 6 pins', skill: `debug${SH}ging`, details: 'browsers · network · memory', result: 'cause found' },
       ],
       // « Relié à » of a part with no signal link (U12: power only).
-      none: '—',
+      none: '-',
     },
     group: 'Back-side components',
     bench: {
