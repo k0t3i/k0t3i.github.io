@@ -66,7 +66,7 @@ export const fr: SiteContent = {
         { ref: 'U13', part: `protec${SH}tion USB`, value: 'USBLC6-2 · ESD', skill: `acces${SH}sibilité`, details: 'WCAG 2.2 AA · guidelines produit' },
         { ref: 'U14', part: `exten${SH}seur d’E${WJ}/${WJ}S`, value: `TCA9554 · 8 E${WJ}/${WJ}S I²C`, skill: `HTML séman${SH}tique`, details: 'landmarks · ARIA juste' },
         { ref: 'U15', part: 'pilote de LED', value: 'PCA9633 · 4 canaux PWM', skill: 'CSS', details: 'layers · container queries · motion' },
-        { ref: 'U16', part: 'horloge temps réel', value: 'PCF8563 · uptime', skill: `archi${SH}tecture front`, details: 'composants · migrations' },
+        { ref: 'U16', part: 'horloge temps réel', value: 'PCF8563 · uptime', skill: `archi${SH}tecture front`, details: 'composants · migrations · Supabase' },
         { ref: 'U17', part: `super${SH}viseur de reset`, value: `APX803 · 2,93${NB}V`, skill: 'tests', details: 'unitaires · e2e · a11y' },
         { ref: 'U18', part: 'capteur de lumière', value: 'BH1750 · I²C', skill: `électro${SH}nique`, details: 'Arduino · Raspberry Pi · IoT' },
         { ref: 'Y1', part: 'quartz', value: '40 MHz · ±10 ppm', skill: 'équipe', details: 'recrutement · formation · coaching' },

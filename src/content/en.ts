@@ -68,7 +68,7 @@ export const en: SiteContent = {
         { ref: 'U13', part: `USB protec${SH}tion`, value: 'USBLC6-2 · ESD', skill: `acces${SH}sibility`, details: 'WCAG 2.2 AA · product guidelines' },
         { ref: 'U14', part: `I${WJ}/${WJ}O expan${SH}der`, value: `TCA9554 · 8 I${WJ}/${WJ}O I²C`, skill: `seman${SH}tic HTML`, details: 'landmarks · ARIA done right' },
         { ref: 'U15', part: 'LED driver', value: 'PCA9633 · 4 PWM channels', skill: 'CSS', details: 'layers · container queries · motion' },
-        { ref: 'U16', part: 'real-time clock', value: 'PCF8563 · uptime', skill: `front-end archi${SH}tecture`, details: 'components · migrations' },
+        { ref: 'U16', part: 'real-time clock', value: 'PCF8563 · uptime', skill: `front-end archi${SH}tecture`, details: 'components · migrations · Supabase' },
         { ref: 'U17', part: `reset super${SH}visor`, value: 'APX803 · 2.93 V', skill: 'testing', details: 'unit · e2e · a11y' },
         { ref: 'U18', part: 'light sensor', value: 'BH1750 · I²C', skill: `electro${SH}nics`, details: 'Arduino · Raspberry Pi · IoT' },
         { ref: 'Y1', part: 'crystal', value: '40 MHz · ±10 ppm', skill: 'team', details: 'hiring · training · coaching' },
