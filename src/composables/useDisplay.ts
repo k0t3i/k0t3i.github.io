@@ -1,5 +1,6 @@
 import { computed, inject, onBeforeUnmount, onMounted, readonly, ref, watch, type Ref } from 'vue';
 import { MORSE_MESSAGE } from '../content/readouts';
+import type { Key } from '../circuit/keypad';
 import type { Locale, PartId } from '../content/types';
 import { encodeMorse, morseTimeline, MORSE_UNIT_MS } from '../lib/morse';
 import { sheetOpen } from '../lib/sheet';
@@ -36,6 +37,11 @@ export interface Display {
   ledOn: Readonly<Ref<boolean>>;
   /** While the Morse code is being sent: the signal being sent (from 0), or -1 between two; null otherwise. */
   sending: Readonly<Ref<number | null>>;
+  /**
+   * A key of the test keypad (revision 10): a step of the code, or in the game mode a key of the game.
+   * Nothing while the back face is up or a sheet is open.
+   */
+  pad(key: Key): void;
   /** The game mode of the easter egg (revision 8): on, what it draws, what it says. */
   game: Pick<GameMode, 'on' | 'view' | 'news'>;
 }
@@ -154,7 +160,15 @@ export function useDisplay(locale: () => Locale, screen: Ref<HTMLElement | null>
     stopMorse();
     game.start();
   }
-  useKonami(screen, toggleGame, { enabled: () => !flip?.flipped.value, touch: () => !game.on.value });
+  const konami = useKonami(screen, toggleGame, { enabled: () => !flip?.flipped.value, touch: () => !game.on.value });
+
+  // The keypad types the code, as the keys and the swipes do; in the game mode it plays (not the code: the keyboard,
+  // Escape and SW1 end it), as the swipes do.
+  function pad(key: Key): void {
+    if (flip?.flipped.value || sheetOpen()) return;
+    if (game.on.value) game.press(key);
+    else konami.press(key);
+  }
 
   // Escape stops what DISP1 runs, the game first; it also closes sheets, which should not change a
   // still screen (nor have the caption announce it). With a sheet open over the game, one Escape
@@ -191,6 +205,7 @@ export function useDisplay(locale: () => Locale, screen: Ref<HTMLElement | null>
     chosen: readonly(chosen),
     part: readonly(part),
     cycle,
+    pad,
     ledOn: computed(() => (sending.value ?? -1) >= 0),
     sending: readonly(sending),
     game,

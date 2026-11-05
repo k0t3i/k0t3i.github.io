@@ -1,5 +1,5 @@
 import { onBeforeUnmount, onMounted, readonly, ref, type Ref } from 'vue';
-import type { GameView } from '../game/play';
+import type { Game, GameView, PadKey } from '../game/play';
 import { useReducedMotion } from './useReducedMotion';
 
 /** What the game mode says, politely: its rules as it starts, or the end of a game with its score. */
@@ -13,6 +13,8 @@ export interface GameMode {
   /** What is to be said, or null. */
   news: Readonly<Ref<GameNews | null>>;
   start(): void;
+  /** A key of the test keypad, for the game (nothing until it has loaded). */
+  press(key: PadKey): void;
   /** Ends the game mode; `fade` cross-fades the colours back (an exit in place: Escape, SW1, the code). */
   quit(fade?: boolean): void;
 }
@@ -31,7 +33,7 @@ export function useGame(screen: Ref<HTMLElement | null>): GameMode {
   const on = ref(false);
   const view = ref<GameView | null>(null);
   const news = ref<GameNews | null>(null);
-  let stop: (() => void) | undefined;
+  let stop: Game | undefined;
   /** The game mode now on: a game that loads for an earlier one never starts. */
   let round = 0;
 
@@ -87,5 +89,12 @@ export function useGame(screen: Ref<HTMLElement | null>): GameMode {
     quit();
   });
 
-  return { on: readonly(on), view: readonly(view) as Readonly<Ref<GameView | null>>, news: readonly(news) as Readonly<Ref<GameNews | null>>, start, quit };
+  return {
+    on: readonly(on),
+    view: readonly(view) as Readonly<Ref<GameView | null>>,
+    news: readonly(news) as Readonly<Ref<GameNews | null>>,
+    start,
+    quit,
+    press: (key) => stop?.press(key),
+  };
 }
