@@ -276,27 +276,27 @@
 <rect x="1024" y="201" width="1" height="20" fill="#a29e95"/>
 <rect x="1026" y="201" width="1" height="20" fill="#a29e95"/>
 <rect x="1028" y="201" width="2" height="20" fill="#a29e95"/>
-<rect x="1031" y="201" width="1" height="20" fill="#a29e95"/>
-<rect x="1033" y="201" width="2" height="20" fill="#a29e95"/>
-<rect x="1037" y="201" width="2" height="20" fill="#a29e95"/>
+<rect x="1031" y="201" width="2" height="20" fill="#a29e95"/>
+<rect x="1034" y="201" width="2" height="20" fill="#a29e95"/>
+<rect x="1038" y="201" width="1" height="20" fill="#a29e95"/>
 <rect x="1040" y="201" width="1" height="20" fill="#a29e95"/>
 <rect x="1042" y="201" width="1" height="20" fill="#a29e95"/>
-<rect x="1044" y="201" width="2" height="20" fill="#a29e95"/>
-<rect x="1047" y="201" width="1" height="20" fill="#a29e95"/>
-<rect x="1050" y="201" width="1" height="20" fill="#a29e95"/>
-<rect x="1052" y="201" width="1" height="20" fill="#a29e95"/>
-<rect x="1054" y="201" width="2" height="20" fill="#a29e95"/>
+<rect x="1044" y="201" width="1" height="20" fill="#a29e95"/>
+<rect x="1046" y="201" width="1" height="20" fill="#a29e95"/>
+<rect x="1049" y="201" width="2" height="20" fill="#a29e95"/>
+<rect x="1052" y="201" width="2" height="20" fill="#a29e95"/>
+<rect x="1055" y="201" width="1" height="20" fill="#a29e95"/>
 <rect x="1057" y="201" width="2" height="20" fill="#a29e95"/>
 <rect x="1060" y="201" width="1" height="20" fill="#a29e95"/>
 <rect x="1063" y="201" width="1" height="20" fill="#a29e95"/>
-<rect x="1065" y="201" width="1" height="20" fill="#a29e95"/>
-<rect x="1067" y="201" width="2" height="20" fill="#a29e95"/>
+<rect x="1065" y="201" width="2" height="20" fill="#a29e95"/>
+<rect x="1068" y="201" width="1" height="20" fill="#a29e95"/>
 <rect x="1070" y="201" width="1" height="20" fill="#a29e95"/>
 <rect x="1073" y="201" width="1" height="20" fill="#a29e95"/>
 <rect x="1075" y="201" width="2" height="20" fill="#a29e95"/>
 <rect x="1078" y="201" width="2" height="20" fill="#a29e95"/>
 <rect x="1081" y="201" width="1" height="20" fill="#a29e95"/>
-<text x="1043" y="230" fill="#a29e95" font-family="JetBrains Mono,ui-monospace,Consolas,Menlo,monospace" font-size="10" text-anchor="middle">S/N 2611</text>
+<text x="1043" y="230" fill="#a29e95" font-family="JetBrains Mono,ui-monospace,Consolas,Menlo,monospace" font-size="10" text-anchor="middle">S/N 2308</text>
 <!-- End of the generated parts -->
 <!-- DISP1: placement corners and header footprint -->
 <path fill="none" stroke="#e8e4da" stroke-opacity=".35" d="M1182 176V162H1196M1480 162H1494V176M1494 500V514H1480M1196 514H1182V500"/>
