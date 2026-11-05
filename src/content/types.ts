@@ -34,6 +34,8 @@ export interface BomRowContent {
   /** Line 2: the skill, then its details (items separated by « · »). */
   skill: string;
   details: string;
+  /** Its result on the test bench of the Konami mode (revision 11), printed in place of the part. */
+  result: string;
 }
 
 export interface SiteContent {
@@ -84,6 +86,23 @@ export interface SiteContent {
       none: string;
     };
     group: string;
+    /**
+     * The test bench of the Konami mode (revision 11, spec 4.12): what is said as it starts and ends,
+     * the drawn counter of the autorouter ({n} of {total} traces) and its end, the status of a row,
+     * the stamp, what the description of a part gains once it passed ({result}), and the way out.
+     */
+    bench: {
+      start: string;
+      end: string;
+      routing: string;
+      drc: string;
+      test: string;
+      pass: string;
+      stamp: string;
+      described: string;
+      exit: string;
+      exitName: string;
+    };
   };
   /**
    * The PCB marks of the footer, six at most, in order (Anthony, 05/11/2026). A verified mark (a11y AA,

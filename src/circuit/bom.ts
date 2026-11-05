@@ -58,6 +58,8 @@ export interface BomRow {
   value: string;
   skill: string;
   details: string;
+  /** Its result on the test bench of the Konami mode (revision 11). */
+  result: string;
   /** The accessible name of the part: « {repère}, {compétence}, {composant} » (Anthony, 05/11/2026), in plain text. */
   name: string;
   /** Every part it is linked to (data-links, what lights up). */
@@ -77,6 +79,7 @@ export function bomRows(rows: readonly BomRowContent[]): BomRow[] {
       value: row.value,
       skill: capitalize(row.skill),
       details: row.details,
+      result: row.result,
       name: plain(`${row.ref}, ${row.skill}, ${row.part}`),
       links,
       linked: refRanges(links),

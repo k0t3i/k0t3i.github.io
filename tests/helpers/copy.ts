@@ -82,6 +82,8 @@ export interface Copy {
     rows: BomRow[];
     /** The accessible name of the group of the parts drawn on the back face. */
     group: string;
+    /** The test bench of the Konami mode (revision 11): see BenchCopy. */
+    bench: BenchCopy;
   };
   marks: { visible: string; hidden: string; framed?: true }[];
   sections: { principles: { id: string; title: string }; connectors: { id: string; title: string } };
@@ -107,6 +109,25 @@ export interface BomRow {
   skill: string;
   linked: string;
   name: string;
+}
+
+/**
+ * The test bench of the back face in the Konami mode (revision 11, spec 4.12): said as it starts and
+ * as it ends, its drawn counter and its end, the status and the result of each row (in the order of
+ * the table), the stamp, the description a part gains once it passed, the way out on the back.
+ */
+export interface BenchCopy {
+  start: string;
+  end: string;
+  routing: (n: number, total: number) => string;
+  drc: string;
+  test: string;
+  pass: string;
+  stamp: string;
+  results: string[];
+  described: (result: string) => string;
+  exit: string;
+  exitName: string;
 }
 
 /** « Relié à » of a part with no signal link. */
@@ -235,6 +256,31 @@ export const FR: Copy = {
       ['J6', `Connec${SH}teur de debug`, 'UART + boot · 6 broches', 'Debug · navigateurs · réseau · mémoire', 'U10 · U17', 'J6, debug, connecteur de debug'],
     ]),
     group: 'Composants de la face arrière',
+    bench: {
+      start: `Banc de test${NB}: routage puis contrôle des 11 pièces.`,
+      end: `Contrôle terminé${NB}: 11 pièces sur 11 réussies. QC PASS.`,
+      routing: (n, total) => `routage ${n}/${total}`,
+      drc: 'DRC 0 ERR',
+      test: 'TEST',
+      pass: 'PASS',
+      stamp: 'QC PASS',
+      results: [
+        'réactivité OK',
+        '0 any trouvé',
+        `0${NB}ms gaspillée`,
+        '0 piège clavier',
+        '0 div cliquable',
+        `0${NB}!important`,
+        'dette maîtrisée',
+        'tout est vert',
+        'pas de fumée',
+        'tous en phase',
+        'cause trouvée',
+      ],
+      described: (result) => `Banc de test${NB}: ${result}, PASS.`,
+      exit: 'QUITTER',
+      exitName: 'Quitter le mode test',
+    },
   },
   marks: [
     { visible: 'Vue 3', hidden: 'Construit avec Vue 3' },
@@ -384,6 +430,19 @@ export const EN: Copy = {
       ['J6', 'Debug header', 'UART + boot · 6 pins', `Debug${SH}ging · browsers · network · memory`, 'U10 · U17', 'J6, debugging, debug header'],
     ]),
     group: 'Back-side components',
+    bench: {
+      start: 'Test bench: routing, then a check of the 11 parts.',
+      end: 'Check complete: 11 of 11 parts passed. QC PASS.',
+      routing: (n, total) => `routing ${n}/${total}`,
+      drc: 'DRC 0 ERR',
+      test: 'TEST',
+      pass: 'PASS',
+      stamp: 'QC PASS',
+      results: ['reactivity OK', '0 any found', '0 ms wasted', 'no keyboard trap', '0 clickable div', '0 !important', 'debt in check', 'all green', 'no magic smoke', 'all in phase', 'root cause found'],
+      described: (result) => `Test bench: ${result}, PASS.`,
+      exit: 'EXIT',
+      exitName: 'Leave test mode',
+    },
   },
   marks: [
     { visible: 'Vue 3', hidden: 'Built with Vue 3' },

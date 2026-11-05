@@ -135,6 +135,6 @@ describe('the rows of the bill of materials', () => {
   }
 
   it('fails loudly on a row that is not a part of the bill of materials', () => {
-    expect(() => bomRows([{ ref: 'U99', part: 'x', value: 'x', skill: 'x', details: 'x' }])).toThrow(/U99/);
+    expect(() => bomRows([{ ref: 'U99', part: 'x', value: 'x', skill: 'x', details: 'x', result: 'x' }])).toThrow(/U99/);
   });
 });
