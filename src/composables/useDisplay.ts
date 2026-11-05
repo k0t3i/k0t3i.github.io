@@ -187,7 +187,8 @@ export function useDisplay(locale: () => Locale, screen: Ref<HTMLElement | null>
   // still screen (nor have the caption announce it). With a sheet open over the game, one Escape
   // closes the sheet only: the next one ends the game.
   const onKey = (event: KeyboardEvent): void => {
-    if (event.key !== 'Escape') return;
+    // An Escape already taken (a pinned part of the back face unpinned) is not for DISP1.
+    if (event.key !== 'Escape' || event.defaultPrevented) return;
     if (!game.on.value) rest(true);
     else if (!sheetOpen()) game.quit(true);
   };

@@ -287,6 +287,15 @@ describe('the game mode of DISP1', () => {
     expect(hosts).toHaveLength(1);
     expect(holds).toEqual([true]);
     expect(root().hasAttribute('data-retro')).toBe(true);
+    // Its rules are not said into the inert front face; they are once it comes back, a moment after.
+    expect(said(m.wrapper)).toBe('');
+    m.flipped.value = false;
+    await nextTick();
+    expect(said(m.wrapper)).toBe('');
+    await new Promise((r) => setTimeout(r, 200));
+    expect(said(m.wrapper)).toBe(fr.display.game.intro);
+    m.flipped.value = true;
+    await nextTick();
     // Typed again, on either face, the code ends it.
     type();
     await nextTick();

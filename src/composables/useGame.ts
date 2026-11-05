@@ -43,6 +43,12 @@ export function useGame(screen: Ref<HTMLElement | null>): GameMode {
   let round = 0;
   /** The back face is up: a game that loads then starts held. */
   let held = false;
+  /**
+   * The mode started with the back face up: its rules are said once the front comes back (the live
+   * text of DISP1 is inert until then), a moment after, so that it is read.
+   */
+  let unsaid = false;
+  let saying: ReturnType<typeof setTimeout> | undefined;
 
   /**
    * The page takes the colours of the state of the game mode, as it is when they are applied: a view
@@ -62,6 +68,9 @@ export function useGame(screen: Ref<HTMLElement | null>): GameMode {
     round++;
     stop?.();
     stop = undefined;
+    unsaid = false;
+    clearTimeout(saying);
+    saying = undefined;
     on.value = false;
     view.value = null;
     news.value = null;
@@ -72,7 +81,8 @@ export function useGame(screen: Ref<HTMLElement | null>): GameMode {
     if (on.value) return;
     const mine = ++round;
     on.value = true;
-    news.value = { kind: 'intro' };
+    unsaid = held;
+    news.value = held ? null : { kind: 'intro' };
     retro(true);
     import('../game/play')
       .then(({ play }) => {
@@ -104,9 +114,15 @@ export function useGame(screen: Ref<HTMLElement | null>): GameMode {
     start,
     quit,
     press: (key) => stop?.press(key),
-    hold(on) {
-      held = on;
-      stop?.hold(on);
+    hold(back) {
+      held = back;
+      stop?.hold(back);
+      if (back || !unsaid) return;
+      unsaid = false;
+      saying = setTimeout(() => {
+        saying = undefined;
+        if (on.value) news.value = { kind: 'intro' };
+      }, 150);
     },
   };
 }
