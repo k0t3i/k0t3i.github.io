@@ -54,7 +54,12 @@ export interface SiteContent {
      * game the pads connected ({n}, the plural as the language counts) and what comes next.
      */
     /** exit (hotfix of 05/11/2026): the silkscreen by SW1 while the game mode is on, the way out on a phone (aria-hidden). */
-    game: { intro: string; over: { one: string; other: string }; again: string; exit: string };
+    /**
+     * sound (Task 20): the SON switch of the game mode, a real toggle button (aria-pressed: the sound
+     * is on), named `name`, which holds its visible `label` (WCAG 2.5.3); `off` and `on` are printed
+     * at the ends of its slide switch (aria-hidden), the position it is on bright.
+     */
+    game: { intro: string; over: { one: string; other: string }; again: string; exit: string; sound: { label: string; name: string; off: string; on: string } };
     /** Board reference of the tactile switch, e.g. SW1. */
     switchRef: string;
     switchHidden: string;

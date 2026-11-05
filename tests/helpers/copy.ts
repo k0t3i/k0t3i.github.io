@@ -62,7 +62,8 @@ export interface Copy {
   pins: string;
   captions: { avatar: string; uptime: string; morse: string; game: string };
   /** The mini-game of DISP1 (revision 8): said politely as it starts, and when a game is over. */
-  game: { intro: string; over: (pads: number) => string; exit: string };
+  /** sound (Task 20): the SON switch of the game mode, its silkscreen, its name, its two positions. */
+  game: { intro: string; over: (pads: number) => string; exit: string; sound: { label: string; name: string; off: string; on: string } };
   switchRef: string;
   switchHidden: string;
   /** The test keypad (revision 10): the name of its group, then of its keys, the cross then B and A. */
@@ -229,6 +230,8 @@ export const FR: Copy = {
     over: (n) => `Partie finie${NB}: ${n} ${n <= 1 ? 'pastille reliée' : 'pastilles reliées'}. A pour rejouer, Échap pour quitter.`,
     // The silkscreen by SW1 while the game mode is on (hotfix of 05/11/2026).
     exit: 'QUITTER',
+    // The switch of the sound of the game (Task 20): shown in the game mode only.
+    sound: { label: 'SON', name: 'Son du jeu', off: 'OFF', on: 'ON' },
   },
   switchRef: 'SW1',
   switchHidden: 'changer l’écran',
@@ -403,6 +406,7 @@ export const EN: Copy = {
     intro: 'Routing mini-game. Arrow keys, keypad or swipe on the screen to steer, A or tap the screen to play, Escape or SW1 to quit.',
     over: (n) => `Game over: ${n} ${n === 1 ? 'pad' : 'pads'} connected. A to play again, Escape to quit.`,
     exit: 'EXIT',
+    sound: { label: 'SOUND', name: 'Game sound', off: 'OFF', on: 'ON' },
   },
   switchRef: 'SW1',
   switchHidden: 'change screen',

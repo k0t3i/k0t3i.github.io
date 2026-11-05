@@ -43,6 +43,7 @@ export const fr: SiteContent = {
       over: { one: `Partie finie${NB}: {n} pastille reliée.`, other: `Partie finie${NB}: {n} pastilles reliées.` },
       again: 'A pour rejouer, Échap pour quitter.',
       exit: 'QUITTER',
+      sound: { label: 'SON', name: 'Son du jeu', off: 'OFF', on: 'ON' },
     },
     switchRef: 'SW1',
     switchHidden: 'changer l’écran',

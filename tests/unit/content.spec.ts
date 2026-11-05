@@ -146,6 +146,18 @@ describe('content', () => {
     }
   });
 
+  // Task 20: the SON switch of the game mode, as written in annex A (the oracle).
+  it('the sound switch of the game prints and is named as annex A writes, its visible text in its name', () => {
+    for (const [c, o] of [
+      [fr, ORACLE_FR],
+      [en, ORACLE_EN],
+    ] as const) {
+      expect(c.display.game.sound).toEqual(o.game.sound);
+      // WCAG 2.5.3, label in name: « SON » in « Son du jeu », "SOUND" in "Game sound".
+      expect(c.display.game.sound.name.toUpperCase()).toContain(c.display.game.sound.label);
+    }
+  });
+
   it('only allowed outbound links', () => {
     const allowed = new Set([
       SITE.baseUrl,

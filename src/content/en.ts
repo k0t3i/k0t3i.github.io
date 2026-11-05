@@ -45,6 +45,7 @@ export const en: SiteContent = {
       over: { one: 'Game over: {n} pad connected.', other: 'Game over: {n} pads connected.' },
       again: 'A to play again, Escape to quit.',
       exit: 'EXIT',
+      sound: { label: 'SOUND', name: 'Game sound', off: 'OFF', on: 'ON' },
     },
     switchRef: 'SW1',
     switchHidden: 'change screen',
