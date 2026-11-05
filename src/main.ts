@@ -10,6 +10,7 @@ import './styles/open.css';
 import './styles/parts.css';
 import './styles/sheets.css';
 import './styles/wide.css';
+import './styles/keypad.css';
 import './styles/back.css';
 import './styles/depth.css';
 import './styles/motion.css';

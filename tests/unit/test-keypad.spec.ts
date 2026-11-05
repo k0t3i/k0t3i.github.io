@@ -119,6 +119,17 @@ describe('the test keypad', () => {
     document.removeEventListener('keydown', outside);
   });
 
+  it('a key focused another way (a pointer, a screen reader) becomes the tab stop and the start of the arrows', async () => {
+    const w = mountPad();
+    await nextTick();
+    const b = keys(w);
+    b[3]?.focus();
+    await nextTick();
+    expect(b.filter((x) => x.tabIndex === 0).map((x) => x.dataset.key)).toEqual(['right']);
+    down(b[3] as Element, 'ArrowRight');
+    expect((document.activeElement as HTMLElement).dataset.key).toBe('b');
+  });
+
   it('in the game mode, leaves the arrows to the game (they steer it): Home and End still move', async () => {
     const w = mountPad(true);
     await nextTick();

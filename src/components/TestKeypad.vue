@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { KEYPAD, KEYPAD_FLOW, KEYPAD_SLOT, KEY_BODY, KEY_HIT, type Key } from '../circuit/keypad';
+import { KEYPAD, KEYPAD_FLOW, KEYPAD_SLOT, KEY_BODY, KEY_HIT, KEY_PLUNGER, type Key } from '../circuit/keypad';
 import type { SiteContent } from '../content/types';
 import { sheetOpen } from '../lib/sheet';
 
@@ -57,7 +57,7 @@ function place(): void {
       { x: k.x - KEY_HIT / 2 - KEYPAD_SLOT.x, y: k.y - KEY_HIT / 2 - KEYPAD_SLOT.y, fx: `${((cx - 0.5) / KEYPAD_FLOW.w) * 100}%`, fy: `${((cy - 0.5) / KEYPAD_FLOW.h) * 100}%` },
     );
   }
-  set(group.value, { fw: `${(1 / KEYPAD_FLOW.w) * 100}%`, fh: `${(1 / KEYPAD_FLOW.h) * 100}%` });
+  set(group.value, { plunger: `${(KEY_PLUNGER / KEY_HIT) * 100}%`, fw: `${(1 / KEYPAD_FLOW.w) * 100}%`, fh: `${(1 / KEYPAD_FLOW.h) * 100}%` });
 }
 
 onMounted(() => {
@@ -135,6 +135,7 @@ function onClick(event: MouseEvent, key: Key): void {
         :data-key="k.key"
         :tabindex="k.key === current ? 0 : -1"
         @click="onClick($event, k.key)"
+        @focus="current = k.key"
         @keydown="onKeydown"
         @pointerdown="onPointerDown"
         @pointercancel="onPointerCancel"

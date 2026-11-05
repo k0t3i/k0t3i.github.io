@@ -1,0 +1,138 @@
+/*
+ * The test keypad (revision 10, TestKeypad.vue): six tactile switches in DISP1, after SW1. Where its
+ * keys are comes from circuit/keypad.ts, set on the keys once mounted (--kx… on the group, --x… and
+ * --fx… on each key); only the cell of the flowing board is written here (tests/unit/keypad-css.spec.ts).
+ * The keys are clear hit areas over the drawn switches: the focus draws a ring, a press lights the
+ * plunger (only when motion is welcome, motion layer), and nothing of it moves at rest.
+ */
+@layer board {
+  /* The flowing board: its own block under the caption and SW1, the switches drawn in it, centred. */
+  .keypad {
+    --cell: 2.5rem;
+    --cols: 5.5;
+
+    position: relative;
+    grid-column: 1 / -1;
+    grid-row: 4;
+    justify-self: center;
+    width: min(100%, var(--cell) * var(--cols));
+    margin-top: 1rem;
+  }
+
+  .keypad__art {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .keypad__keys {
+    position: absolute;
+    inset: 0;
+  }
+
+  .keypad__key {
+    position: absolute;
+    left: var(--fx);
+    top: var(--fy);
+    width: var(--fw);
+    height: var(--fh);
+    padding: 0;
+    border: 0;
+    border-radius: 0.25rem;
+    background: none;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* The plunger of the switch under the key: lit on a press (motion.css). */
+  .keypad__key::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: var(--plunger);
+    aspect-ratio: 1;
+    border-radius: 50%;
+    translate: -50% -50%;
+  }
+
+  /* Its areas touch: the ring of the focus lies on the edge of its own. */
+  .keypad__key:focus-visible {
+    outline-offset: -2px;
+  }
+
+  @media (hover: hover) {
+    .keypad__key:hover::before {
+      box-shadow: 0 0 0 1px var(--pad-lit);
+    }
+  }
+}
+
+@layer wide {
+  /*
+   * The wide board: the art draws the switches; the group lies on its slot, in front units, from the
+   * origin of DISP1 (as SW1 does), each key on its switch.
+   */
+  @media (min-width: 79rem) {
+    .board--home .keypad {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 0;
+      margin: 0;
+    }
+
+    .board--home .keypad__art {
+      display: none;
+    }
+
+    .board--home .keypad__keys {
+      inset: auto;
+      top: calc((var(--ky) - var(--disp-y)) * var(--u));
+      left: calc((var(--kx) - var(--disp-x)) * var(--u));
+      width: calc(var(--kw) * var(--u));
+      height: calc(var(--kh) * var(--u));
+    }
+
+    .board--home .keypad__key {
+      top: calc(var(--y) * var(--u));
+      left: calc(var(--x) * var(--u));
+      width: calc(var(--hit) * var(--u));
+      height: calc(var(--hit) * var(--u));
+    }
+  }
+}
+
+@layer motion {
+  /* A press lights the plunger at once, while the key is held: no transition, nothing after. */
+  @media (prefers-reduced-motion: no-preference) {
+    .keypad__key:active::before {
+      background: var(--pad-lit);
+      box-shadow: 0 0 0 2px var(--gold);
+    }
+  }
+}
+
+@layer modes {
+  /* More contrast: each key keeps an edge. Forced colours: a system outline, the press in Highlight. */
+  @media (prefers-contrast: more) {
+    .keypad__key {
+      border: 1px solid var(--line);
+    }
+  }
+
+  @media (forced-colors: active) {
+    .keypad__key {
+      border: 1px solid ButtonText;
+    }
+
+    .keypad__key:focus-visible {
+      outline-color: Highlight;
+    }
+
+    .keypad__key:active::before {
+      background: Highlight;
+    }
+  }
+}
