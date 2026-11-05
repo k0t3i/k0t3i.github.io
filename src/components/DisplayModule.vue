@@ -93,6 +93,7 @@ const said = computed(() => {
     <TactileSwitch
       :designator="props.display.switchRef"
       :hidden="props.display.switchHidden"
+      :exit="game.on.value ? props.display.game.exit : ''"
       @press="cycle"
     />
     <!-- The test keypad (revision 10): it types the code, then plays; placed on the art of the wide board. -->

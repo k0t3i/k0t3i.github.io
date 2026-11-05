@@ -494,6 +494,7 @@
 
   /* SW1: a 6x6 tactile switch with its reference, a 44px target. */
   .sw1 {
+    position: relative;
     display: flex;
     grid-column: 2;
     grid-row: 3;
@@ -515,6 +516,24 @@
     color: var(--silk);
     font: 500 var(--text-silk) / 1 var(--font-mono);
     letter-spacing: 0.06em;
+  }
+
+  /*
+   * « QUITTER » / "EXIT" while the game mode is on (TactileSwitch.vue): the silkscreen of the switch,
+   * out of the flow, so nothing moves as it comes and goes. On the flowing board under the switch,
+   * centred on its body and reference; on the wide board after its reference (wide.css). Part of the
+   * button: a tap on it presses SW1.
+   */
+  .sw1__exit {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    left: 1rem;
+    color: var(--silk);
+    font: 500 var(--text-silk) / 1 var(--font-mono);
+    letter-spacing: 0.06em;
+    text-align: center;
+    white-space: nowrap;
   }
 
   .sw1:focus-visible {

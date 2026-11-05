@@ -495,6 +495,57 @@ test.describe('the retro colours', () => {
   });
 });
 
+/*
+ * The way out on a phone (hotfix of 05/11/2026, Anthony): while the game mode is on, SW1 carries the
+ * silkscreen « QUITTER » / "EXIT", drawn only (the rules said at the start name SW1), gone on every
+ * way out. Keyboard, mouse and touch alike.
+ */
+test.describe('« QUITTER » by SW1', () => {
+  test.use({ reducedMotion: 'reduce' });
+  const exit = (page: Page): Locator => page.locator('button.sw1 .sw1__exit');
+
+  /** The game mode on: by the keys, or by the keypad tapped on a phone. */
+  async function start(page: Page, isMobile: boolean): Promise<void> {
+    if (isMobile) for (const k of ['up', 'up', 'down', 'down', 'left', 'right', 'left', 'right', 'b', 'a']) await page.locator(`.keypad__key[data-key="${k}"]`).tap();
+    else await typeCode(page);
+    await expect(page.locator('html')).toHaveAttribute('data-retro', '');
+  }
+
+  const ways: [string, (page: Page, isMobile: boolean) => Promise<unknown>][] = [
+    ['Escape', (page) => page.keyboard.press('Escape')],
+    ['SW1', (page, isMobile) => (isMobile ? sw1(page).tap() : sw1(page).click())],
+    ['a turn of the board', (page, isMobile) => (isMobile ? page.locator('.board__face--front button.sw2').tap() : page.locator('.board__face--front button.sw2').click())],
+    ['a language switch', (page) => page.getByRole('link', { name: 'English' }).click()],
+  ];
+  for (const [way, leave] of ways) {
+    test(`shown in the game mode, drawn only, gone after ${way}`, async ({ page, isMobile }) => {
+      await booted(page);
+      await open(page);
+      await expect(exit(page)).toHaveCount(0);
+      const name = await sw1(page).evaluate((el) => el.textContent);
+      await start(page, isMobile);
+      await expect(exit(page)).toBeVisible();
+      await expect(exit(page)).toHaveText(FR.game.exit);
+      await expect(exit(page)).toHaveAttribute('aria-hidden', 'true');
+      // Said nowhere: the name of SW1 is what it was.
+      await expect(sw1(page)).toHaveAccessibleName(`${FR.switchRef} ${FR.switchHidden}`);
+      expect(await exit(page).evaluate((el) => parseFloat(getComputedStyle(el).fontSize))).toBeGreaterThanOrEqual(12);
+      await leave(page, isMobile);
+      await expect(page.locator('html')).not.toHaveAttribute('data-retro', /.*/);
+      await expect(page.locator('button.sw1 .sw1__exit')).toHaveCount(0);
+      if (way === 'a language switch') await expect(sw1(page)).toHaveAccessibleName(`${EN.switchRef} ${EN.switchHidden}`);
+      else expect(await sw1(page).evaluate((el) => el.textContent)).toBe(name);
+    });
+  }
+
+  test('in English: EXIT', async ({ page, isMobile }) => {
+    await booted(page);
+    await open(page, '/en/');
+    await start(page, isMobile);
+    await expect(exit(page)).toHaveText(EN.game.exit);
+  });
+});
+
 test.describe('the caption of the game fits', () => {
   // These tests inject a stylesheet: the CSP of the page is bypassed for them only.
   test.use({ bypassCSP: true, reducedMotion: 'reduce' });
@@ -521,9 +572,22 @@ test.describe('the caption of the game fits', () => {
             return new Set([...range.getClientRects()].map((r) => Math.round(r.top))).size;
           });
         const others = await lines();
+        // What is around SW1, before and in the game mode (in the page: the game scrolls DISP1 into view):
+        // « QUITTER » comes out of the flow, nothing moves.
+        const boxes = () =>
+          page.evaluate(() =>
+            ['figure.disp', '#disp1-caption', 'button.sw1', '.keypad', '.parts .silk-heading'].map((q) => {
+              const r = (document.querySelector(q) as Element).getBoundingClientRect();
+              // The caption keeps its place; its width is its text's.
+              return `${q} ${(r.x + scrollX).toFixed(1)} ${(r.y + scrollY).toFixed(1)} ${q === '#disp1-caption' ? '' : r.width.toFixed(1)} ${r.height.toFixed(1)}`;
+            }),
+          );
+        const before = await boxes();
         await typeCode(page);
         await expect(caption(page)).toHaveText(FR.captions.game);
         expect(await lines()).toBeLessThanOrEqual(others);
+        await expect(page.locator('.sw1__exit')).toHaveText(FR.game.exit);
+        expect(await boxes()).toEqual(before);
         const problems = await page.evaluate(() => {
           const out: string[] = [];
           const c = document.querySelector('#disp1-caption') as HTMLElement;
@@ -534,6 +598,16 @@ test.describe('the caption of the game fits', () => {
           if (box.left < disp.left - 1 || box.right > disp.right + 1) out.push(`out of DISP1: ${box.left}-${box.right} in ${disp.left}-${disp.right}`);
           const overlap = Math.min(box.right, sw1.right) - Math.max(box.left, sw1.left) > 0 && Math.min(box.bottom, sw1.bottom) - Math.max(box.top, sw1.top) > 0;
           if (overlap) out.push('over SW1');
+          // « QUITTER » by SW1 (hotfix of 05/11/2026): 12 px at least, on one line, on the face, clear of
+          // the caption, the body and the reference of SW1, the keypad, the headings and the parts.
+          const exit = (document.querySelector('.sw1__exit') as HTMLElement).getBoundingClientRect();
+          const face = (document.querySelector('.board__face--front') as HTMLElement).getBoundingClientRect();
+          const size = parseFloat(getComputedStyle(document.querySelector('.sw1__exit') as Element).fontSize);
+          if (size < 12) out.push(`QUITTER at ${size}px`);
+          if (exit.left < face.left + 2 || exit.right > face.right - 2 || exit.top < face.top || exit.bottom > face.bottom) out.push(`QUITTER off the face: ${exit.left}-${exit.right} in ${face.left}-${face.right}`);
+          const hits = (a: DOMRect, b: DOMRect) => Math.min(a.right, b.right) - Math.max(a.left, b.left) > 0.5 && Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top) > 0.5;
+          const others = ['#disp1-caption', '.disp__screen', 'button.sw1 .sw1__body', 'button.sw1 .part__ref', '.keypad__key', '.keypad__art > *', '.silk-heading', '.part__trigger', '.board__header', '.jp1'];
+          for (const q of others) for (const el of document.querySelectorAll(q)) if (hits(exit, el.getBoundingClientRect())) out.push(`QUITTER over ${q}`);
           return out;
         });
         expect(problems).toEqual([]);

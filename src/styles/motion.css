@@ -61,6 +61,17 @@
       }
     }
 
+    /* The way out by SW1 (hotfix of 05/11/2026) fades in as the game mode starts; it goes at once. */
+    .sw1__exit {
+      animation: exit-in 200ms ease-out;
+    }
+
+    @keyframes exit-in {
+      from {
+        opacity: 0;
+      }
+    }
+
     /* LED1 breathes slowly. */
     #part-led1 .part__trigger::after {
       animation: led-breathe 3.2s ease-in-out infinite;

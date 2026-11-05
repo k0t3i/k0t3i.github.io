@@ -44,6 +44,7 @@ export const en: SiteContent = {
       intro: 'Routing mini-game. Arrow keys, keypad or swipe on the screen to steer, A or tap the screen to play, Escape or SW1 to quit.',
       over: { one: 'Game over: {n} pad connected.', other: 'Game over: {n} pads connected.' },
       again: 'A to play again, Escape to quit.',
+      exit: 'EXIT',
     },
     switchRef: 'SW1',
     switchHidden: 'change screen',

@@ -51,7 +51,8 @@ export interface SiteContent {
      * The mini-game of DISP1 (revision 8), said politely: its rules as it starts, then at the end of a
      * game the pads connected ({n}, the plural as the language counts) and what comes next.
      */
-    game: { intro: string; over: { one: string; other: string }; again: string };
+    /** exit (hotfix of 05/11/2026): the silkscreen by SW1 while the game mode is on, the way out on a phone (aria-hidden). */
+    game: { intro: string; over: { one: string; other: string }; again: string; exit: string };
     /** Board reference of the tactile switch, e.g. SW1. */
     switchRef: string;
     switchHidden: string;

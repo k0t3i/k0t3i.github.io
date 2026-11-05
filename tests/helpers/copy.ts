@@ -62,7 +62,7 @@ export interface Copy {
   pins: string;
   captions: { avatar: string; uptime: string; morse: string; game: string };
   /** The mini-game of DISP1 (revision 8): said politely as it starts, and when a game is over. */
-  game: { intro: string; over: (pads: number) => string };
+  game: { intro: string; over: (pads: number) => string; exit: string };
   switchRef: string;
   switchHidden: string;
   /** The test keypad (revision 10): the name of its group, then of its keys, the cross then B and A. */
@@ -206,6 +206,8 @@ export const FR: Copy = {
     intro: 'Mini-jeu Routage. Flèches, pavé ou glisser sur l’écran pour diriger, A ou toucher l’écran pour jouer, Échap ou SW1 pour quitter.',
     // 0 and 1 take the singular in French.
     over: (n) => `Partie finie${NB}: ${n} ${n <= 1 ? 'pastille reliée' : 'pastilles reliées'}. A pour rejouer, Échap pour quitter.`,
+    // The silkscreen by SW1 while the game mode is on (hotfix of 05/11/2026).
+    exit: 'QUITTER',
   },
   switchRef: 'SW1',
   switchHidden: 'changer l’écran',
@@ -354,6 +356,7 @@ export const EN: Copy = {
   game: {
     intro: 'Routing mini-game. Arrow keys, keypad or swipe on the screen to steer, A or tap the screen to play, Escape or SW1 to quit.',
     over: (n) => `Game over: ${n} ${n === 1 ? 'pad' : 'pads'} connected. A to play again, Escape to quit.`,
+    exit: 'EXIT',
   },
   switchRef: 'SW1',
   switchHidden: 'change screen',

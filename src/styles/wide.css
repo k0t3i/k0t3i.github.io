@@ -258,6 +258,21 @@
       padding: 0;
     }
 
+    /*
+     * « QUITTER » after the reference of SW1, in the room up to the edge of the board (board.css), at
+     * the smallest silkscreen size: 11 px inside the face at 1264 px, still inside it with the text
+     * spacing of WCAG 1.4.12 there (game.spec.ts).
+     */
+    .board--home .sw1__exit {
+      top: 50%;
+      right: auto;
+      left: 100%;
+      margin-left: 0.375rem;
+      font-size: var(--text-floor);
+      translate: 0 -50%;
+      text-align: left;
+    }
+
     /* The section headings, on one line over the two groups. */
     .board--home .parts > .silk-heading {
       --y: 580;
