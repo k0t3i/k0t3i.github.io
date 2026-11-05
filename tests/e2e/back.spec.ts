@@ -1,5 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
-import { EN, FR, bomCells, bomDetails, bomRefs, type Copy } from '../helpers/copy';
+import { EN, FR, bomCells, bomDetails, bomRefs, plain, type Copy } from '../helpers/copy';
 import { readFileSync } from 'node:fs';
 import { THROUGH_PADS } from '../../src/circuit/layout';
 
@@ -541,7 +541,7 @@ test.describe('the details of a skill', () => {
         });
         if (shown) expect(box.w, r.ref).toBeGreaterThan(20);
         else expect(box.w * box.h, r.ref).toBeLessThanOrEqual(1);
-        await expect(part(page, r.ref)).toHaveAccessibleDescription(`${r.value} ${bomDetails(r)} ${FR.back.columns[3]} ${r.linked}`);
+        await expect(part(page, r.ref)).toHaveAccessibleDescription(plain(`${r.value} ${bomDetails(r)} ${FR.back.columns[3]} ${r.linked}`));
       }
     });
   }
@@ -557,7 +557,7 @@ test.describe('the description of a part', () => {
         for (const r of copy.back.rows) {
           await expect(part(page, r.ref)).toHaveAccessibleName(r.name);
           // Not its name again: the part and the skill are its name already.
-          await expect(part(page, r.ref)).toHaveAccessibleDescription(`${r.value} ${bomDetails(r)} ${copy.back.columns[3]} ${r.linked}`);
+          await expect(part(page, r.ref)).toHaveAccessibleDescription(plain(`${r.value} ${bomDetails(r)} ${copy.back.columns[3]} ${r.linked}`));
         }
       });
     }
@@ -829,6 +829,8 @@ test.describe('without JavaScript', () => {
             [...tr.children].map((c) => {
               const cell = c.cloneNode(true) as Element;
               cell.querySelector('.bom__links')?.remove();
+              // The hidden description of the part (plain text, read by the part on the circuit).
+              cell.querySelector('[hidden]')?.remove();
               return cell.textContent?.trim();
             }),
           ),

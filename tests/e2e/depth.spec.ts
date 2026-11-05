@@ -418,6 +418,7 @@ test.describe('without JavaScript', () => {
             [...tr.children].map((c) => {
               const cell = c.cloneNode(true) as Element;
               cell.querySelector('.bom__links')?.remove();
+              cell.querySelector('[hidden]')?.remove();
               return cell.textContent?.trim();
             }),
           ),

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useBackState } from '../composables/useBackState';
-import { bomRows } from '../circuit/bom';
+import { bomRows, plain } from '../circuit/bom';
 import type { SiteContent } from '../content/types';
 import BackCircuit from './BackCircuit.vue';
 
@@ -36,7 +36,9 @@ const items = (value: string): { text: string; glued: string }[] =>
 const rows = computed(() =>
   bomRows(props.back.bom.rows).map((row) => {
     const linkedItems = row.linked.length ? row.linked.map((to, i) => ({ to, dot: i < row.linked.length - 1 })) : [{ to: props.back.bom.none, dot: false }];
-    return { ...row, linkedItems, dataLinks: row.links.join(' ') };
+    // Its description: its value, its details and « Relié à », as the table prints them, in plain text.
+    const description = plain(`${row.value} ${row.details} ${props.back.bom.columns.linked} ${linkedItems.map((l) => l.to).join(' · ')}`);
+    return { ...row, linkedItems, description, dataLinks: row.links.join(' ') };
   }),
 );
 /** The parts drawn on the circuit (BackCircuit.vue), in the order of the table, each with its accessible name. */
@@ -123,9 +125,13 @@ const point = (event: PointerEvent, ref: string | null): void => {
             >{{ item.glued }}</span>
           </template></span>
           <!--
-            A narrow face has no room for the last column: the links are printed here instead. Labelled,
-            this copy is also the end of the description of the part (after its value and details), at every size.
+            A narrow face has no room for the last column: the links are printed here instead, labelled.
           -->
+          <!-- The description of the part drawn on the circuit (BackCircuit.vue): hidden, referenced, plain text. -->
+          <span
+            :id="`desc-${row.ref}`"
+            hidden
+          >{{ row.description }}</span>
           <span
             :id="`links-${row.ref}`"
             class="bom__links"

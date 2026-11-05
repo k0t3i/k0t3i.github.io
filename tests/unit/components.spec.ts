@@ -21,7 +21,7 @@ import LIVE from '../../src/circuit/live.json';
 import { en } from '../../src/content/en';
 import { fr } from '../../src/content/fr';
 import { SITE } from '../../src/content/site';
-import { EN as ORACLE_EN, FR as ORACLE_FR, SITE as ORACLE_SITE, absolute, bomCells, bomDetails, bomSkill } from '../helpers/copy';
+import { EN as ORACLE_EN, FR as ORACLE_FR, SITE as ORACLE_SITE, absolute, bomCells, bomDetails, bomSkill, plain } from '../helpers/copy';
 import type { PartContent, PartId } from '../../src/content/types';
 
 const part = (content: typeof fr, id: string): PartContent => {
@@ -460,11 +460,13 @@ describe('BackFace', () => {
       const trs = table.findAll('tbody tr');
       expect(trs.map((tr) => [tr.attributes('id'), tr.attributes('data-ref')])).toEqual(oracle.rows.map((r) => [`row-${r.ref}`, r.ref]));
       // The reference heads its row. The value cell also prints the links for a narrow face (shown
-      // there instead of the last column, never both): it is read here without them.
+      // there instead of the last column, never both): it is read here without them, and without the
+      // hidden description of the part (plain text, read by the part on the circuit).
       const cells = trs.map((tr) =>
         [...tr.element.children].map((c) => {
           const copy = c.cloneNode(true) as Element;
           copy.querySelector('.bom__links')?.remove();
+          copy.querySelector('[hidden]')?.remove();
           return `${c.tagName}${c.getAttribute('scope') ?? ''} ${copy.textContent?.trim()}`;
         }),
       );
@@ -509,9 +511,14 @@ describe('BackFace', () => {
         const row = rows[i];
         if (!r || !row) throw new Error('a part too many');
         expect(b.attributes('type')).toBe('button');
-        expect(b.attributes('aria-describedby')).toBe(`value-${r.ref} details-${r.ref} links-${r.ref}`);
-        // The visible reference first (label in name), then the part and the skill.
+        // Its description: its value, its details and « Relié à », in plain text (no soft hyphen, no word joiner).
+        expect(b.attributes('aria-describedby')).toBe(`desc-${r.ref}`);
+        const desc = wrapper.get(`#desc-${r.ref}`);
+        expect(desc.attributes('hidden')).toBeDefined();
+        expect(desc.text()).toBe(plain(`${r.value} ${bomDetails(r)} ${oracle.columns[3]} ${r.linked}`));
+        // The visible reference first (label in name), then the part and the skill, in plain text.
         expect(b.attributes('aria-label')).toBe(r.name);
+        expect(b.attributes('aria-label')).not.toMatch(/[­⁠]/);
         expect(text(b.element)).toBe(r.ref);
         expect(b.get('.part__ref').text()).toBe(r.ref);
         expect(b.get('svg').attributes('aria-hidden')).toBe('true');
@@ -528,7 +535,7 @@ describe('BackFace', () => {
         const b = wrapper.get(`button.back-part[data-ref="${row.ref}"]`);
         expect(b.attributes('data-links')).toBe(tr.attributes('data-links'));
         expect(b.attributes('aria-label')).toBe(row.name);
-        expect(row.name).toBe(`${src?.ref}, ${src?.part}, ${src?.skill}`);
+        expect(row.name).toBe(plain(`${src?.ref}, ${src?.part}, ${src?.skill}`));
         expect(text(tr.findAll('.bom__line')[0]?.element as Element)).toBe(row.part);
         expect(text(tr.findAll('.bom__line')[1]?.element as Element)).toBe(row.skill);
       }

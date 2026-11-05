@@ -203,7 +203,7 @@ function onClick(ref: string): void {
         :tabindex="ready ? (current === p.ref ? 0 : -1) : undefined"
         :aria-pressed="ready ? (state.pinned.value === p.ref ? 'true' : 'false') : undefined"
         :aria-label="ready ? p.name : undefined"
-        :aria-describedby="ready ? `value-${p.ref} details-${p.ref} links-${p.ref}` : undefined"
+        :aria-describedby="ready ? `desc-${p.ref}` : undefined"
         @pointerenter="point($event, p.ref)"
         @pointerleave="point($event, null)"
         @focus="onFocus($event, p.ref)"

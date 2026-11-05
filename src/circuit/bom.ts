@@ -39,6 +39,12 @@ export function refRanges(refs: readonly string[]): string[] {
   return out;
 }
 
+/**
+ * A text as an accessible name or description reads it: the soft hyphens and word joiners of the table
+ * are its visible typography only (where a long name may break, a slash that must not), so they go.
+ */
+export const plain = (text: string): string => text.replace(/[­⁠]/g, '');
+
 /** The first letter as a capital: the part and the skill are written as they read in a sentence. */
 export const capitalize = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);
 
@@ -49,7 +55,7 @@ export interface BomRow {
   value: string;
   skill: string;
   details: string;
-  /** The accessible name of the part: « {repère}, {composant}, {compétence} » (spec 4.10). */
+  /** The accessible name of the part: « {repère}, {composant}, {compétence} » (spec 4.10), in plain text. */
   name: string;
   /** Every part it is linked to (data-links, what lights up). */
   links: string[];
@@ -68,7 +74,7 @@ export function bomRows(rows: readonly BomRowContent[]): BomRow[] {
       value: row.value,
       skill: capitalize(row.skill),
       details: row.details,
-      name: `${row.ref}, ${row.part}, ${row.skill}`,
+      name: plain(`${row.ref}, ${row.part}, ${row.skill}`),
       links,
       linked: refRanges(links),
     };

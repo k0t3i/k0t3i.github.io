@@ -124,7 +124,9 @@ describe('the rows of the bill of materials', () => {
         if (!src) throw new Error('no row');
         expect(row.part).toBe(capitalize(src.part));
         expect(row.skill).toBe(capitalize(src.skill));
-        expect(row.name).toBe(`${src.ref}, ${src.part}, ${src.skill}`);
+        // In plain text: the soft hyphens and word joiners of the visible table are not read.
+        expect(row.name).toBe(`${src.ref}, ${src.part}, ${src.skill}`.replace(/[­⁠]/g, ''));
+        expect(row.name).not.toMatch(/[­⁠]/);
         expect(row.links).toEqual(linkedTo(src.ref));
         expect(row.linked).toEqual(refRanges(linkedTo(src.ref)));
       }

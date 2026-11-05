@@ -26,6 +26,11 @@ export const GITHUB_TEXT = SITE.github.replace(/^https?:\/\//, '');
 
 const NB = ' ';
 const NN = ' ';
+/**
+ * The soft hyphens and word joiners of the table are its visible typography only: an accessible name
+ * or description is plain text, without them.
+ */
+export const plain = (text: string): string => text.replace(/[­⁠]/g, '');
 /** A soft hyphen (U+00AD): where a long name of the table may break. */
 const SH = '­';
 /** A word joiner (U+2060), round the slash of « E/S » and « I/O »: no line breaks inside them. */
@@ -212,17 +217,17 @@ export const FR: Copy = {
     caption: `Nomenclature${NB}: les composants de la carte`,
     columns: ['Repère', 'Composant', `Valeur${NB}/ compétence`, 'Relié à'],
     rows: bom([
-      ['U10', `Micro${SH}contrôleur`, 'ESP32-S3 · 240 MHz · USB', 'Vue.js · 2 → 3 · Composition API · SSR', 'U11 · U13–U18 · Y1 · J6 · J7 · R1 · LED1 · D1 · U2 · J1–J4 · DISP1', `U10, micro${SH}contrôleur, Vue.js`],
+      ['U10', `Micro${SH}contrôleur`, 'ESP32-S3 · 240 MHz · USB', 'Vue.js · 2 → 3 · Composition API · SSR', 'U11 · U13–U18 · Y1 · J6 · J7 · R1 · LED1 · D1 · U2 · J1–J4 · DISP1', 'U10, microcontrôleur, Vue.js'],
       ['U11', 'Mémoire flash', 'W25Q128 · 16 Mo QSPI', `TypeScript${NB}/ JavaScript · strict · ES modules`, 'U10', `U11, mémoire flash, TypeScript${NB}/ JavaScript`],
-      ['U12', `Régu${SH}lateur 3,3${NB}V`, 'AP2112K · LDO 600 mA', `Perfor${SH}mance web · audits · Core Web Vitals`, 'J5', `U12, régu${SH}lateur 3,3${NB}V, perfor${SH}mance web`],
-      ['U13', `Protec${SH}tion USB`, 'USBLC6-2 · ESD', `Acces${SH}sibilité · WCAG 2.2 AA · guidelines produit`, 'U10 · J5', `U13, protec${SH}tion USB, acces${SH}sibilité`],
-      ['U14', `Exten${SH}seur d’E${WJ}/${WJ}S`, `TCA9554 · 8 E${WJ}/${WJ}S I²C`, `HTML séman${SH}tique · landmarks · ARIA juste`, 'U10 · SW1 · SW2 · JP1', `U14, exten${SH}seur d’E${WJ}/${WJ}S, HTML séman${SH}tique`],
+      ['U12', `Régu${SH}lateur 3,3${NB}V`, 'AP2112K · LDO 600 mA', `Perfor${SH}mance web · audits · Core Web Vitals`, 'J5', `U12, régulateur 3,3${NB}V, performance web`],
+      ['U13', `Protec${SH}tion USB`, 'USBLC6-2 · ESD', `Acces${SH}sibilité · WCAG 2.2 AA · guidelines produit`, 'U10 · J5', 'U13, protection USB, accessibilité'],
+      ['U14', `Exten${SH}seur d’E${WJ}/${WJ}S`, `TCA9554 · 8 E${WJ}/${WJ}S I²C`, `HTML séman${SH}tique · landmarks · ARIA juste`, 'U10 · SW1 · SW2 · JP1', 'U14, extenseur d’E/S, HTML sémantique'],
       ['U15', 'Pilote de LED', 'PCA9633 · 4 canaux PWM', 'CSS · layers · container queries · motion', 'U10 · D2–D5', 'U15, pilote de LED, CSS'],
-      ['U16', 'Horloge temps réel', 'PCF8563 · uptime', `Archi${SH}tecture front · composants · migrations`, 'U10 · Y2', `U16, horloge temps réel, archi${SH}tecture front`],
-      ['U17', `Super${SH}viseur de reset`, `APX803 · 2,93${NB}V`, 'Tests · unitaires · e2e · a11y', 'U10 · J6', `U17, super${SH}viseur de reset, tests`],
-      ['U18', 'Capteur de lumière', 'BH1750 · I²C', `Électro${SH}nique · Arduino · Raspberry Pi · IoT`, 'U10', `U18, capteur de lumière, électro${SH}nique`],
+      ['U16', 'Horloge temps réel', 'PCF8563 · uptime', `Archi${SH}tecture front · composants · migrations`, 'U10 · Y2', 'U16, horloge temps réel, architecture front'],
+      ['U17', `Super${SH}viseur de reset`, `APX803 · 2,93${NB}V`, 'Tests · unitaires · e2e · a11y', 'U10 · J6', 'U17, superviseur de reset, tests'],
+      ['U18', 'Capteur de lumière', 'BH1750 · I²C', `Électro${SH}nique · Arduino · Raspberry Pi · IoT`, 'U10', 'U18, capteur de lumière, électronique'],
       ['Y1', 'Quartz', '40 MHz · ±10 ppm', 'Équipe · recrutement · formation · coaching', 'U10', 'Y1, quartz, équipe'],
-      ['J6', `Connec${SH}teur de debug`, 'UART + boot · 6 broches', 'Debug · navigateurs · réseau · mémoire', 'U10 · U17', `J6, connec${SH}teur de debug, debug`],
+      ['J6', `Connec${SH}teur de debug`, 'UART + boot · 6 broches', 'Debug · navigateurs · réseau · mémoire', 'U10 · U17', 'J6, connecteur de debug, debug'],
     ]),
     group: 'Composants de la face arrière',
   },
@@ -356,17 +361,17 @@ export const EN: Copy = {
     caption: 'Bill of materials: the parts on this board',
     columns: ['Ref', 'Part', `Value${NB}/ skill`, 'Linked to'],
     rows: bom([
-      ['U10', `Micro${SH}controller`, 'ESP32-S3 · 240 MHz · USB', 'Vue.js · 2 → 3 · Composition API · SSR', 'U11 · U13–U18 · Y1 · J6 · J7 · R1 · LED1 · D1 · U2 · J1–J4 · DISP1', `U10, micro${SH}controller, Vue.js`],
+      ['U10', `Micro${SH}controller`, 'ESP32-S3 · 240 MHz · USB', 'Vue.js · 2 → 3 · Composition API · SSR', 'U11 · U13–U18 · Y1 · J6 · J7 · R1 · LED1 · D1 · U2 · J1–J4 · DISP1', 'U10, microcontroller, Vue.js'],
       ['U11', 'Flash memory', 'W25Q128 · 16 MB QSPI', `TypeScript${NB}/ JavaScript · strict · ES modules`, 'U10', `U11, flash memory, TypeScript${NB}/ JavaScript`],
-      ['U12', `3.3 V regu${SH}lator`, 'AP2112K · LDO 600 mA', `Web perfor${SH}mance · audits · Core Web Vitals`, 'J5', `U12, 3.3 V regu${SH}lator, web perfor${SH}mance`],
-      ['U13', `USB protec${SH}tion`, 'USBLC6-2 · ESD', `Acces${SH}sibility · WCAG 2.2 AA · product guidelines`, 'U10 · J5', `U13, USB protec${SH}tion, acces${SH}sibility`],
-      ['U14', `I${WJ}/${WJ}O expan${SH}der`, `TCA9554 · 8 I${WJ}/${WJ}O I²C`, `Seman${SH}tic HTML · landmarks · ARIA done right`, 'U10 · SW1 · SW2 · JP1', `U14, I${WJ}/${WJ}O expan${SH}der, seman${SH}tic HTML`],
+      ['U12', `3.3 V regu${SH}lator`, 'AP2112K · LDO 600 mA', `Web perfor${SH}mance · audits · Core Web Vitals`, 'J5', 'U12, 3.3 V regulator, web performance'],
+      ['U13', `USB protec${SH}tion`, 'USBLC6-2 · ESD', `Acces${SH}sibility · WCAG 2.2 AA · product guidelines`, 'U10 · J5', 'U13, USB protection, accessibility'],
+      ['U14', `I${WJ}/${WJ}O expan${SH}der`, `TCA9554 · 8 I${WJ}/${WJ}O I²C`, `Seman${SH}tic HTML · landmarks · ARIA done right`, 'U10 · SW1 · SW2 · JP1', 'U14, I/O expander, semantic HTML'],
       ['U15', 'LED driver', 'PCA9633 · 4 PWM channels', 'CSS · layers · container queries · motion', 'U10 · D2–D5', 'U15, LED driver, CSS'],
-      ['U16', 'Real-time clock', 'PCF8563 · uptime', `Front-end archi${SH}tecture · components · migrations`, 'U10 · Y2', `U16, real-time clock, front-end archi${SH}tecture`],
-      ['U17', `Reset super${SH}visor`, 'APX803 · 2.93 V', 'Testing · unit · e2e · a11y', 'U10 · J6', `U17, reset super${SH}visor, testing`],
-      ['U18', 'Light sensor', 'BH1750 · I²C', `Electro${SH}nics · Arduino · Raspberry Pi · IoT`, 'U10', `U18, light sensor, electro${SH}nics`],
+      ['U16', 'Real-time clock', 'PCF8563 · uptime', `Front-end archi${SH}tecture · components · migrations`, 'U10 · Y2', 'U16, real-time clock, front-end architecture'],
+      ['U17', `Reset super${SH}visor`, 'APX803 · 2.93 V', 'Testing · unit · e2e · a11y', 'U10 · J6', 'U17, reset supervisor, testing'],
+      ['U18', 'Light sensor', 'BH1750 · I²C', `Electro${SH}nics · Arduino · Raspberry Pi · IoT`, 'U10', 'U18, light sensor, electronics'],
       ['Y1', 'Crystal', '40 MHz · ±10 ppm', 'Team · hiring · training · coaching', 'U10', 'Y1, crystal, team'],
-      ['J6', 'Debug header', 'UART + boot · 6 pins', `Debug${SH}ging · browsers · network · memory`, 'U10 · U17', `J6, debug header, debug${SH}ging`],
+      ['J6', 'Debug header', 'UART + boot · 6 pins', `Debug${SH}ging · browsers · network · memory`, 'U10 · U17', 'J6, debug header, debugging'],
     ]),
     group: 'Back-side components',
   },
