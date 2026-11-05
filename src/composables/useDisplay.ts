@@ -44,7 +44,7 @@ export interface Display {
    */
   pad(key: Key): void;
   /** The game mode of the easter egg (revision 8): on, what it draws, what it says. */
-  game: Pick<GameMode, 'on' | 'view' | 'news'>;
+  game: Pick<GameMode, 'on' | 'view' | 'news' | 'sound' | 'toggleSound'>;
 }
 
 /**

@@ -2,6 +2,8 @@ import { onBeforeUnmount, onMounted, readonly, ref, type Ref } from 'vue';
 import type { Game, GameView, PadKey } from '../game/play';
 import { useReducedMotion } from './useReducedMotion';
 
+const SOUND = 'k0t3i.sound';
+
 /** What the game mode says, politely: its rules as it starts, or the end of a game with its score. */
 export type GameNews = { kind: 'intro' } | { kind: 'over'; pads: number };
 
@@ -12,6 +14,10 @@ export interface GameMode {
   view: Readonly<Ref<GameView | null>>;
   /** What is to be said, or null. */
   news: Readonly<Ref<GameNews | null>>;
+  /** The sound of the game is on (the SON switch, Task 20): on by default, kept in localStorage `k0t3i.sound`. */
+  sound: Readonly<Ref<boolean>>;
+  /** The SON switch pressed: the sound off or on again, the choice kept, the game told at once (in the press). */
+  toggleSound(): void;
   start(): void;
   /** A key of the test keypad, for the game (nothing until it has loaded). */
   press(key: PadKey): void;
@@ -38,6 +44,7 @@ export function useGame(screen: Ref<HTMLElement | null>): GameMode {
   const on = ref(false);
   const view = ref<GameView | null>(null);
   const news = ref<GameNews | null>(null);
+  const sound = ref(true);
   let stop: Game | undefined;
   /** The game mode now on: a game that loads for an earlier one never starts. */
   let round = 0;
@@ -80,6 +87,11 @@ export function useGame(screen: Ref<HTMLElement | null>): GameMode {
   function start(): void {
     if (on.value) return;
     const mine = ++round;
+    try {
+      sound.value = localStorage.getItem(SOUND) !== 'off';
+    } catch {
+      sound.value = true;
+    }
     on.value = true;
     unsaid = held;
     news.value = held ? null : { kind: 'intro' };
@@ -92,6 +104,7 @@ export function useGame(screen: Ref<HTMLElement | null>): GameMode {
           draw: (v) => (view.value = v),
           over: (pads) => (news.value = { kind: 'over', pads }),
           playing: () => (news.value = null),
+          sound: sound.value,
         });
         if (held) stop.hold(true);
       })
@@ -113,6 +126,16 @@ export function useGame(screen: Ref<HTMLElement | null>): GameMode {
     news: readonly(news) as Readonly<Ref<GameNews | null>>,
     start,
     quit,
+    sound: readonly(sound),
+    toggleSound() {
+      sound.value = !sound.value;
+      try {
+        localStorage.setItem(SOUND, sound.value ? 'on' : 'off');
+      } catch {
+        // Storage refused: the choice holds for this page.
+      }
+      stop?.sound(sound.value);
+    },
     press: (key) => stop?.press(key),
     hold(back) {
       held = back;

@@ -22,12 +22,14 @@ const stops: ReturnType<typeof vi.fn>[] = [];
 /** The keys of the keypad the game was given (its press()), and its holds (hold()). */
 const pressed: string[] = [];
 const holds: boolean[] = [];
+/** The sound switched on or off (sound(), Task 20). */
+const sounds: boolean[] = [];
 vi.mock('../../src/game/play', () => ({
   play: (host: GameHost) => {
     hosts.push(host);
     const stop = vi.fn();
     stops.push(stop);
-    return Object.assign(stop, { press: (k: string) => pressed.push(k), hold: (on: boolean) => holds.push(on) });
+    return Object.assign(stop, { press: (k: string) => pressed.push(k), hold: (on: boolean) => holds.push(on), sound: (on: boolean) => sounds.push(on) });
   },
 }));
 
@@ -99,7 +101,9 @@ beforeEach(() => {
   stops.length = 0;
   pressed.length = 0;
   holds.length = 0;
+  sounds.length = 0;
   sheetIsOpen = false;
+  localStorage.clear();
 });
 
 afterEach(() => {
@@ -177,6 +181,7 @@ describe('the game mode of DISP1', () => {
     expect(html).toContain('<figure id="disp1" class="disp" aria-labelledby="disp1-caption">');
     expect(html).not.toContain('data-retro');
     expect(html).toMatch(/<p class="vh" aria-live="polite"><\/p>/);
+    expect(html).not.toContain('snd');
   });
 
   for (const [way, leave] of [
@@ -191,6 +196,7 @@ describe('the game mode of DISP1', () => {
       await m.wrapper.get('button.sw1').trigger('click');
       expect(caption(m.wrapper)).toBe(fr.display.captions.uptime);
       await start(m.wrapper);
+      expect(m.wrapper.find('button.snd').exists()).toBe(true);
       await leave(m.wrapper, m);
       await flushPromises();
       await nextTick();
@@ -198,6 +204,7 @@ describe('the game mode of DISP1', () => {
       const display = m.locale.value === 'en' ? en.display : fr.display;
       // A language switch puts DISP1 back on the avatar; the others keep the screen chosen.
       atRest(m.wrapper, way === 'a language switch' ? display.captions.avatar : display.captions.uptime);
+      expect(m.wrapper.find('button.snd').exists()).toBe(false);
       m.wrapper.unmount();
     });
   }
@@ -387,6 +394,68 @@ describe('the game mode of DISP1', () => {
       for (const k of CODE) tap(m.wrapper, k);
       await flushPromises();
       expect(hosts).toHaveLength(0);
+      m.wrapper.unmount();
+    });
+  });
+
+  // Task 20: the SON switch, shown in the game mode only, on by default, its choice kept.
+  describe('the sound switch', () => {
+    const snd = (w: VueWrapper) => w.find('button.snd');
+
+    it('none at rest; in the game mode a toggle, pressed (on by default), named, its positions drawn; the game told', async () => {
+      const { wrapper } = mountBoard();
+      await nextTick();
+      expect(snd(wrapper).exists()).toBe(false);
+      const host = await start(wrapper);
+      expect(host.sound).toBe(true);
+      const b = snd(wrapper);
+      expect(b.attributes('type')).toBe('button');
+      expect(b.attributes('aria-pressed')).toBe('true');
+      expect(b.attributes('aria-label')).toBe(ORACLE_FR.game.sound.name);
+      expect(b.get('.part__ref').text()).toBe(ORACLE_FR.game.sound.label);
+      expect(b.findAll('[aria-hidden="true"]').map((e) => e.text())).toEqual([ORACLE_FR.game.sound.off, '', ORACLE_FR.game.sound.on, ORACLE_FR.game.sound.label]);
+      // After SW1 and the keypad, before the caption: in the path of the keyboard, the caption still last.
+      const kids = [...wrapper.get('figure.disp').element.children];
+      expect(kids.indexOf(b.element)).toBe(kids.indexOf(wrapper.get('.keypad').element) + 1);
+      expect(kids.at(-1)?.tagName).toBe('FIGCAPTION');
+      wrapper.unmount();
+    });
+
+    it('a press toggles it, tells the game and keeps the choice; the next game mode starts with it', async () => {
+      const m = mountBoard();
+      await start(m.wrapper);
+      await snd(m.wrapper).trigger('click');
+      expect(snd(m.wrapper).attributes('aria-pressed')).toBe('false');
+      expect(sounds).toEqual([false]);
+      expect(localStorage.getItem('k0t3i.sound')).toBe('off');
+      type();
+      await nextTick();
+      const host = await start(m.wrapper);
+      expect(host.sound).toBe(false);
+      expect(snd(m.wrapper).attributes('aria-pressed')).toBe('false');
+      await snd(m.wrapper).trigger('click');
+      expect(sounds).toEqual([false, true]);
+      expect(localStorage.getItem('k0t3i.sound')).toBe('on');
+      m.wrapper.unmount();
+    });
+
+    it('a choice kept from before: off', async () => {
+      localStorage.setItem('k0t3i.sound', 'off');
+      const m = mountBoard();
+      const host = await start(m.wrapper);
+      expect(host.sound).toBe(false);
+      expect(snd(m.wrapper).attributes('aria-pressed')).toBe('false');
+      m.wrapper.unmount();
+    });
+
+    it('focused as the mode ends, the focus goes to SW1, never lost', async () => {
+      const m = mountBoard();
+      await start(m.wrapper);
+      (snd(m.wrapper).element as HTMLElement).focus();
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      await nextTick();
+      expect(snd(m.wrapper).exists()).toBe(false);
+      expect(document.activeElement).toBe(m.wrapper.get('button.sw1').element);
       m.wrapper.unmount();
     });
   });

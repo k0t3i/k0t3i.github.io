@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useDisplay } from '../composables/useDisplay';
 import type { Locale, PartId, SiteContent } from '../content/types';
 import PixelScreen from './PixelScreen.vue';
@@ -40,6 +40,15 @@ const said = computed(() => {
   if (news.kind === 'intro') return copy.intro;
   const form = new Intl.PluralRules(props.locale).select(news.pads) === 'one' ? 'one' : 'other';
   return `${copy.over[form].replace('{n}', String(news.pads))} ${copy.again}`;
+});
+
+/*
+ * The SON switch (Task 20): the sound of the game, in the game mode only, after SW1 and the keypad.
+ * Focused as the mode ends, it hands the focus to SW1 before it goes.
+ */
+const snd = ref<HTMLElement | null>(null);
+watch(game.on, (on) => {
+  if (!on && snd.value === document.activeElement) snd.value?.parentElement?.querySelector<HTMLElement>('.sw1')?.focus();
 });
 </script>
 
@@ -102,6 +111,33 @@ const said = computed(() => {
       :game="game.on.value"
       @press="pad"
     />
+    <button
+      v-if="game.on.value"
+      ref="snd"
+      class="snd"
+      type="button"
+      :aria-pressed="game.sound.value"
+      :aria-label="props.display.game.sound.name"
+      @click="game.toggleSound"
+    >
+      <span
+        class="snd__pos snd__pos--off"
+        aria-hidden="true"
+      >{{ props.display.game.sound.off }}</span>
+      <svg
+        class="snd__body"
+        aria-hidden="true"
+        focusable="false"
+      ><use href="#part-slide-switch" /></svg>
+      <span
+        class="snd__pos snd__pos--on"
+        aria-hidden="true"
+      >{{ props.display.game.sound.on }}</span>
+      <span
+        class="part__ref"
+        aria-hidden="true"
+      >{{ props.display.game.sound.label }}</span>
+    </button>
     <figcaption
       id="disp1-caption"
       class="disp__caption"
